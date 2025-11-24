@@ -11,7 +11,6 @@ const router = createRouter({
       path: '/',
       name: 'home',
       component: HomeView,
-      meta: { requiresAuth: true } // Indique que cette route nécessite une authentification
     },
     {
       path: '/login',

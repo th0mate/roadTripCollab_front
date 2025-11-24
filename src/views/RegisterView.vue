@@ -79,11 +79,19 @@ const handleRegister = async () => {
 
   try {
     const response = await register({ fullName: fullName.value, email: email.value, password: password.value });
-    // Stocke le token pour connecter automatiquement l'utilisateur
     localStorage.setItem('authToken', response.data.token);
-    await router.push('/'); // Redirige vers la page d'accueil après l'inscription
+    await router.push('/');
   } catch (error: any) {
-    errorMessage.value = error.response?.data?.message || 'Échec de l\'inscription. Veuillez réessayer.';
+    if (error.response && error.response.data && error.response.data.errors) {
+      const backendError = error.response.data.errors[0];
+      if (backendError.field === 'email' && backendError.rule === 'database.unique') {
+        errorMessage.value = 'Cette adresse email est déjà utilisée. Veuillez en choisir une autre.';
+      } else {
+        errorMessage.value = backendError.message;
+      }
+    } else {
+      errorMessage.value = 'Échec de l\'inscription. Veuillez réessayer.';
+    }
     console.error(error);
   }
 };

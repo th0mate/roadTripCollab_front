@@ -13,11 +13,11 @@ import {RouterLink, RouterView} from 'vue-router'
       </RouterLink>
       <span class="header-link">Fonctionnalités</span>
       <span class="header-link">FAQ</span>
-      <span class="header-link">Connexion</span>
+      <RouterLink to="/login" class="header-link">Connexion</RouterLink>
     </div>
-    <a href="" class="header-button">
+    <RouterLink to="/register" class="header-button">
       Inscription
-    </a>
+    </RouterLink>
   </header>
 
   <RouterView class="router-view"/>

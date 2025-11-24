@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRouter, RouterLink } from 'vue-router';
 import { login } from '@/services/authService';
 import '@/assets/styles/loginView.css';
 
@@ -36,6 +36,9 @@ const handleLogin = async () => {
       </div>
       <button type="submit">Se connecter</button>
       <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
+      <div class="additionals-links">
+        <RouterLink to="/forgot-password">Mot de passe oublié ?</RouterLink>
+      </div>
     </form>
   </div>
 </template>

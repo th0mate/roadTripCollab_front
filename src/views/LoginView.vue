@@ -11,9 +11,9 @@ const errorMessage = ref('');
 
 const handleLogin = async () => {
   try {
-    const data = await login({ email: email.value, password: password.value });
-    // Supposons que le backend renvoie un token que vous stockez
-    // localStorage.setItem('authToken', data.token);
+    const response = await login({ email: email.value, password: password.value });
+    // Stocke le token retourné par le backend
+    localStorage.setItem('authToken', response.data.token);
     await router.push('/'); // Redirige vers la page d'accueil après la connexion
   } catch (error: any) {
     errorMessage.value = 'Échec de la connexion. Vérifiez vos identifiants.';

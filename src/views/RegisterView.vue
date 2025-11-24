@@ -78,8 +78,10 @@ const handleRegister = async () => {
   }
 
   try {
-    await register({ fullName: fullName.value, email: email.value, password: password.value });
-    await router.push('/login'); // Redirect to login page after successful registration
+    const response = await register({ fullName: fullName.value, email: email.value, password: password.value });
+    // Stocke le token pour connecter automatiquement l'utilisateur
+    localStorage.setItem('authToken', response.data.token);
+    await router.push('/'); // Redirige vers la page d'accueil après l'inscription
   } catch (error: any) {
     errorMessage.value = error.response?.data?.message || 'Échec de l\'inscription. Veuillez réessayer.';
     console.error(error);

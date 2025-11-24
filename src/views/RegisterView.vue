@@ -2,7 +2,6 @@
 import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { register } from '@/services/authService';
-import '@/assets/styles/registerView.css';
 
 const fullName = ref('');
 const email = ref('');
@@ -10,11 +9,9 @@ const password = ref('');
 const router = useRouter();
 const errorMessage = ref('');
 
-// Validation states
 const emailError = ref('');
 const passwordError = ref('');
 
-// Computed property for email validation
 const isEmailValid = computed(() => {
   if (!email.value) {
     emailError.value = '';
@@ -29,7 +26,6 @@ const isEmailValid = computed(() => {
   return true;
 });
 
-// Computed property for password validation
 const isPasswordValid = computed(() => {
   if (!password.value) {
     passwordError.value = '';
@@ -66,9 +62,8 @@ const isPasswordValid = computed(() => {
 });
 
 const handleRegister = async () => {
-  errorMessage.value = ''; // Clear previous errors
+  errorMessage.value = '';
 
-  // Trigger computed properties to update error messages
   const emailCheck = isEmailValid.value;
   const passwordCheck = isPasswordValid.value;
 
@@ -79,7 +74,6 @@ const handleRegister = async () => {
 
   try {
     const response = await register({ fullName: fullName.value, email: email.value, password: password.value });
-    // Stocke le token pour connecter automatiquement l'utilisateur
     localStorage.setItem('authToken', response.data.token);
     await router.push('/'); // Redirige vers la page d'accueil après l'inscription
   } catch (error: any) {
@@ -90,25 +84,58 @@ const handleRegister = async () => {
 </script>
 
 <template>
-  <div class="register-view">
-    <h1>Créer un compte</h1>
-    <form @submit.prevent="handleRegister">
-      <div class="form-group">
-        <label for="fullName">Nom complet</label>
-        <input type="text" id="fullName" v-model="fullName" required />
+  <div class="auth-container">
+    <div class="auth-form-wrapper">
+      <div class="auth-form">
+        <h1 class="auth-title">Rejoignez-nous</h1>
+        <p class="auth-subtitle">Créez votre compte gratuitement</p>
+
+        <form @submit.prevent="handleRegister">
+          <div class="form-group">
+            <label for="fullName">Nom complet</label>
+            <div class="input-wrapper">
+              <svg class="input-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" fill="currentColor"/>
+              </svg>
+              <input type="text" id="fullName" v-model="fullName" placeholder="Jean Dupont" required />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="email">Email</label>
+            <div class="input-wrapper">
+              <svg class="input-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" fill="currentColor"/>
+              </svg>
+              <input type="email" id="email" v-model="email" placeholder="votre@email.com" required />
+            </div>
+            <p v-if="emailError" class="validation-error">{{ emailError }}</p>
+          </div>
+
+          <div class="form-group">
+            <label for="password">Mot de passe</label>
+            <div class="input-wrapper">
+              <svg class="input-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z" fill="currentColor"/>
+              </svg>
+              <input type="password" id="password" v-model="password" placeholder="••••••••" required />
+            </div>
+            <p v-if="passwordError" class="validation-error">{{ passwordError }}</p>
+          </div>
+
+          <button type="submit" class="auth-button">S'inscrire</button>
+
+          <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
+        </form>
+
+        <div class="auth-footer">
+          <p>Déjà un compte ? <RouterLink to="/login" class="signup-link">Se connecter</RouterLink></p>
+        </div>
       </div>
-      <div class="form-group">
-        <label for="email">Email</label>
-        <input type="email" id="email" v-model="email" @input="isEmailValid" required />
-        <p v-if="emailError" class="error-message">{{ emailError }}</p>
-      </div>
-      <div class="form-group">
-        <label for="password">Mot de passe</label>
-        <input type="password" id="password" v-model="password" @input="isPasswordValid" required />
-        <p v-if="passwordError" class="error-message">{{ passwordError }}</p>
-      </div>
-      <button type="submit">S'inscrire</button>
-      <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
-    </form>
+    </div>
   </div>
 </template>
+
+<style scoped>
+@import "@/assets/styles/registerView.css";
+</style>

@@ -30,18 +30,14 @@ const router = createRouter({
   ],
 })
 
-// Garde de navigation
 router.beforeEach((to, from, next) => {
   const isAuthenticated = !!localStorage.getItem('authToken');
 
   if (to.meta.requiresAuth && !isAuthenticated) {
-    // Si la route nécessite une authentification et que l'utilisateur n'est pas connecté
     next({ name: 'login' });
   } else if ((to.name === 'login' || to.name === 'register') && isAuthenticated) {
-    // Si l'utilisateur est déjà connecté et essaie d'accéder à login/register, le rediriger vers l'accueil
     next({ name: 'home' });
   } else {
-    // Sinon, autoriser la navigation
     next();
   }
 });

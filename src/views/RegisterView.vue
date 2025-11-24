@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { register } from '@/services/authService';
+import '@/assets/styles/registerView.css';
 
 const fullName = ref('');
 const email = ref('');
@@ -9,12 +10,78 @@ const password = ref('');
 const router = useRouter();
 const errorMessage = ref('');
 
+// Validation states
+const emailError = ref('');
+const passwordError = ref('');
+
+// Computed property for email validation
+const isEmailValid = computed(() => {
+  if (!email.value) {
+    emailError.value = '';
+    return false;
+  }
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email.value)) {
+    emailError.value = 'Veuillez entrer une adresse email valide.';
+    return false;
+  }
+  emailError.value = '';
+  return true;
+});
+
+// Computed property for password validation
+const isPasswordValid = computed(() => {
+  if (!password.value) {
+    passwordError.value = '';
+    return false;
+  }
+  const minLength = 8;
+  const hasUpperCase = /[A-Z]/.test(password.value);
+  const hasLowerCase = /[a-z]/.test(password.value);
+  const hasDigit = /[0-9]/.test(password.value);
+  const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password.value);
+
+  if (password.value.length < minLength) {
+    passwordError.value = `Le mot de passe doit contenir au moins ${minLength} caractères.`;
+    return false;
+  }
+  if (!hasUpperCase) {
+    passwordError.value = 'Le mot de passe doit contenir au moins une majuscule.';
+    return false;
+  }
+  if (!hasLowerCase) {
+    passwordError.value = 'Le mot de passe doit contenir au moins une minuscule.';
+    return false;
+  }
+  if (!hasDigit) {
+    passwordError.value = 'Le mot de passe doit contenir au moins un chiffre.';
+    return false;
+  }
+  if (!hasSpecialChar) {
+    passwordError.value = 'Le mot de passe doit contenir au moins un caractère spécial (!@#$%^&*...).';
+    return false;
+  }
+  passwordError.value = '';
+  return true;
+});
+
 const handleRegister = async () => {
+  errorMessage.value = ''; // Clear previous errors
+
+  // Trigger computed properties to update error messages
+  const emailCheck = isEmailValid.value;
+  const passwordCheck = isPasswordValid.value;
+
+  if (!emailCheck || !passwordCheck || !fullName.value) {
+    errorMessage.value = 'Veuillez corriger les erreurs dans le formulaire.';
+    return;
+  }
+
   try {
     await register({ fullName: fullName.value, email: email.value, password: password.value });
-    await router.push('/login'); // Redirige vers la page de connexion après l'inscription
+    await router.push('/login'); // Redirect to login page after successful registration
   } catch (error: any) {
-    errorMessage.value = 'Échec de l\'inscription. Veuillez réessayer.';
+    errorMessage.value = error.response?.data?.message || 'Échec de l\'inscription. Veuillez réessayer.';
     console.error(error);
   }
 };
@@ -30,52 +97,16 @@ const handleRegister = async () => {
       </div>
       <div class="form-group">
         <label for="email">Email</label>
-        <input type="email" id="email" v-model="email" required />
+        <input type="email" id="email" v-model="email" @input="isEmailValid" required />
+        <p v-if="emailError" class="error-message">{{ emailError }}</p>
       </div>
       <div class="form-group">
         <label for="password">Mot de passe</label>
-        <input type="password" id="password" v-model="password" required />
+        <input type="password" id="password" v-model="password" @input="isPasswordValid" required />
+        <p v-if="passwordError" class="error-message">{{ passwordError }}</p>
       </div>
       <button type="submit">S'inscrire</button>
       <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
     </form>
   </div>
 </template>
-
-<style scoped>
-.register-view {
-  max-width: 400px;
-  margin: 50px auto;
-  padding: 20px;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-}
-.form-group {
-  margin-bottom: 15px;
-}
-label {
-  display: block;
-  margin-bottom: 5px;
-}
-input {
-  width: 100%;
-  padding: 8px;
-  box-sizing: border-box;
-}
-button {
-  width: 100%;
-  padding: 10px;
-  background-color: #28a745;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-button:hover {
-  background-color: #218838;
-}
-.error-message {
-  color: red;
-  margin-top: 10px;
-}
-</style>

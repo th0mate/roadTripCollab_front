@@ -2,6 +2,7 @@
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { login } from '@/services/authService';
+import '@/assets/styles/loginView.css';
 
 const email = ref('');
 const password = ref('');
@@ -38,41 +39,3 @@ const handleLogin = async () => {
     </form>
   </div>
 </template>
-
-<style scoped>
-.login-view {
-  max-width: 400px;
-  margin: 50px auto;
-  padding: 20px;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-}
-.form-group {
-  margin-bottom: 15px;
-}
-label {
-  display: block;
-  margin-bottom: 5px;
-}
-input {
-  width: 100%;
-  padding: 8px;
-  box-sizing: border-box;
-}
-button {
-  width: 100%;
-  padding: 10px;
-  background-color: #007bff;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-button:hover {
-  background-color: #0056b3;
-}
-.error-message {
-  color: red;
-  margin-top: 10px;
-}
-</style>

@@ -1,0 +1,43 @@
+.register-view {
+  max-width: 400px;
+  margin: 50px auto;
+  padding: 20px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+}
+.register-view .form-group {
+  margin-bottom: 15px;
+}
+.register-view label {
+  display: block;
+  margin-bottom: 5px;
+}
+.register-view input {
+  width: 100%;
+  padding: 8px;
+  box-sizing: border-box;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+.register-view input:focus {
+  border-color: #007bff;
+  outline: none;
+}
+.register-view button {
+  width: 100%;
+  padding: 10px;
+  background-color: #28a745;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+}
+.register-view button:hover {
+  background-color: #218838;
+}
+.register-view .error-message {
+  color: red;
+  font-size: 0.85em;
+  margin-top: 5px;
+}

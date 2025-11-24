@@ -87,7 +87,8 @@ body {
   }
 
   &:hover,
-  &.active {
+  &.active,
+  &.router-link-active {
     color: var(--primary-color);
 
     &::after {
@@ -226,7 +227,8 @@ body {
   display: block;
 
   &:hover,
-  &.active {
+  &.active,
+  &.router-link-active {
     background: #f3f4f6;
     color: var(--primary-color);
     transform: translateX(8px);

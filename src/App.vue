@@ -68,10 +68,11 @@ watch(() => route.path, checkAuth);
       </RouterLink>
       <span class="mobile-menu-link" @click="closeMobileMenu">Fonctionnalités</span>
       <span class="mobile-menu-link" @click="closeMobileMenu">FAQ</span>
-      <span class="mobile-menu-link" @click="closeMobileMenu">Connexion</span>
-      <a href="" class="mobile-menu-button" @click="closeMobileMenu">
+      <RouterLink v-if="!isAuthenticated" to="/login" class="mobile-menu-link" @click="closeMobileMenu">Connexion</RouterLink>
+      <a v-if="isAuthenticated" @click="logout(); closeMobileMenu()" class="mobile-menu-link" style="cursor: pointer;">Déconnexion</a>
+      <RouterLink v-if="!isAuthenticated" to="/register" class="mobile-menu-button" @click="closeMobileMenu">
         Inscription
-      </a>
+      </RouterLink>
     </div>
   </nav>
 

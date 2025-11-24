@@ -1,0 +1,88 @@
+* {
+  box-sizing: border-box;
+  font-family: 'Montserrat', sans-serif;
+}
+
+:root {
+  --primary-color: #122F0B;
+  --secondary-color: #275F3E;
+  --background-color: #F3F3F3;
+  --text-color: #212529;
+  --border-color: #E0E0E0;
+}
+
+html {
+  scroll-behavior: smooth;
+  background: var(--background-color);
+}
+
+.general-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 20px;
+  background-color: var(--background-color);
+  width: 100vw;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 5;
+  font-size: 14px;
+
+  .header-logo {
+    cursor: pointer;
+    img {
+      height: 40px;
+      width: auto;
+    }
+  }
+
+  .header-links {
+    display: flex;
+    gap: 80px;
+
+    .header-link {
+      text-decoration: none;
+      color: #7E7E7E;
+      font-weight: bold;
+      transition: color 0.3s;
+      cursor: pointer;
+
+      &::after {
+        content: '';
+        display: block;
+        width: 0;
+        height: 2px;
+        background: var(--secondary-color);
+        transition: width 0.3s;
+      }
+
+      &:hover, &.active {
+        color: var(--secondary-color);
+        &::after {
+          width: 100%;
+        }
+      }
+    }
+  }
+
+  .header-button {
+    padding: 8px 16px;
+    background-color: var(--secondary-color);
+    color: #FFF;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background-color 0.3s;
+    text-decoration: none;
+
+    &:hover {
+      background-color: var(--primary-color);
+    }
+  }
+}
+
+.router-view {
+  margin-top: 65px;
+}

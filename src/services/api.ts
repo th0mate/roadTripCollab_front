@@ -1,10 +1,24 @@
-import axios from 'axios';
+import axios from 'axios'
+import { getToken } from './authService'
 
 const apiClient = axios.create({
   baseURL: 'http://localhost:3333',
   headers: {
     'Content-Type': 'application/json',
   },
-});
+})
 
-export default apiClient;
+apiClient.interceptors.request.use(
+  (config) => {
+    const token = getToken()
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
+    }
+    return config
+  },
+  (error) => {
+    return Promise.reject(error)
+  }
+)
+
+export default apiClient

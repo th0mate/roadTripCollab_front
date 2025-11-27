@@ -32,6 +32,11 @@ export const getMe = async (): Promise<User> => {
   return response.data.data.user
 }
 
+export const updateMe = async (userData: Partial<User>): Promise<User> => {
+  const response = await apiClient.put('/auth/me', userData)
+  return response.data.data.user
+}
+
 export const forgotPassword = async (payload: { email: string }): Promise<any> => {
   // Le backend ne gère pas encore cette route, ceci est un placeholder.
   // Lorsque le backend sera prêt, vous pourrez décommenter la ligne suivante.

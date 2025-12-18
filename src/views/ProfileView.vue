@@ -276,6 +276,16 @@
         </div>
       </template>
     </div>
+
+    <AppModal
+      v-model="showDeleteModal"
+      type="danger"
+      title="Supprimer votre compte"
+      message="Êtes-vous sûr de vouloir supprimer votre compte ? Cette action est irréversible et toutes vos données seront définitivement effacées."
+      confirm-text="Supprimer"
+      cancel-text="Annuler"
+      @confirm="confirmDeleteAccount"
+    />
   </div>
 </template>
 
@@ -284,9 +294,13 @@ import { defineComponent, ref, reactive, computed, onMounted } from 'vue'
 import { getMe, updateMe, deleteAccount } from '@/services/authService'
 import type { User } from '@/types/user'
 import { useRouter } from 'vue-router'
+import AppModal from '@/components/AppModal.vue'
 
 export default defineComponent({
   name: 'ProfileView',
+  components: {
+    AppModal
+  },
   setup() {
     const user = ref<User | null>(null)
     const editableUser = ref<Partial<User>>({})
@@ -305,6 +319,7 @@ export default defineComponent({
       confirmPassword: null,
     })
     const isEditing = ref(false)
+    const showDeleteModal = ref(false)
     const router = useRouter()
 
     const fileInputRef = ref<HTMLInputElement | null>(null)
@@ -516,15 +531,17 @@ export default defineComponent({
       }
     }
 
-    const handleDeleteAccount = async () => {
-      if (confirm('Êtes-vous sûr de vouloir supprimer votre compte ? Cette action est irréversible.')) {
-        try {
-          await deleteAccount()
-          router.push('/')
-        } catch (err: any) {
-          error.value = err.response?.data?.message || err.message || 'Une erreur est survenue lors de la suppression.'
-          console.error(err)
-        }
+    const handleDeleteAccount = () => {
+      showDeleteModal.value = true
+    }
+
+    const confirmDeleteAccount = async () => {
+      try {
+        await deleteAccount()
+        router.push('/')
+      } catch (err: any) {
+        error.value = err.response?.data?.message || err.message || 'Une erreur est survenue lors de la suppression.'
+        console.error(err)
       }
     }
 
@@ -553,6 +570,8 @@ export default defineComponent({
       cancelEditing,
       saveChanges,
       handleDeleteAccount,
+      showDeleteModal,
+      confirmDeleteAccount,
     }
   },
 })

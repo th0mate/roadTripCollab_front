@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
+import { forgotPassword } from '@/services/authService';
 
 const email = ref('');
 const router = useRouter();
@@ -16,19 +17,15 @@ const handleForgotPassword = async () => {
   }
 
   try {
-    // Ici, vous appelleriez votre service pour envoyer la demande de réinitialisation
-    // await authService.forgotPassword({ email: email.value });
-
-    // Pour la démo, nous allons juste afficher un message de succès
+    await forgotPassword({ email: email.value });
     successMessage.value = 'Si un compte est associé à cet email, un lien de réinitialisation a été envoyé.';
-
-    // Optionnel : rediriger après un certain temps
-    // setTimeout(() => router.push('/login'), 5000);
-
   } catch (error: any) {
-    // Même en cas d'erreur, pour des raisons de sécurité, il est souvent préférable
-    // de montrer le même message de succès pour ne pas révéler quels emails existent dans la base de données.
-    successMessage.value = 'Si un compte est associé à cet email, un lien de réinitialisation a été envoyé.';
+    // Si le backend renvoie 404 (non trouvé) comme nous l'avons codé
+    if (error.response && error.response.status === 404) {
+       errorMessage.value = "Aucun compte n'est associé à cet email.";
+    } else {
+       errorMessage.value = "Une erreur est survenue. Veuillez réessayer plus tard.";
+    }
     console.error(error);
   }
 };

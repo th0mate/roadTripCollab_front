@@ -41,16 +41,13 @@ export const deleteAccount = async (): Promise<any> => {
 }
 
 export const forgotPassword = async (payload: { email: string }): Promise<any> => {
-  // Le backend ne gère pas encore cette route, ceci est un placeholder.
-  // Lorsque le backend sera prêt, vous pourrez décommenter la ligne suivante.
-  // const response = await apiClient.post('/auth/forgot-password', payload);
-  // return response.data;
+  const response = await apiClient.post('/auth/forgot-password', payload)
+  return response.data
+}
 
-  // Simulation d'une réponse réussie
-  console.log('Demande de réinitialisation de mot de passe pour:', payload.email)
-  return Promise.resolve({
-    message: 'If an account with this email exists, a reset link has been sent.',
-  })
+export const resetPassword = async (payload: { token: string; password: string }): Promise<any> => {
+  const response = await apiClient.post('/auth/reset-password', payload)
+  return response.data
 }
 
 export const getToken = (): string | null => {

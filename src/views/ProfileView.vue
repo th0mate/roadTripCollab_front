@@ -498,35 +498,17 @@ export default defineComponent({
 
     const saveChanges = async () => {
       if (!editableUser.value) return
-
-      if (!validateForm()) {
-        formError.value = 'Veuillez corriger les erreurs ci-dessus.'
-        return
-      }
-
-      const dataToUpdate: any = { ...editableUser.value }
-      delete dataToUpdate.password
-
-      if (newProfilePicture.value) {
-        dataToUpdate.profilePicture = newProfilePicture.value
-      } else if (editableUser.value.profilePicture === undefined && user.value?.profilePicture) {
-        dataToUpdate.profilePicture = null
-      }
-
-      if (passwordForm.value.newPassword) {
-        dataToUpdate.password = passwordForm.value.newPassword
-        dataToUpdate.currentPassword = passwordForm.value.currentPassword
-      }
-
       try {
-        const updatedUser = await updateMe(dataToUpdate)
-        user.value = updatedUser
+        const response = await updateMe(editableUser.value)
+        user.value = await getMe()
+
+        if (editableUser.value.email !== user.value.email) {
+           alert("Si vous avez modifié votre email, un lien de confirmation a été envoyé à la nouvelle adresse. Veuillez vérifier vos emails.")
+        }
+
         isEditing.value = false
-        newProfilePicture.value = null
-        newProfilePictureFile.value = null
-        clearAllErrors()
       } catch (err: any) {
-        formError.value = err.response?.data?.message || err.message || 'Une erreur est survenue.'
+        error.value = err.response?.data?.message || err.message || 'Une erreur est survenue.'
         console.error(err)
       }
     }

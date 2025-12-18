@@ -70,9 +70,11 @@ const userInitials = computed(() => {
   if (!user.value?.fullName) return '?'
   const parts = user.value.fullName.trim().split(' ')
   if (parts.length >= 2) {
-    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+    const firstInitial = parts[0]?.[0] || ''
+    const lastInitial = parts[parts.length - 1]?.[0] || ''
+    return (firstInitial + lastInitial).toUpperCase()
   }
-  return parts[0].substring(0, 2).toUpperCase()
+  return parts[0]?.substring(0, 2).toUpperCase() || '?'
 })
 
 const userProfilePicture = computed(() => {
@@ -112,6 +114,8 @@ watch(
 
     <nav class="rtc-navbar__nav">
       <RouterLink to="/" class="rtc-navbar__link">Accueil</RouterLink>
+      <RouterLink v-if="isAuthenticated" to="/create-trip" class="rtc-navbar__link">Créer un voyage</RouterLink>
+      <RouterLink v-if="isAuthenticated" to="/my-trips" class="rtc-navbar__link">Mes voyages</RouterLink>
       <span class="rtc-navbar__link">Fonctionnalités</span>
       <span class="rtc-navbar__link">FAQ</span>
       <RouterLink v-if="!isAuthenticated" to="/login" class="rtc-navbar__link">Connexion</RouterLink>
@@ -196,6 +200,18 @@ watch(
           <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" fill="currentColor"/>
         </svg>
         Accueil
+      </RouterLink>
+      <RouterLink v-if="isAuthenticated" to="/create-trip" class="rtc-mobile-menu__link" @click="closeMobileMenu">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="currentColor"/>
+        </svg>
+        Créer un voyage
+      </RouterLink>
+      <RouterLink v-if="isAuthenticated" to="/my-trips" class="rtc-mobile-menu__link" @click="closeMobileMenu">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z" fill="currentColor"/>
+        </svg>
+        Mes voyages
       </RouterLink>
       <span class="rtc-mobile-menu__link" @click="closeMobileMenu">
         <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">

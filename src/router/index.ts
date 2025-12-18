@@ -46,6 +46,24 @@ const router = createRouter({
       component: ProfileView,
       meta: { requiresAuth: true },
     },
+    {
+      path: '/create-trip',
+      name: 'create-trip',
+      component: () => import('../views/CreateTripView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/my-trips',
+      name: 'my-trips',
+      component: () => import('../views/MyTripsView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/trips/:id',
+      name: 'trip-dashboard',
+      component: () => import('../views/TripDashboardView.vue'),
+      meta: { requiresAuth: true },
+    },
   ],
 })
 

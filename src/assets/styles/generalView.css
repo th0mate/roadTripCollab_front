@@ -7,7 +7,7 @@
 }
 
 :root {
-  --primary-color: #1e4d3d;
+  --primary-color: #3d8b6d;
   --secondary-color: #2a6b52;
   --background-color: #fafafa;
   --text-color: #1f2937;
@@ -41,6 +41,12 @@ body {
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.06);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   height: var(--header-height);
+}
+
+i {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .header-logo {

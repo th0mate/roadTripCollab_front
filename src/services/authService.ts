@@ -15,9 +15,6 @@ export const register = async (
   userData: Pick<User, 'fullName' | 'email' | 'password'>
 ): Promise<any> => {
   const response = await apiClient.post('/auth/register', userData)
-  if (response.data.data.token) {
-    setToken(response.data.data.token)
-  }
   return response.data
 }
 

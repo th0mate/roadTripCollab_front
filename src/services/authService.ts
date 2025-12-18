@@ -37,6 +37,12 @@ export const updateMe = async (userData: Partial<User>): Promise<User> => {
   return response.data.data.user
 }
 
+export const deleteAccount = async (): Promise<any> => {
+  const response = await apiClient.delete('/auth/me')
+  removeToken()
+  return response.data
+}
+
 export const forgotPassword = async (payload: { email: string }): Promise<any> => {
   // Le backend ne gère pas encore cette route, ceci est un placeholder.
   // Lorsque le backend sera prêt, vous pourrez décommenter la ligne suivante.

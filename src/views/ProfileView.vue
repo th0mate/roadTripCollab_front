@@ -6,6 +6,7 @@
         <p><strong>Nom complet:</strong> {{ user.fullName }}</p>
         <p><strong>Email:</strong> {{ user.email }}</p>
         <button @click="startEditing" class="btn-edit">Modifier</button>
+        <button @click="handleDeleteAccount" class="btn-delete">Supprimer mon compte</button>
       </div>
       <div v-else>
         <form @submit.prevent="saveChanges">
@@ -35,8 +36,9 @@
 
 <script lang="ts">
 import { defineComponent, ref, onMounted } from 'vue'
-import { getMe, updateMe } from '@/services/authService'
+import { getMe, updateMe, deleteAccount } from '@/services/authService'
 import type { User } from '@/types/user'
+import { useRouter } from 'vue-router'
 
 export default defineComponent({
   name: 'ProfileView',
@@ -45,6 +47,7 @@ export default defineComponent({
     const editableUser = ref<Partial<User>>({})
     const error = ref<string | null>(null)
     const isEditing = ref(false)
+    const router = useRouter()
 
     const fetchUser = async () => {
       try {
@@ -76,6 +79,18 @@ export default defineComponent({
       }
     }
 
+    const handleDeleteAccount = async () => {
+      if (confirm('Êtes-vous sûr de vouloir supprimer votre compte ? Cette action est irréversible.')) {
+        try {
+          await deleteAccount()
+          router.push('/')
+        } catch (err: any) {
+          error.value = err.response?.data?.message || err.message || 'Une erreur est survenue lors de la suppression.'
+          console.error(err)
+        }
+      }
+    }
+
     onMounted(fetchUser)
 
     return {
@@ -86,6 +101,7 @@ export default defineComponent({
       startEditing,
       cancelEditing,
       saveChanges,
+      handleDeleteAccount,
     }
   },
 })
@@ -142,6 +158,19 @@ h1 {
 
 .btn-edit {
   background-color: #007bff;
+}
+
+.btn-delete {
+  background-color: #dc3545;
+  margin-left: 10px;
+  display: inline-block;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  color: #fff;
+  cursor: pointer;
+  margin-top: 20px;
+  font-size: 1rem;
 }
 
 .btn-save {

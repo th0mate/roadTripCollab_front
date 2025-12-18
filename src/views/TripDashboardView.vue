@@ -60,7 +60,7 @@
 
           <div class="expenses-list" v-if="trip.expenses && trip.expenses.length > 0">
             <h3>Dernières dépenses</h3>
-            <div v-for="expense in trip.expenses.slice(0, 3)" :key="expense.id" class="expense-item">
+            <div v-for="expense in trip.expenses.slice(0, 3)" :key="expense.id" class="expense-item clickable" @click="openEditExpenseModal(expense)">
               <div class="expense-icon" :class="expense.category">
                 {{ getCategoryIcon(expense.category) }}
               </div>
@@ -69,6 +69,9 @@
                 <span class="expense-payer">Payé par {{ expense.payer?.fullName || '?' }}</span>
               </div>
               <span class="expense-amount">-{{ expense.amount }} €</span>
+              <button class="btn-icon delete" @click.stop="openDeleteModal('expense', expense)" title="Supprimer">
+                🗑️
+              </button>
             </div>
             <button class="btn-link" v-if="trip.expenses.length > 3">Voir tout</button>
           </div>
@@ -101,6 +104,9 @@
                     <span class="activity-title">{{ activity.title }}</span>
                     <span class="activity-type">{{ formatStopType(activity.type) }}</span>
                   </div>
+                  <button class="btn-icon delete" @click="openDeleteModal('stop', activity)" title="Supprimer">
+                    🗑️
+                  </button>
                 </div>
                 <button class="btn-add-activity" @click="openAddActivityModal(day.date)">
                   + Ajouter une activité
@@ -122,6 +128,17 @@
                 <span class="name">{{ participant.fullName }}</span>
                 <span class="email">{{ participant.email }}</span>
               </div>
+
+              <template v-if="getParticipantAction(participant)">
+                <button
+                  class="btn-icon"
+                  :class="getParticipantAction(participant) === 'leave' ? 'leave' : 'delete'"
+                  @click="openDeleteModal('participant', participant)"
+                  :title="getParticipantAction(participant) === 'leave' ? 'Quitter le voyage' : 'Retirer du voyage'"
+                >
+                  {{ getParticipantAction(participant) === 'leave' ? '🚪' : '🗑️' }}
+                </button>
+              </template>
             </div>
           </div>
         </div>
@@ -176,6 +193,50 @@
       </div>
     </div>
 
+    <div v-if="showEditExpenseModal" class="modal-overlay" @click.self="showEditExpenseModal = false">
+      <div class="modal-content">
+        <h3>Modifier la dépense</h3>
+        <form @submit.prevent="updateExpense">
+          <div class="form-group">
+            <label>Titre</label>
+            <input v-model="editingExpense.title" required />
+          </div>
+          <div class="form-group">
+            <label>Montant (€)</label>
+            <input type="number" v-model="editingExpense.amount" required min="0" step="0.01" />
+          </div>
+          <div class="form-group">
+            <label>Payé par</label>
+            <select v-model="editingExpense.paidBy" required>
+              <option v-for="p in trip.participants" :key="p.id" :value="p.id">
+                {{ p.id === currentUser?.id ? 'Moi' : p.fullName }}
+              </option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Catégorie</label>
+            <select v-model="editingExpense.category" required>
+              <option value="fuel">Essence</option>
+              <option value="tolls">Péage</option>
+              <option value="food">Nourriture</option>
+              <option value="accommodation">Logement</option>
+              <option value="activity">Activité</option>
+              <option value="transport">Transport</option>
+              <option value="other">Autre</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Date</label>
+            <input type="date" v-model="editingExpense.expenseDate" required />
+          </div>
+          <div class="modal-actions">
+            <button type="button" class="btn-secondary" @click="showEditExpenseModal = false">Annuler</button>
+            <button type="submit" class="btn-primary" :disabled="isSubmitting">Enregistrer</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
     <div v-if="showExpenseModal" class="modal-overlay" @click.self="showExpenseModal = false">
       <div class="modal-content">
         <h3>Ajouter une dépense</h3>
@@ -187,6 +248,14 @@
           <div class="form-group">
             <label>Montant (€)</label>
             <input type="number" v-model="newExpense.amount" required min="0" step="0.01" />
+          </div>
+          <div class="form-group">
+            <label>Payé par</label>
+            <select v-model="newExpense.paidBy" required>
+              <option v-for="p in trip.participants" :key="p.id" :value="p.id">
+                {{ p.id === currentUser?.id ? 'Moi' : p.fullName }}
+              </option>
+            </select>
           </div>
           <div class="form-group">
             <label>Catégorie</label>
@@ -237,14 +306,27 @@
             <strong>Lieu sélectionné :</strong> {{ newStop.title }}
           </div>
           <div class="form-group">
-            <label>Type</label>
+            <label>Type d'activité</label>
             <select v-model="newStop.type" required>
-              <option value="activity">Activité</option>
-              <option value="restaurant">Restaurant</option>
-              <option value="accommodation">Hébergement</option>
-              <option value="poi">Point d'intérêt</option>
+              <option value="accommodation">🏨 Hébergement (Hôtel, Camping...)</option>
+              <option value="restaurant">🍴 Restauration (Resto, Snack...)</option>
+              <option value="activity">🎟️ Activité (Musée, Parc...)</option>
+              <option value="poi">📍 Point d'intérêt (Lac, Vue...)</option>
             </select>
           </div>
+          <div class="form-group">
+            <label>Prix estimé (€)</label>
+            <input type="number" v-model="newStop.price" min="0" step="0.01" placeholder="0.00 (laisser vide si gratuit)" />
+          </div>
+          <div class="form-group" v-if="newStop.price > 0">
+            <label>Payé par</label>
+            <select v-model="newStop.paidBy">
+              <option v-for="p in trip.participants" :key="p.id" :value="p.id">
+                {{ p.id === currentUser?.id ? 'Moi' : p.fullName }}
+              </option>
+            </select>
+          </div>
+          <!-- Date hidden as it is pre-selected -->
           <div class="modal-actions">
             <button type="button" class="btn-secondary" @click="showStopModal = false">Annuler</button>
             <button type="submit" class="btn-primary" :disabled="isSubmitting">Ajouter</button>
@@ -268,14 +350,26 @@
         </form>
       </div>
     </div>
+
+    <AppModal
+      v-model="showDeleteConfirmModal"
+      type="danger"
+      :title="itemToDelete?.action === 'leave' ? 'Quitter le voyage' : `Supprimer ${itemToDelete?.type === 'participant' ? 'le participant' : (itemToDelete?.type === 'stop' ? 'l\'activité' : 'la dépense')}`"
+      :message="itemToDelete?.action === 'leave' ? 'Êtes-vous sûr de vouloir quitter ce voyage ?' : `Êtes-vous sûr de vouloir supprimer '${itemToDelete?.name}' ?`"
+      :confirm-text="itemToDelete?.action === 'leave' ? 'Quitter' : 'Supprimer'"
+      cancel-text="Annuler"
+      @confirm="confirmDeleteItem"
+    />
   </Teleport>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, nextTick, computed } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import api from '../services/api';
+import { getMe } from '../services/authService';
 import type { Trip, Stop } from '../types/trip';
+import type { User } from '../types/user';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-routing-machine';
@@ -284,6 +378,8 @@ import 'leaflet-routing-machine/dist/leaflet-routing-machine.css';
 import iconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png';
 import iconUrl from 'leaflet/dist/images/marker-icon.png';
 import shadowUrl from 'leaflet/dist/images/marker-shadow.png';
+
+import AppModal from '../components/AppModal.vue';
 
 const DefaultIcon = L.icon({
   iconUrl: iconUrl,
@@ -298,9 +394,11 @@ const DefaultIcon = L.icon({
 L.Marker.prototype.options.icon = DefaultIcon;
 
 const route = useRoute();
+const vueRouter = useRouter();
 const loading = ref(true);
 const error = ref('');
 const trip = ref<Trip | null>(null);
+const currentUser = ref<User | null>(null);
 let map: L.Map | null = null;
 let markers: L.Marker[] = [];
 let routingControls: any[] = [];
@@ -309,7 +407,110 @@ const showExpenseModal = ref(false);
 const showStopModal = ref(false);
 const showInviteModal = ref(false);
 const showRouteSettingsModal = ref(false);
+const showDeleteConfirmModal = ref(false);
+const showEditExpenseModal = ref(false);
 const isSubmitting = ref(false);
+
+const itemToDelete = ref<{ type: 'expense' | 'stop' | 'participant'; id: number; name: string; extraId?: number; action?: string } | null>(null);
+const editingExpense = ref<any>(null);
+
+const openEditExpenseModal = (expense: any) => {
+  editingExpense.value = {
+    ...expense,
+    expenseDate: new Date(expense.expenseDate).toISOString().split('T')[0]
+  };
+  showEditExpenseModal.value = true;
+};
+
+const updateExpense = async () => {
+  if (!editingExpense.value) return;
+  isSubmitting.value = true;
+  try {
+    await api.patch(`/expenses/${editingExpense.value.id}`, {
+      title: editingExpense.value.title,
+      amount: editingExpense.value.amount,
+      category: editingExpense.value.category,
+      paidBy: editingExpense.value.paidBy,
+      expenseDate: editingExpense.value.expenseDate
+    });
+
+    showEditExpenseModal.value = false;
+    editingExpense.value = null;
+    await fetchTripDetails();
+  } catch (e) {
+    console.error(e);
+    alert("Erreur lors de la modification de la dépense");
+  } finally {
+    isSubmitting.value = false;
+  }
+};
+
+const getParticipantAction = (participant: any): 'remove' | 'leave' | null => {
+  if (!trip.value || !currentUser.value) return null;
+
+  const isCreator = trip.value.creatorId === currentUser.value.id;
+  const isMe = participant.id === currentUser.value.id;
+
+  if (isCreator) {
+    return isMe ? null : 'remove';
+  } else {
+    return isMe ? 'leave' : null;
+  }
+};
+
+const openDeleteModal = (type: 'expense' | 'stop' | 'participant', item: any) => {
+  let name = '';
+  let id = item.id;
+  let extraId = undefined;
+
+  if (type === 'expense') name = item.title;
+  if (type === 'stop') name = item.title;
+  if (type === 'participant') {
+    const action = getParticipantAction(item);
+    if (!action) return;
+
+    name = item.fullName;
+    extraId = item.id;
+
+    if (action === 'leave') {
+       itemToDelete.value = { type, id, name, extraId, action: 'leave' };
+       showDeleteConfirmModal.value = true;
+       return;
+    }
+  }
+
+  itemToDelete.value = { type, id, name, extraId };
+  showDeleteConfirmModal.value = true;
+};
+
+const confirmDeleteItem = async () => {
+  if (!itemToDelete.value || !trip.value) return;
+
+  isSubmitting.value = true;
+  try {
+    if (itemToDelete.value.type === 'expense') {
+      await api.delete(`/expenses/${itemToDelete.value.id}`);
+    } else if (itemToDelete.value.type === 'stop') {
+      await api.delete(`/stops/${itemToDelete.value.id}`);
+    } else if (itemToDelete.value.type === 'participant') {
+      await api.delete(`/trips/${trip.value.id}/participants/${itemToDelete.value.extraId}`);
+
+      if (itemToDelete.value.action === 'leave') {
+         vueRouter.push('/my-trips');
+         return;
+      }
+    }
+
+    showDeleteConfirmModal.value = false;
+    itemToDelete.value = null;
+    await fetchTripDetails();
+  } catch (e) {
+    console.error(e);
+    alert("Erreur lors de la suppression");
+  } finally {
+    isSubmitting.value = false;
+  }
+};
 
 const estimatedFuelCost = ref(0);
 const estimatedTollCost = ref(0);
@@ -325,6 +526,7 @@ const newExpense = ref({
   title: '',
   amount: 0,
   category: 'food',
+  paidBy: null as number | null,
   date: new Date().toISOString().split('T')[0]
 });
 
@@ -337,10 +539,13 @@ const newStop = ref<any>({
   latitude: null,
   longitude: null,
   type: 'activity',
+  price: 0,
+  paidBy: null,
   arrivalDate: '',
   departureDate: ''
 });
 let searchTimeout: any = null;
+
 
 const fetchTripDetails = async () => {
   try {
@@ -371,12 +576,12 @@ const fetchTripDetails = async () => {
 
 const totalExpenses = computed(() => {
   if (!trip.value?.expenses) return 0;
-  return trip.value.expenses.reduce((sum, expense) => sum + expense.amount, 0);
+  return trip.value.expenses.reduce((sum, expense) => sum + Number(expense.amount), 0);
 });
 
 const remainingBudget = computed(() => {
   if (!trip.value) return 0;
-  return trip.value.budget - totalExpenses.value;
+  return Number(trip.value.budget) - totalExpenses.value;
 });
 
 const itineraryByDay = computed(() => {
@@ -479,11 +684,29 @@ const updateMapMarkers = () => {
   isProcessingQueue = false;
 
   const stops = trip.value.stops;
-  const sortedStops = [...stops].sort((a, b) => {
+
+  const stopsByDay: Record<string, Stop[]> = {};
+  stops.forEach(s => {
+    const day = (s.arrivalDate || '').substring(0, 10);
+    if (!stopsByDay[day]) stopsByDay[day] = [];
+    stopsByDay[day].push(s);
+  });
+
+  let filteredStops: Stop[] = [];
+  Object.values(stopsByDay).forEach(dayStops => {
+    const activities = dayStops.filter(s => s.type !== 'city');
+    if (activities.length > 0) {
+      filteredStops.push(...activities);
+    } else {
+      filteredStops.push(...dayStops);
+    }
+  });
+
+  filteredStops.sort((a, b) => {
     return (a.arrivalDate || '').localeCompare(b.arrivalDate || '');
   });
 
-  sortedStops.forEach((stop: any) => {
+  filteredStops.forEach((stop: any) => {
     const marker = L.marker([stop.latitude, stop.longitude])
       .bindPopup(`<b>${stop.title}</b><br>${formatStopType(stop.type)}`)
       .addTo(map!);
@@ -504,29 +727,35 @@ const updateMapMarkers = () => {
 
   router = L.Routing.osrmv1(routerOptions);
 
-  if (sortedStops.length > 1) {
-    for (let i = 0; i < sortedStops.length - 1; i++) {
-      const start = sortedStops[i];
-      const end = sortedStops[i+1];
+  if (filteredStops.length > 1) {
+    for (let i = 0; i < filteredStops.length - 1; i++) {
+      const start = filteredStops[i];
+      const end = filteredStops[i+1];
 
-      const isMainRoute = start.type === 'city' && end.type === 'city';
+      const startDate = (start.arrivalDate || '').substring(0, 10);
+      const endDate = (end.arrivalDate || '').substring(0, 10);
+      const isSameDay = startDate === endDate;
+
+      const color = isSameDay ? '#FF1493' : '#3498db';
+      const weight = isSameDay ? 4 : 5;
 
       segmentQueue.push({
         start: L.latLng(start.latitude, start.longitude),
         end: L.latLng(end.latitude, end.longitude),
         style: {
-          color: isMainRoute ? '#3498db' : '#2ecc71',
-          weight: isMainRoute ? 5 : 4,
+          color: color,
+          weight: weight,
           opacity: 0.8
         }
       });
     }
 
     processNextSegment();
-  } else if (sortedStops.length === 1) {
-    map!.setView([sortedStops[0].latitude, sortedStops[0].longitude], 10);
+  } else if (filteredStops.length === 1) {
+    map!.setView([filteredStops[0].latitude, filteredStops[0].longitude], 10);
   }
 };
+
 
 const processNextSegment = () => {
   if (segmentQueue.length === 0) {
@@ -632,21 +861,40 @@ const saveRouteSettings = async () => {
 };
 
 const createExpense = async () => {
+
   if (!trip.value) return;
+
   isSubmitting.value = true;
+
   try {
+
     await api.post(`/trips/${trip.value.id}/expenses`, {
+
       tripId: trip.value.id,
+
       title: newExpense.value.title,
+
       amount: newExpense.value.amount,
+
       category: newExpense.value.category,
+
+      paidBy: newExpense.value.paidBy,
+
       expenseDate: newExpense.value.date
+
     });
 
+
+
     showExpenseModal.value = false;
-    newExpense.value = { title: '', amount: 0, category: 'food', date: new Date().toISOString().split('T')[0] };
+
+    newExpense.value = { title: '', amount: 0, category: 'food', paidBy: currentUser.value?.id || null, date: new Date().toISOString().split('T')[0] };
+
     await fetchTripDetails();
+
   } catch (e) {
+
+
     console.error(e);
     alert('Erreur lors de la création de la dépense');
   } finally {
@@ -685,12 +933,13 @@ const openAddActivityModal = (date: string) => {
     latitude: null,
     longitude: null,
     type: 'activity',
+    price: 0,
+    paidBy: currentUser.value?.id || null,
     arrivalDate: date,
     departureDate: date
   };
   showStopModal.value = true;
 };
-
 const addStop = async () => {
   if (!trip.value) return;
   isSubmitting.value = true;
@@ -704,6 +953,8 @@ const addStop = async () => {
       longitude: newStop.value.longitude,
       arrivalDate: newStop.value.arrivalDate,
       departureDate: newStop.value.departureDate,
+      price: newStop.value.price,
+      paidBy: newStop.value.paidBy,
       order: nextOrder,
       isLocked: false,
       address: newStop.value.title
@@ -760,11 +1011,11 @@ const formatStatus = (status: string) => {
 
 const formatStopType = (type: string) => {
   const map: Record<string, string> = {
-    'poi': 'Point d\'intérêt',
-    'accommodation': 'Hébergement',
-    'restaurant': 'Restaurant',
-    'activity': 'Activité',
-    'city': 'Ville étape'
+    'poi': '📍 Point d\'intérêt',
+    'accommodation': '🏨 Hébergement',
+    'restaurant': '🍴 Restauration',
+    'activity': '🎟️ Activité',
+    'city': '🏙️ Ville étape'
   };
   return map[type] || type;
 };
@@ -780,7 +1031,12 @@ const getInitials = (name: string) => {
   return parts[0]?.substring(0, 2).toUpperCase() || '?';
 };
 
-onMounted(() => {
+onMounted(async () => {
+  try {
+    currentUser.value = await getMe();
+  } catch(e) {
+    console.error("Failed to load user", e);
+  }
   fetchTripDetails();
 });
 </script>
@@ -962,6 +1218,17 @@ onMounted(() => {
   gap: 12px;
   padding: 10px 0;
   border-bottom: 1px solid #f0f0f0;
+}
+
+.expense-item.clickable {
+  cursor: pointer;
+  padding: 10px;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+
+.expense-item.clickable:hover {
+  background: #f0f2f5;
 }
 
 .expense-icon {
@@ -1339,5 +1606,28 @@ onMounted(() => {
 }
 .checkbox-group input {
   width: auto;
+}
+.btn-icon {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 4px;
+  font-size: 1rem;
+  transition: background 0.2s;
+  opacity: 0.6;
+}
+.btn-icon:hover {
+  background: #fee;
+  opacity: 1;
+}
+.btn-icon.delete {
+  color: #e74c3c;
+}
+.btn-icon.leave {
+  color: #3498db;
+}
+.btn-icon.leave:hover {
+  background: #ebf5fb;
 }
 </style>

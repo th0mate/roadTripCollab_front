@@ -50,6 +50,11 @@ export const resetPassword = async (payload: { token: string; password: string }
   return response.data
 }
 
+export const verifyChangeEmail = async (token: string): Promise<any> => {
+  const response = await apiClient.post('/auth/verify-email-change', { token })
+  return response.data
+}
+
 export const getToken = (): string | null => {
   return localStorage.getItem(TOKEN_KEY)
 }

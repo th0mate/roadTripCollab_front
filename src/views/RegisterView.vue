@@ -8,6 +8,7 @@ const email = ref('');
 const password = ref('');
 const router = useRouter();
 const errorMessage = ref('');
+const successMessage = ref('');
 
 const emailError = ref('');
 const passwordError = ref('');
@@ -63,6 +64,7 @@ const isPasswordValid = computed(() => {
 
 const handleRegister = async () => {
   errorMessage.value = '';
+  successMessage.value = '';
 
   const emailCheck = isEmailValid.value;
   const passwordCheck = isPasswordValid.value;
@@ -74,8 +76,13 @@ const handleRegister = async () => {
 
   try {
     const response = await register({ fullName: fullName.value, email: email.value, password: password.value });
-    localStorage.setItem('authToken', response.data.token);
-    await router.push('/');
+    successMessage.value = "Inscription réussie ! Un email de vérification vous a été envoyé. Veuillez vérifier votre boîte de réception (et vos spams).";
+    
+    // Vider le formulaire
+    fullName.value = '';
+    email.value = '';
+    password.value = '';
+
   } catch (error: any) {
     if (error.response && error.response.data && error.response.data.errors) {
       const backendError = error.response.data.errors[0];
@@ -135,6 +142,7 @@ const handleRegister = async () => {
           <button type="submit" class="auth-button">S'inscrire</button>
 
           <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
+          <p v-if="successMessage" class="success-message">{{ successMessage }}</p>
         </form>
 
         <div class="auth-footer">

@@ -204,6 +204,13 @@
                       <i class="fi fi-rr-map-marker"></i>
                       {{ day.city ? day.city.title : 'Aucune étape' }}
                     </div>
+                    <button
+                      class="trip-dashboard__day-center-btn"
+                      @click="centerMapOnDay(day)"
+                      title="Centrer la carte sur cette journée"
+                    >
+                      <i class="fi fi-rr-map"></i>
+                    </button>
                   </div>
 
                   <div class="trip-dashboard__day-activities">
@@ -899,6 +906,20 @@ const getStatusIcon = (status: string): string => {
   return iconMap[status] || 'fi fi-rr-circle';
 };
 
+const centerMapOnDay = (day: { date: string; city: Stop | null; activities: Stop[] }) => {
+  if (!map) return;
+  const allStops = [...day.activities];
+  if (day.city) allStops.push(day.city);
+  if (allStops.length === 0) return;
+
+  if (allStops.length === 1) {
+    map.setView([allStops[0].latitude, allStops[0].longitude], 14, { animate: true });
+  } else {
+    const bounds = L.latLngBounds(allStops.map(s => [s.latitude, s.longitude]));
+    map.fitBounds(bounds, { padding: [50, 50], animate: true, maxZoom: 15 });
+  }
+};
+
 const initMap = () => {
   if (!trip.value || !trip.value.stops) return;
   if (map) {
@@ -909,10 +930,65 @@ const initMap = () => {
   let initialView: L.LatLngExpression = [46.603354, 1.888334];
   if (stops.length > 0) initialView = [stops[0].latitude, stops[0].longitude];
   map = L.map('trip-map').setView(initialView, 10);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    subdomains: 'abcd',
+    maxZoom: 19
   }).addTo(map);
+
   updateMapMarkers();
+};
+
+const createCustomIcon = (index: number, type: string) => {
+  const colors: Record<string, string> = {
+    'city': '#1e4d3d',
+    'accommodation': '#8b5cf6',
+    'restaurant': '#f97316',
+    'activity': '#ec4899',
+    'poi': '#3b82f6'
+  };
+  const bgColor = colors[type] || '#1e4d3d';
+
+  return L.divIcon({
+    className: 'custom-marker',
+    html: `
+      <div style="
+        width: 36px;
+        height: 36px;
+        background: linear-gradient(135deg, ${bgColor} 0%, ${adjustColor(bgColor, 30)} 100%);
+        border-radius: 50% 50% 50% 0;
+        transform: rotate(-45deg);
+        border: 3px solid white;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      ">
+        <span style="
+          transform: rotate(45deg);
+          color: white;
+          font-weight: 700;
+          font-size: 14px;
+          text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+        ">${index + 1}</span>
+      </div>
+    `,
+    iconSize: [36, 36],
+    iconAnchor: [18, 36],
+    popupAnchor: [0, -36]
+  });
+};
+
+const adjustColor = (hex: string, percent: number) => {
+  const num = parseInt(hex.replace('#', ''), 16);
+  const amt = Math.round(2.55 * percent);
+  const R = (num >> 16) + amt;
+  const G = (num >> 8 & 0x00FF) + amt;
+  const B = (num & 0x0000FF) + amt;
+  return '#' + (0x1000000 + (R < 255 ? (R < 1 ? 0 : R) : 255) * 0x10000 +
+    (G < 255 ? (G < 1 ? 0 : G) : 255) * 0x100 +
+    (B < 255 ? (B < 1 ? 0 : B) : 255)).toString(16).slice(1);
 };
 
 let segmentQueue: any[] = [];
@@ -948,9 +1024,11 @@ const updateMapMarkers = () => {
     else filteredStops.push(...dayStops);
   });
   filteredStops.sort((a, b) => (a.arrivalDate || '').localeCompare(b.arrivalDate || ''));
-  filteredStops.forEach((stop: any) => {
-    const marker = L.marker([stop.latitude, stop.longitude])
-      .bindPopup(`<b>${stop.title}</b><br>${formatStopType(stop.type)}`)
+  filteredStops.forEach((stop: any, index: number) => {
+    const marker = L.marker([stop.latitude, stop.longitude], {
+      icon: createCustomIcon(index, stop.type)
+    })
+      .bindPopup(`<div style="text-align:center;"><b style="font-size:14px;">${stop.title}</b><br><span style="color:#666;font-size:12px;">${formatStopType(stop.type)}</span></div>`)
       .addTo(map!);
     markers.push(marker);
   });
@@ -969,11 +1047,12 @@ const updateMapMarkers = () => {
       const endDate = (end.arrivalDate || '').substring(0, 10);
       const isSameDay = startDate === endDate;
       const color = isSameDay ? '#ec4899' : '#1e4d3d';
-      const weight = isSameDay ? 3 : 4;
+      const weight = isSameDay ? 4 : 5;
+      const dashArray = isSameDay ? '8, 12' : undefined;
       segmentQueue.push({
         start: L.latLng(start.latitude, start.longitude),
         end: L.latLng(end.latitude, end.longitude),
-        style: {color, weight, opacity: 0.8}
+        style: {color, weight, opacity: 0.85, dashArray, lineCap: 'round', lineJoin: 'round'}
       });
     }
     processNextSegment();

@@ -798,6 +798,7 @@
 
 .trip-dashboard__day-header {
   margin-bottom: 8px;
+  position: relative;
 }
 
 .trip-dashboard__day-date {
@@ -835,6 +836,36 @@
 
 .trip-dashboard__day-city i {
   color: var(--td-primary);
+  font-size: 0.85rem;
+}
+
+.trip-dashboard__day-center-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+  border: 1px solid #86efac;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--td-primary);
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  position: absolute;
+  top: 50%;
+  right: 0;
+  transform: translateY(-50%);
+}
+
+.trip-dashboard__day-center-btn:hover {
+  background: var(--td-gradient);
+  border-color: var(--td-primary);
+  color: white;
+  box-shadow: 0 4px 12px rgba(30, 77, 61, 0.25);
+}
+
+.trip-dashboard__day-center-btn i {
   font-size: 0.85rem;
 }
 

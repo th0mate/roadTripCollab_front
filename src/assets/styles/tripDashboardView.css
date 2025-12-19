@@ -317,10 +317,6 @@
   transition: all 0.2s ease;
 }
 
-.trip-dashboard__card:hover {
-  box-shadow: var(--td-card-shadow-hover);
-}
-
 .trip-dashboard__card--delay-1 {
   animation-delay: 0.05s;
 }

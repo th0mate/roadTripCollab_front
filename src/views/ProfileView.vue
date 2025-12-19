@@ -333,9 +333,11 @@ export default defineComponent({
       if (!user.value?.fullName) return '?'
       const parts = user.value.fullName.trim().split(' ')
       if (parts.length >= 2) {
-        return parts[0][0] + parts[parts.length - 1][0]
+        const firstInitial = parts[0]?.[0] || ''
+        const lastInitial = parts[parts.length - 1]?.[0] || ''
+        return (firstInitial + lastInitial).toUpperCase()
       }
-      return parts[0].substring(0, 2)
+      return parts[0]?.substring(0, 2).toUpperCase() || '?'
     })
 
     const displayProfilePicture = computed(() => {

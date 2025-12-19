@@ -1,0 +1,730 @@
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.my-trips {
+  width: 100%;
+  min-height: 100vh;
+  background: #fafafa;
+  padding-bottom: 60px;
+}
+
+.my-trips__hero {
+  position: relative;
+  width: 100%;
+  background: linear-gradient(135deg, #1e4d3d 0%, #2a6b52 100%);
+  padding: 60px 20px;
+  margin-bottom: 40px;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('@/assets/img/destinations/moutains.png') center/cover;
+    opacity: 0.1;
+    z-index: 0;
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background: #fafafa;
+    clip-path: polygon(0 50%, 100% 0, 100% 100%, 0 100%);
+  }
+}
+
+.my-trips__hero-content {
+  position: relative;
+  z-index: 1;
+  max-width: 1400px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 30px;
+  animation: fadeInUp 0.8s ease-out;
+}
+
+.my-trips__hero-text {
+  flex: 1;
+}
+
+.my-trips__title {
+  font-size: 3.5rem;
+  font-weight: 800;
+  color: white;
+  margin: 0 0 12px 0;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  letter-spacing: 1px;
+  text-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+
+  i {
+    font-size: 3rem;
+    animation: slideIn 0.6s ease-out;
+  }
+}
+
+.my-trips__subtitle {
+  font-size: 1.2rem;
+  color: rgba(255, 255, 255, 0.9);
+  margin: 0;
+  font-weight: 400;
+  letter-spacing: 0.5px;
+  padding-left: 76px;
+}
+
+.my-trips__btn-create {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: white;
+  color: #1e4d3d;
+  padding: 16px 32px;
+  border-radius: 50px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  text-decoration: none;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 3px solid white;
+
+  i {
+    font-size: 1.3rem;
+    font-weight: bold;
+  }
+
+  &:hover {
+    transform: translateY(-3px) scale(1.05);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3);
+    background: #f8f9fa;
+  }
+
+  &:active {
+    transform: translateY(-1px) scale(1.02);
+  }
+}
+.my-trips__container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.my-trips__content {
+  display: flex;
+  flex-direction: column;
+  gap: 60px;
+}
+
+.my-trips__section {
+  animation: fadeInUp 0.8s ease-out;
+}
+
+.my-trips__section-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 30px;
+  padding-bottom: 16px;
+  border-bottom: 3px solid #e5e7eb;
+}
+
+.my-trips__section-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+
+  i {
+    font-size: 1.8rem;
+    color: #1e4d3d;
+  }
+}
+
+.my-trips__count {
+  background: linear-gradient(135deg, #1e4d3d 0%, #2a6b52 100%);
+  color: white;
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(30, 77, 61, 0.3);
+}
+
+.my-trips__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  gap: 32px;
+}
+
+.my-trips__card {
+  background: white;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  border: 2px solid transparent;
+
+  &:hover {
+    transform: translateY(-12px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+    border-color: #1e4d3d;
+
+    .my-trips__card-overlay {
+      opacity: 0.3;
+    }
+
+    .my-trips__card-arrow {
+      transform: translateX(8px);
+      opacity: 1;
+    }
+
+    .my-trips__card-image {
+      &::before {
+        transform: scale(1.1);
+      }
+    }
+  }
+}
+
+.my-trips__card-image {
+  position: relative;
+  width: 100%;
+  height: 200px;
+  background: linear-gradient(135deg, #1e4d3d 0%, #2a6b52 100%);
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('@/assets/img/destinations/moutains.png') center/cover;
+    opacity: 0.2;
+    transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}
+
+.my-trips__card-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.15);
+  transition: opacity 0.3s ease;
+  opacity: 0.2;
+  z-index: 1;
+}
+
+.my-trips__card-gradient {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 50%;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.6) 0%, transparent 100%);
+  z-index: 2;
+}
+
+.my-trips__status {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 3;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+
+  i {
+    font-size: 1rem;
+  }
+
+  &--planning {
+    color: #1976d2;
+    background: rgba(227, 242, 253, 0.95);
+  }
+
+  &--active {
+    color: #2e7d32;
+    background: rgba(232, 245, 233, 0.95);
+  }
+
+  &--completed {
+    color: #616161;
+    background: rgba(245, 245, 245, 0.95);
+  }
+
+  &--cancelled {
+    color: #c62828;
+    background: rgba(255, 235, 238, 0.95);
+  }
+}
+
+.my-trips__card-delete {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 3;
+
+  i {
+    font-size: 1.1rem;
+    color: #6b7280;
+  }
+
+  &:hover {
+    background: #ef4444;
+    transform: scale(1.15) rotate(10deg);
+    box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
+
+    i {
+      color: white;
+    }
+  }
+
+  &:active {
+    transform: scale(1.05) rotate(5deg);
+  }
+}
+
+.my-trips__card-content {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex: 1;
+}
+
+.my-trips__card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.my-trips__card-title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0;
+  line-height: 1.3;
+  flex: 1;
+}
+
+.my-trips__role {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+
+  i {
+    font-size: 0.9rem;
+  }
+
+  &--creator {
+    background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+    color: #f57c00;
+    box-shadow: 0 2px 8px rgba(245, 124, 0, 0.2);
+  }
+
+  &--participant {
+    background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%);
+    color: #7b1fa2;
+    box-shadow: 0 2px 8px rgba(123, 31, 162, 0.2);
+  }
+}
+
+.my-trips__card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex: 1;
+}
+
+.my-trips__card-dates {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #6b7280;
+  font-size: 0.95rem;
+  font-weight: 500;
+
+  i {
+    font-size: 1.1rem;
+    color: #1e4d3d;
+  }
+}
+
+.my-trips__card-description {
+  color: #4b5563;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  margin: 0;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.my-trips__card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 16px;
+  border-top: 2px solid #f3f4f6;
+  margin-top: auto;
+}
+
+.my-trips__card-stats {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.my-trips__stat {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #4b5563;
+  font-size: 0.95rem;
+  font-weight: 600;
+
+  i {
+    font-size: 1.1rem;
+    color: #1e4d3d;
+  }
+}
+
+.my-trips__card-arrow {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #1e4d3d 0%, #2a6b52 100%);
+  border-radius: 50%;
+  color: white;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: 0.8;
+
+  i {
+    font-size: 1.1rem;
+  }
+}
+
+.my-trips__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 40px;
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  text-align: center;
+  border: 2px dashed #e5e7eb;
+}
+
+.my-trips__empty-icon {
+  width: 100px;
+  height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  border-radius: 50%;
+  margin-bottom: 24px;
+
+  i {
+    font-size: 3rem;
+    color: #1e4d3d;
+  }
+}
+
+.my-trips__empty-title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0 0 12px 0;
+}
+
+.my-trips__empty-text {
+  font-size: 1.05rem;
+  color: #6b7280;
+  margin: 0 0 32px 0;
+  max-width: 500px;
+  line-height: 1.6;
+}
+
+.my-trips__empty-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: linear-gradient(135deg, #1e4d3d 0%, #2a6b52 100%);
+  color: white;
+  padding: 14px 32px;
+  border-radius: 50px;
+  font-size: 1rem;
+  font-weight: 700;
+  text-decoration: none;
+  box-shadow: 0 8px 24px rgba(30, 77, 61, 0.3);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  i {
+    font-size: 1.2rem;
+  }
+
+  &:hover {
+    background: linear-gradient(135deg, #2a6b52 0%, #1e4d3d 100%);
+    transform: translateY(-3px);
+    box-shadow: 0 12px 32px rgba(30, 77, 61, 0.4);
+  }
+
+  &:active {
+    transform: translateY(-1px);
+  }
+}
+
+.my-trips__loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 100px 40px;
+  gap: 20px;
+
+  i {
+    font-size: 4rem;
+    color: #1e4d3d;
+    animation: spin 1s linear infinite;
+  }
+
+  span {
+    font-size: 1.2rem;
+    color: #6b7280;
+    font-weight: 600;
+  }
+}
+
+@media (max-width: 1200px) {
+  .my-trips__grid {
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 28px;
+  }
+}
+
+@media (max-width: 900px) {
+  .my-trips__hero {
+    padding: 40px 20px;
+  }
+
+  .my-trips__hero-content {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .my-trips__title {
+    font-size: 2.5rem;
+
+    i {
+      font-size: 2.2rem;
+    }
+  }
+
+  .my-trips__subtitle {
+    font-size: 1.05rem;
+    padding-left: 60px;
+  }
+
+  .my-trips__btn-create {
+    align-self: stretch;
+    justify-content: center;
+  }
+
+  .my-trips__section-title {
+    font-size: 1.6rem;
+
+    i {
+      font-size: 1.5rem;
+    }
+  }
+
+  .my-trips__grid {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+}
+
+@media (max-width: 600px) {
+  .my-trips__hero {
+    padding: 30px 16px;
+  }
+
+  .my-trips__title {
+    font-size: 2rem;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+
+    i {
+      font-size: 1.8rem;
+    }
+  }
+
+  .my-trips__subtitle {
+    font-size: 0.95rem;
+    padding-left: 0;
+  }
+
+  .my-trips__btn-create {
+    padding: 14px 24px;
+    font-size: 0.95rem;
+  }
+
+  .my-trips__container {
+    padding: 0 16px;
+  }
+
+  .my-trips__section-header {
+    flex-wrap: wrap;
+  }
+
+  .my-trips__section-title {
+    font-size: 1.4rem;
+  }
+
+  .my-trips__card-content {
+    padding: 20px;
+  }
+
+  .my-trips__card-title {
+    font-size: 1.2rem;
+  }
+
+  .my-trips__empty {
+    padding: 60px 24px;
+  }
+
+  .my-trips__empty-icon {
+    width: 80px;
+    height: 80px;
+
+    i {
+      font-size: 2.5rem;
+    }
+  }
+
+  .my-trips__empty-title {
+    font-size: 1.4rem;
+  }
+
+  .my-trips__empty-text {
+    font-size: 0.95rem;
+  }
+}
+
+.my-trips__card {
+  animation: fadeInUp 0.6s ease-out backwards;
+
+  &:nth-child(1) {
+    animation-delay: 0.1s;
+  }
+
+  &:nth-child(2) {
+    animation-delay: 0.2s;
+  }
+
+  &:nth-child(3) {
+    animation-delay: 0.3s;
+  }
+
+  &:nth-child(4) {
+    animation-delay: 0.4s;
+  }
+
+  &:nth-child(5) {
+    animation-delay: 0.5s;
+  }
+
+  &:nth-child(6) {
+    animation-delay: 0.6s;
+  }
+}
+
+.my-trips__status,
+.my-trips__card-delete {
+  backdrop-filter: blur(10px) saturate(180%);
+  -webkit-backdrop-filter: blur(10px) saturate(180%);
+}
+

@@ -137,6 +137,10 @@
                   <i :class="getStatusIcon(trip.status)"></i>
                   {{ formatStatus(trip.status) }}
                 </span>
+                <span v-if="trip.invitationStatus === 'pending'" class="my-trips__status my-trips__status--pending-invite" style="top: 50px; background: #f59e0b;">
+                  <i class="fi fi-rr-envelope"></i>
+                  Invitation reçue
+                </span>
                 <div class="my-trips__card-gradient"></div>
               </div>
 

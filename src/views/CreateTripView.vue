@@ -80,6 +80,7 @@
                   type="date"
                   id="startDate"
                   v-model="trip.startDate"
+                  :min="today"
                   class="create-trip__input"
                   required
                 />
@@ -93,6 +94,8 @@
                   type="date"
                   id="endDate"
                   v-model="trip.endDate"
+                  :min="trip.startDate"
+                  :disabled="!trip.startDate"
                   class="create-trip__input"
                   required
                 />
@@ -327,6 +330,7 @@ const router = useRouter();
 const currentStep = ref(1);
 const isLoading = ref(false);
 const apiError = ref('');
+const today = new Date().toISOString().split('T')[0];
 
 const trip = ref({
   title: '',
@@ -417,7 +421,7 @@ const getStepTitle = (step: number) => {
   return titles[step as keyof typeof titles] || '';
 };
 
-const addParticipant = () => {
+const addParticipant = async () => {
   const email = newParticipantEmail.value.trim();
   if (!email) return;
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -429,9 +433,21 @@ const addParticipant = () => {
     participantError.value = "Cet email est déjà ajouté";
     return;
   }
-  participants.value.push(email);
-  newParticipantEmail.value = '';
-  participantError.value = '';
+
+  // Vérifier si l'email existe dans la base de données
+  try {
+    await api.post('/participants/check', { email });
+    // Si pas d'erreur, l'utilisateur existe
+    participants.value.push(email);
+    newParticipantEmail.value = '';
+    participantError.value = '';
+  } catch (error: any) {
+    if (error.response && error.response.status === 404) {
+      participantError.value = "Cet utilisateur n'existe pas dans l'application";
+    } else {
+      participantError.value = "Erreur lors de la vérification";
+    }
+  }
 };
 
 const removeParticipant = (index: number) => {

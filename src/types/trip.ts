@@ -3,6 +3,13 @@ export interface User {
   email: string;
   fullName: string;
   avatarUrl?: string;
+  pivot?: {
+    id: number;
+    role: string;
+    invitationStatus: string;
+    invitedAt?: string;
+    joinedAt?: string;
+  };
 }
 
 export interface ExpenseSplit {

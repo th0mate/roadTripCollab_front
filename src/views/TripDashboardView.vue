@@ -48,6 +48,16 @@
         </div>
       </header>
 
+      <div v-if="isInvitationPending" class="trip-dashboard__invite-banner" style="background: #fffbeb; border: 1px solid #f59e0b; color: #b45309; padding: 1rem; margin-bottom: 1.5rem; border-radius: 0.5rem; display: flex; align-items: center; justify-content: space-between;">
+        <p style="margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+          <i class="fi fi-rr-envelope"></i>
+          Vous avez été invité à rejoindre ce voyage.
+        </p>
+        <button @click="acceptInvitation" :disabled="isSubmitting" class="trip-dashboard__btn trip-dashboard__btn--primary">
+          Accepter l'invitation
+        </button>
+      </div>
+
       <div class="trip-dashboard__grid">
         <div class="trip-dashboard__col-budget">
           <section class="trip-dashboard__card trip-dashboard__card--delay-1"
@@ -58,6 +68,7 @@
                 Dépenses
               </h2>
               <button
+                v-if="!isInvitationPending"
                 class="trip-dashboard__btn trip-dashboard__btn--primary trip-dashboard__btn--small"
                 @click="showExpenseModal = true">
                 <i class="fi fi-rr-plus"></i>
@@ -233,7 +244,7 @@
                         <i class="fi fi-rr-trash"></i>
                       </button>
                     </div>
-                    <button class="trip-dashboard__add-activity"
+                    <button v-if="!isInvitationPending" class="trip-dashboard__add-activity"
                             @click="openAddActivityModal(day.date)">
                       <i class="fi fi-rr-plus"></i>
                       Ajouter
@@ -258,6 +269,7 @@
           <div class="trip-dashboard__map-card">
             <div class="trip-dashboard__map-header">
               <button
+                v-if="!isInvitationPending"
                 class="trip-dashboard__btn trip-dashboard__btn--secondary trip-dashboard__btn--small"
                 @click="openRouteSettings">
                 <i class="fi fi-rr-settings"></i>
@@ -677,6 +689,36 @@ const loading = ref(true);
 const error = ref('');
 const trip = ref<Trip | null>(null);
 const currentUser = ref<User | null>(null);
+const myParticipant = computed(() => {
+  if (!trip.value || !currentUser.value) return null;
+  return trip.value.participants.find(p => p.id === currentUser.value!.id);
+});
+
+const isInvitationPending = computed(() => {
+  const pivot = myParticipant.value?.pivot as any;
+  if (!pivot) return false;
+  return (pivot.invitationStatus === 'pending' || pivot.invitation_status === 'pending');
+});
+
+const acceptInvitation = async () => {
+  const pivot = myParticipant.value?.pivot as any;
+  if (!pivot || !pivot.id) {
+    alert("Impossible de trouver l'invitation.");
+    return;
+  }
+
+  isSubmitting.value = true;
+  try {
+    await api.post(`/invitations/${pivot.id}/accept`);
+    await fetchTripDetails();
+  } catch (e) {
+    console.error(e);
+    alert("Erreur lors de l'acceptation.");
+  } finally {
+    isSubmitting.value = false;
+  }
+};
+
 let map: L.Map | null = null;
 let markers: L.Marker[] = [];
 let routingControls: any[] = [];

@@ -52,7 +52,14 @@
               @click="goToTrip(trip.id)"
             >
               <div class="my-trips__card-image">
-                <div class="my-trips__card-overlay"></div>
+                <img
+                  v-if="trip.coverImage"
+                  :src="`${backendUrl}/uploads/${trip.coverImage}`"
+                  :alt="trip.title"
+                  class="my-trips__card-img"
+                  style="width: 100%; height: 100%; object-fit: cover;"
+                />
+                <div v-else class="my-trips__card-image-placeholder" style="width: 100%; height: 100%; background: linear-gradient(135deg, #1e4d3d 0%, #4ade80 100%);"></div>
                 <span class="my-trips__status" :class="`my-trips__status--${trip.status}`">
                   <i :class="getStatusIcon(trip.status)"></i>
                   {{ formatStatus(trip.status) }}
@@ -64,7 +71,6 @@
                 >
                   <i class="fi fi-rr-trash"></i>
                 </button>
-                <div class="my-trips__card-gradient"></div>
               </div>
 
               <div class="my-trips__card-content">
@@ -132,7 +138,14 @@
               @click="goToTrip(trip.id)"
             >
               <div class="my-trips__card-image">
-                <div class="my-trips__card-overlay"></div>
+                <img
+                  v-if="trip.coverImage"
+                  :src="`${backendUrl}/uploads/${trip.coverImage}`"
+                  :alt="trip.title"
+                  class="my-trips__card-img"
+                  style="width: 100%; height: 100%; object-fit: cover;"
+                />
+                <div v-else class="my-trips__card-image-placeholder" style="width: 100%; height: 100%; background: linear-gradient(135deg, #1e4d3d 0%, #4ade80 100%);"></div>
                 <span class="my-trips__status" :class="`my-trips__status--${trip.status}`">
                   <i :class="getStatusIcon(trip.status)"></i>
                   {{ formatStatus(trip.status) }}
@@ -141,7 +154,6 @@
                   <i class="fi fi-rr-envelope"></i>
                   Invitation reçue
                 </span>
-                <div class="my-trips__card-gradient"></div>
               </div>
 
               <div class="my-trips__card-content">
@@ -208,6 +220,7 @@ const router = useRouter();
 const loading = ref(true);
 const createdTrips = ref<any[]>([]);
 const participatingTrips = ref<any[]>([]);
+const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3333';
 
 const showDeleteModal = ref(false);
 const tripToDelete = ref<any>(null);

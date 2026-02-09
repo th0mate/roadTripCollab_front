@@ -28,22 +28,45 @@ const categories = [
 ]
 
 const destinations = ref<any[]>([])
+const currentPage = ref(1)
+const hasMore = ref(true)
+const isLoadMoreLoading = ref(false)
+const backendUrl = import.meta.env.VITE_BACKEND_URL
 
-const fetchFinishedTrips = async () => {
+const fetchFinishedTrips = async (page = 1) => {
+  if (page === 1) isLoading.value = true
+  else isLoadMoreLoading.value = true
+
   try {
-    const response = await api.get('/trips/finished')
-    destinations.value = response.data.map((trip: any) => ({
-      ...trip, // Keep all raw properties for the modal (stops, description, etc.)
-      id: trip.id,
-      title: trip.title,
+    const response = await api.get(`/trips/finished?page=${page}&limit=6`)
+    const newTrips = response.data.data.map((trip: any) => ({
+      ...trip,
       location: trip.stops && trip.stops.length > 0 ? trip.stops[0].title : trip.title,
       displayPrice: trip.budget ? trip.budget + ' €' : 'Budget non défini',
-      image: 'default-trip.jpg'
+      imageUrl: trip.coverImage ? `${backendUrl}/uploads/${trip.coverImage}` : null
     }))
+
+    if (page === 1) {
+      destinations.value = newTrips
+    } else {
+      destinations.value.push(...newTrips)
+    }
+
+    // Vérifier s'il reste d'autres pages
+    const meta = response.data.meta
+    hasMore.value = meta.currentPage < meta.lastPage
+    currentPage.value = meta.currentPage
   } catch (error) {
     console.error('Erreur lors de la récupération des voyages terminés', error)
   } finally {
     isLoading.value = false
+    isLoadMoreLoading.value = false
+  }
+}
+
+const loadMore = () => {
+  if (hasMore.value && !isLoadMoreLoading.value) {
+    fetchFinishedTrips(currentPage.value + 1)
   }
 }
 
@@ -158,7 +181,14 @@ onMounted(() => {
         @click="openTripModal(destination)"
       >
         <div class="destination-image-wrapper">
-          <div class="destination-image-placeholder" style="background: linear-gradient(45deg, #1e4d3d, #4ade80); width: 100%; height: 100%;"></div>
+          <img
+            v-if="destination.coverImage"
+            :src="destination.imageUrl"
+            alt="Image de la destination"
+            class="destination-image"
+            style="width: 100%; height: 100%; object-fit: cover;"
+          />
+          <div v-else class="destination-image-placeholder" style="background: linear-gradient(135deg, #1e4d3d 0%, #4ade80 100%); width: 100%; height: 100%;"></div>
           <button class="destination-favorite">
             <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="currentColor"/>
@@ -175,16 +205,22 @@ onMounted(() => {
       </div>
     </div>
 
-    <div class="view-more-wrapper">
-      <button class="view-more-btn">Voir plus</button>
+    <div v-if="hasMore" class="view-more-wrapper">
+      <button
+        class="view-more-btn"
+        @click="loadMore"
+        :disabled="isLoadMoreLoading"
+      >
+        {{ isLoadMoreLoading ? 'Chargement...' : 'Voir plus' }}
+      </button>
     </div>
 
     <!-- Modal pour afficher les détails du voyage -->
-    <TripDetailsModal 
+    <TripDetailsModal
       v-if="selectedTrip"
-      :isOpen="isModalOpen" 
-      :trip="selectedTrip" 
-      @close="isModalOpen = false" 
+      :isOpen="isModalOpen"
+      :trip="selectedTrip"
+      @close="isModalOpen = false"
     />
   </section>
 </template>

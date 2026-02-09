@@ -45,6 +45,15 @@
             <i :class="getStatusIcon(trip.status)"></i>
             {{ formatStatus(trip.status) }}
           </span>
+          <button
+              v-if="isCreator && trip.status === 'planning'"
+              class="trip-dashboard__btn trip-dashboard__btn--secondary trip-dashboard__btn--small"
+              @click="showEditTripModal = true"
+              style="margin-left: 0.5rem;"
+          >
+              <i class="fi fi-rr-edit"></i>
+              Modifier
+          </button>
         </div>
       </header>
 
@@ -650,6 +659,14 @@
       cancel-text="Annuler"
       @confirm="confirmDeleteItem"
     />
+
+    <TripEditModal
+      v-if="showEditTripModal"
+      :trip="trip"
+      :isSubmitting="isSubmitting"
+      @close="showEditTripModal = false"
+      @update="updateTrip"
+    />
   </Teleport>
 </template>
 
@@ -670,6 +687,7 @@ import iconUrl from 'leaflet/dist/images/marker-icon.png';
 import shadowUrl from 'leaflet/dist/images/marker-shadow.png';
 
 import AppModal from '../components/AppModal.vue';
+import TripEditModal from '../components/TripEditModal.vue';
 
 const DefaultIcon = L.icon({
   iconUrl: iconUrl,
@@ -692,6 +710,10 @@ const currentUser = ref<User | null>(null);
 const myParticipant = computed(() => {
   if (!trip.value || !currentUser.value) return null;
   return trip.value.participants.find(p => p.id === currentUser.value!.id);
+});
+
+const isCreator = computed(() => {
+    return trip.value?.creatorId === currentUser.value?.id;
 });
 
 const isInvitationPending = computed(() => {
@@ -734,6 +756,7 @@ const showRouteSettingsModal = ref(false);
 const showDeleteConfirmModal = ref(false);
 const showEditExpenseModal = ref(false);
 const showParticipantsModal = ref(false);
+const showEditTripModal = ref(false);
 const isSubmitting = ref(false);
 
 const itemToDelete = ref<{
@@ -744,6 +767,36 @@ const itemToDelete = ref<{
   action?: string
 } | null>(null);
 const editingExpense = ref<any>(null);
+
+const updateTrip = async (formData: any) => {
+    if (!trip.value) return;
+    isSubmitting.value = true;
+    try {
+        const data = new FormData();
+        data.append('title', formData.title);
+        if (formData.description) data.append('description', formData.description);
+        data.append('startDate', formData.startDate);
+        data.append('endDate', formData.endDate);
+        if (formData.budget) data.append('budget', formData.budget.toString());
+        data.append('status', formData.status);
+        if (formData.coverImage) {
+            data.append('cover_image', formData.coverImage);
+        }
+
+        await api.patch(`/trips/${trip.value.id}`, data, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+
+        showEditTripModal.value = false;
+        await fetchTripDetails();
+        alert('Voyage modifié avec succès !');
+    } catch (e) {
+        console.error(e);
+        alert("Erreur lors de la modification du voyage");
+    } finally {
+        isSubmitting.value = false;
+    }
+};
 
 const openEditExpenseModal = (expense: any) => {
   editingExpense.value = {

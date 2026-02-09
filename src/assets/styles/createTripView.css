@@ -350,6 +350,48 @@
   }
 }
 
+.create-trip__preview {
+  position: relative;
+  width: 100%;
+  height: 200px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 2px solid #1e4d3d;
+  box-shadow: 0 4px 12px rgba(30, 77, 61, 0.15);
+}
+
+.create-trip__preview-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.create-trip__preview-remove {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(220, 38, 38, 0.9);
+  color: white;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: #dc2626;
+    transform: scale(1.1);
+  }
+
+  i {
+    font-size: 1.2rem;
+  }
+}
+
 .create-trip__textarea {
   width: 100%;
   padding: 14px 16px;

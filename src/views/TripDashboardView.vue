@@ -1704,23 +1704,56 @@ const calculateItineraryByDay = async () => {
     days.push({ date: currentDateStr, city, activities: dayItinerary });
   }
 
-  for (const day of days) {
-    if (day.activities.length < 2) continue;
+  // Calculer les temps de trajet en parallèle avec cache localStorage
+  const osrmPromises = days.map(async (day) => {
+    if (day.activities.length < 2) return;
 
     const coords = day.activities
       .filter((a: any) => a.latitude && a.longitude)
       .map((a: any) => `${a.longitude},${a.latitude}`)
       .join(';');
 
-    if (!coords || coords.split(';').length < 2) continue;
+    if (!coords || coords.split(';').length < 2) return;
 
+    // Clé de cache basée sur les coordonnées
+    const cacheKey = `osrm_${coords.replace(/[;,]/g, '_')}`;
+
+    // Vérifier le cache (valide 7 jours)
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached);
+        if (Date.now() - parsed.timestamp < 7 * 24 * 60 * 60 * 1000) {
+          if (parsed.durations) {
+            for (let i = 0; i < day.activities.length - 1; i++) {
+              const duration = parsed.durations[i]?.[i+1];
+              if (duration !== null && duration !== undefined) {
+                day.activities[i].travelTimeToNext = Math.round(duration / 60);
+              }
+            }
+          }
+          return; // Cache hit, on skip l'appel API
+        }
+      } catch (e) {
+        console.error("Erreur parsing cache OSRM:", e);
+      }
+    }
+
+    // Appel API si pas de cache
     try {
       const resp = await fetch(`https://router.project-osrm.org/table/v1/driving/${coords}?annotations=duration`);
       const data = await resp.json();
+
+      // Sauvegarder dans le cache
       if (data.durations) {
+        localStorage.setItem(cacheKey, JSON.stringify({
+          durations: data.durations,
+          timestamp: Date.now()
+        }));
+
         for (let i = 0; i < day.activities.length - 1; i++) {
-          const duration = data.durations[i][i+1];
-          if (duration !== null) {
+          const duration = data.durations[i]?.[i+1];
+          if (duration !== null && duration !== undefined) {
             day.activities[i].travelTimeToNext = Math.round(duration / 60);
           }
         }
@@ -1728,7 +1761,10 @@ const calculateItineraryByDay = async () => {
     } catch (e) {
       console.error("OSRM Table error", e);
     }
-  }
+  });
+
+  // Attendre tous les appels en parallèle
+  await Promise.all(osrmPromises);
 
   for (const day of days) {
     let lastDeparture: Date | null = null;

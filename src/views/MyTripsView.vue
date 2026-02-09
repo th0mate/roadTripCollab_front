@@ -17,6 +17,35 @@
     </div>
 
     <div class="my-trips__container">
+      
+      <div class="my-trips__filters">
+        <div class="my-trips__search">
+          <i class="fi fi-rr-search"></i>
+          <input type="text" v-model="filters.search" placeholder="Rechercher un voyage..." />
+        </div>
+        
+        <div class="my-trips__filter-group">
+          <select v-model="filters.status" class="my-trips__select">
+            <option value="">Tous les statuts</option>
+            <option value="planning">En planification</option>
+            <option value="active">En cours</option>
+            <option value="completed">Terminé</option>
+            <option value="cancelled">Annulé</option>
+          </select>
+
+          <div class="my-trips__date-group">
+            <input type="date" v-model="filters.startDate" class="my-trips__date-input" placeholder="Date début" />
+            <span>à</span>
+            <input type="date" v-model="filters.endDate" class="my-trips__date-input" placeholder="Date fin" />
+          </div>
+          
+          <button v-if="hasActiveFilters" @click="resetFilters" class="my-trips__reset-btn">
+             <i class="fi fi-rr-cross-circle"></i>
+             Effacer
+          </button>
+        </div>
+      </div>
+
       <div v-if="loading" class="my-trips__loading">
         <i class="fi fi-rr-spinner"></i>
         <span>Chargement de vos voyages...</span>
@@ -29,16 +58,16 @@
               <i class="fi fi-rr-crown"></i>
               Voyages organisés
             </h2>
-            <span class="my-trips__count">{{ createdTrips.length }}</span>
+            <span class="my-trips__count">{{ filteredCreatedTrips.length }}</span>
           </div>
 
-          <div v-if="createdTrips.length === 0" class="my-trips__empty">
+          <div v-if="filteredCreatedTrips.length === 0" class="my-trips__empty">
             <div class="my-trips__empty-icon">
               <i class="fi fi-rr-map"></i>
             </div>
-            <h3 class="my-trips__empty-title">Aucun voyage organisé</h3>
-            <p class="my-trips__empty-text">Créez votre premier voyage et commencez l'aventure !</p>
-            <RouterLink to="/create-trip" class="my-trips__empty-btn">
+            <h3 class="my-trips__empty-title">Aucun voyage organisé trouvé</h3>
+            <p class="my-trips__empty-text">{{ hasActiveFilters ? 'Essayez de modifier vos filtres.' : "Créez votre premier voyage et commencez l'aventure !" }}</p>
+            <RouterLink v-if="!hasActiveFilters" to="/create-trip" class="my-trips__empty-btn">
               <i class="fi fi-rr-plus"></i>
               Créer un voyage
             </RouterLink>
@@ -46,7 +75,7 @@
 
           <div v-else class="my-trips__grid">
             <div
-              v-for="trip in createdTrips"
+              v-for="trip in filteredCreatedTrips"
               :key="trip.id"
               class="my-trips__card"
               @click="goToTrip(trip.id)"
@@ -119,20 +148,20 @@
               <i class="fi fi-rr-users-alt"></i>
               Voyages partagés
             </h2>
-            <span class="my-trips__count">{{ participatingTrips.length }}</span>
+            <span class="my-trips__count">{{ filteredParticipatingTrips.length }}</span>
           </div>
 
-          <div v-if="participatingTrips.length === 0" class="my-trips__empty">
+          <div v-if="filteredParticipatingTrips.length === 0" class="my-trips__empty">
             <div class="my-trips__empty-icon">
               <i class="fi fi-rr-users"></i>
             </div>
-            <h3 class="my-trips__empty-title">Aucun voyage partagé</h3>
-            <p class="my-trips__empty-text">Vous serez invité à rejoindre des voyages par d'autres organisateurs.</p>
+            <h3 class="my-trips__empty-title">Aucun voyage partagé trouvé</h3>
+            <p class="my-trips__empty-text">{{ hasActiveFilters ? 'Essayez de modifier vos filtres.' : "Vous serez invité à rejoindre des voyages par d'autres organisateurs." }}</p>
           </div>
 
           <div v-else class="my-trips__grid">
             <div
-              v-for="trip in participatingTrips"
+              v-for="trip in filteredParticipatingTrips"
               :key="trip.id"
               class="my-trips__card"
               @click="goToTrip(trip.id)"
@@ -211,7 +240,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import api from '../services/api';
 import AppModal from '../components/AppModal.vue';
@@ -221,6 +250,50 @@ const loading = ref(true);
 const createdTrips = ref<any[]>([]);
 const participatingTrips = ref<any[]>([]);
 const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3333';
+
+const filters = ref({
+  search: '',
+  status: '',
+  startDate: '',
+  endDate: ''
+});
+
+const hasActiveFilters = computed(() => {
+  return filters.value.search || filters.value.status || filters.value.startDate || filters.value.endDate;
+});
+
+const resetFilters = () => {
+  filters.value = {
+    search: '',
+    status: '',
+    startDate: '',
+    endDate: ''
+  };
+};
+
+const filterTrips = (trips: any[]) => {
+  return trips.filter(trip => {
+    // Search
+    if (filters.value.search && !trip.title.toLowerCase().includes(filters.value.search.toLowerCase())) {
+      return false;
+    }
+    // Status
+    if (filters.value.status && trip.status !== filters.value.status) {
+      return false;
+    }
+    // Date Range
+    if (filters.value.startDate && new Date(trip.startDate) < new Date(filters.value.startDate)) {
+      return false;
+    }
+    if (filters.value.endDate && new Date(trip.endDate) > new Date(filters.value.endDate)) {
+      return false;
+    }
+    return true;
+  });
+};
+
+const filteredCreatedTrips = computed(() => filterTrips(createdTrips.value));
+const filteredParticipatingTrips = computed(() => filterTrips(participatingTrips.value));
 
 const showDeleteModal = ref(false);
 const tripToDelete = ref<any>(null);

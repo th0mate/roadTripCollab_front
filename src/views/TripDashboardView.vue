@@ -214,27 +214,71 @@
                   </div>
 
                   <div class="trip-dashboard__day-activities">
-                    <div
-                      v-for="activity in day.activities"
-                      :key="activity.id"
-                      class="trip-dashboard__activity-item"
-                    >
-                      <div class="trip-dashboard__activity-icon">
-                        <i :class="getStopIconClass(activity.type)"></i>
+                    <div v-for="activity in day.activities" :key="activity.id">
+                      <div
+                        class="trip-dashboard__activity-item"
+                        :class="{
+                          'trip-dashboard__activity-item--hub': activity.isAccommodationHub,
+                          'trip-dashboard__activity-item--departure': activity.isMorningDeparture,
+                          'trip-dashboard__activity-item--clickable': true
+                        }"
+                        @click="focusStopOnMap(activity)"
+                      >
+                        <div class="trip-dashboard__activity-icon">
+                          <i :class="getStopIconClass(activity.type)"></i>
+                        </div>
+                        <div class="trip-dashboard__activity-info">
+                          <p class="trip-dashboard__activity-title">{{ activity.displayTitle || activity.title }}</p>
+                          <p class="trip-dashboard__activity-type">{{ formatStopType(activity.type) }}</p>
+                        </div>
+
+                        <div class="trip-dashboard__activity-right">
+                          <div class="trip-dashboard__activity-time-info">
+                            <span v-if="activity.isMorningDeparture" class="trip-dashboard__activity-time trip-dashboard__activity-time--departure-label">
+                              <i class="fi fi-rr-arrow-right-from-bracket"></i>
+                              {{ formatTime(activity.departureDate) }}
+                            </span>
+
+                            <span v-else-if="formatTime(activity.arrivalDate) || formatTime(activity.estimatedArrival)"
+                                  class="trip-dashboard__activity-time"
+                                  :class="{ 'trip-dashboard__activity-time--estimated': !formatTime(activity.arrivalDate) }">
+                              <i v-if="!formatTime(activity.arrivalDate)" class="fi fi-rr-time-past"></i>
+                              {{ formatTime(activity.arrivalDate) || formatTime(activity.estimatedArrival) }}
+                              <span v-if="!formatTime(activity.arrivalDate)"> (est.)</span>
+                              <span v-if="formatTime(activity.departureDate) && activity.type !== 'accommodation' && !activity.isEveningReturn">
+                                - {{ formatTime(activity.departureDate) }}
+                              </span>
+                            </span>
+                          </div>
+
+                          <div class="trip-dashboard__activity-actions">
+                            <button
+                              v-if="activity.isMorningDeparture || !activity.isAccommodationHub"
+                              class="trip-dashboard__activity-btn trip-dashboard__activity-btn--edit"
+                              @click.stop="handleEditClick(activity, day.date)"
+                              type="button"
+                            >
+                              <i class="fi fi-rr-edit"></i>
+                            </button>
+                            <button
+                              v-if="!activity.isAccommodationHub"
+                              class="trip-dashboard__activity-btn trip-dashboard__activity-btn--delete"
+                              @click.stop="openDeleteModal('stop', activity)"
+                              type="button"
+                            >
+                              <i class="fi fi-rr-trash"></i>
+                            </button>
+                          </div>
+                        </div>
                       </div>
-                      <div class="trip-dashboard__activity-info">
-                        <p class="trip-dashboard__activity-title">{{ activity.title }}</p>
-                        <p class="trip-dashboard__activity-type">{{
-                            formatStopType(activity.type)
-                          }}</p>
+
+                      <div v-if="activity.travelTimeToNext" class="trip-dashboard__travel-time">
+                        <i class="fi fi-rr-car-side"></i>
+                        <span>{{ activity.travelTimeToNext }} min de trajet</span>
                       </div>
-                      <button class="trip-dashboard__activity-delete"
-                              @click="openDeleteModal('stop', activity)">
-                        <i class="fi fi-rr-trash"></i>
-                      </button>
                     </div>
-                    <button class="trip-dashboard__add-activity"
-                            @click="openAddActivityModal(day.date)">
+
+                    <button class="trip-dashboard__add-activity" @click="openAddActivityModal(day.date)">
                       <i class="fi fi-rr-plus"></i>
                       Ajouter
                     </button>
@@ -445,7 +489,7 @@
         <div class="trip-dashboard__modal-header-icon">
           <i class="fi fi-rr-marker"></i>
         </div>
-        <h3 class="trip-dashboard__modal-title">Ajouter une activité</h3>
+        <h3 class="trip-dashboard__modal-title">{{ isEditingStop ? 'Modifier l\'activité' : 'Ajouter une activité' }}</h3>
         <div class="trip-dashboard__modal-date">
           <i class="fi fi-rr-calendar"></i>
           {{ formatDate(newStop.arrivalDate) }}
@@ -494,7 +538,7 @@
           </div>
         </div>
 
-        <form v-if="newStop.latitude" @submit.prevent="addStop" class="trip-dashboard__activity-form">
+        <form v-if="newStop.latitude" @submit.prevent="isEditingStop ? updateStop() : addStop()" class="trip-dashboard__activity-form">
           <div class="trip-dashboard__selected-location">
             <i class="fi fi-rr-check-circle"></i>
             <span>{{ newStop.title }}</span>
@@ -527,6 +571,31 @@
             </div>
           </div>
 
+          <div class="trip-dashboard__form-row">
+            <div class="trip-dashboard__form-group">
+              <label class="trip-dashboard__label">
+                <i class="fi fi-rr-clock"></i>
+                Heure d'arrivée (Optionnel)
+              </label>
+              <input type="time" v-model="newStop.arrivalTime" class="trip-dashboard__input"/>
+            </div>
+            <div class="trip-dashboard__form-group">
+              <label class="trip-dashboard__label">
+                <i class="fi fi-rr-clock-three"></i>
+                Heure de départ (Optionnel)
+              </label>
+              <input type="time" v-model="newStop.departureTime" class="trip-dashboard__input"/>
+            </div>
+          </div>
+
+          <div class="trip-dashboard__form-group" v-if="newStop.type === 'accommodation'">
+            <label class="trip-dashboard__label">
+              <i class="fi fi-rr-calendar"></i>
+              Date de départ
+            </label>
+            <input type="date" v-model="newStop.departureDate" required class="trip-dashboard__input" :min="newStop.arrivalDate"/>
+          </div>
+
           <div class="trip-dashboard__form-group" v-if="newStop.price > 0">
             <label class="trip-dashboard__label">
               <i class="fi fi-rr-user"></i>
@@ -548,7 +617,7 @@
                     :disabled="isSubmitting">
               <i v-if="isSubmitting" class="fi fi-rr-spinner trip-dashboard__spinner"></i>
               <i v-else class="fi fi-rr-check"></i>
-              {{ isSubmitting ? 'Ajout...' : 'Ajouter' }}
+              {{ isSubmitting ? (isEditingStop ? 'Modification...' : 'Ajout...') : (isEditingStop ? 'Modifier' : 'Ajouter') }}
             </button>
           </div>
         </form>
@@ -638,11 +707,37 @@
       cancel-text="Annuler"
       @confirm="confirmDeleteItem"
     />
+
+    <div v-if="showHubModal" class="trip-dashboard__modal-overlay" @click.self="showHubModal = false">
+      <div class="trip-dashboard__modal">
+        <h3 class="trip-dashboard__modal-title">
+          <i class="fi fi-rr-alarm-clock"></i>
+          Départ de la journée
+        </h3>
+        <p class="trip-dashboard__form-hint" style="text-align: center; margin-bottom: 20px;">
+          À quelle heure souhaitez-vous quitter l'hébergement le <strong>{{ formatDate(editingHubDay) }}</strong> ?
+        </p>
+        <form @submit.prevent="updateHubTime">
+          <div class="trip-dashboard__form-group">
+            <label class="trip-dashboard__label">Heure de départ</label>
+            <input type="time" v-model="hubStartTime" required class="trip-dashboard__input"/>
+          </div>
+          <div class="trip-dashboard__modal-actions">
+            <button type="button" class="trip-dashboard__btn trip-dashboard__btn--secondary" @click="showHubModal = false">Annuler</button>
+            <button type="submit" class="trip-dashboard__btn trip-dashboard__btn--primary" :disabled="isSubmitting">
+              <i v-if="isSubmitting" class="fi fi-rr-spinner trip-dashboard__spinner"></i>
+              <i v-else class="fi fi-rr-check"></i>
+              Enregistrer
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   </Teleport>
 </template>
 
 <script setup lang="ts">
-import {ref, onMounted, nextTick, computed} from 'vue';
+import {ref, onMounted, nextTick, computed, watch} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
 import api from '../services/api';
 import {getMe} from '../services/authService';
@@ -658,6 +753,48 @@ import iconUrl from 'leaflet/dist/images/marker-icon.png';
 import shadowUrl from 'leaflet/dist/images/marker-shadow.png';
 
 import AppModal from '../components/AppModal.vue';
+
+function extractDateLocal(dateString?: string) {
+  if (!dateString) return '';
+  return dateString.substring(0, 10);
+}
+
+function extractTimeLocal(dateString?: string) {
+  if (!dateString || dateString.length < 13) return '';
+  const parts = dateString.split(/[T ]/);
+  return parts[1] ? parts[1].substring(0, 5) : '';
+}
+
+function parseDateFloating(dateString: string) {
+  const d = extractDateLocal(dateString);
+  const t = extractTimeLocal(dateString) || '00:00';
+  const [y, m, day] = d.split('-').map(Number);
+  const [h, min] = t.split(':').map(Number);
+  return new Date(y, m - 1, day, h, min);
+}
+
+function focusStopOnMap(stop: any) {
+  console.log('Focus stop on map', stop);
+  if (!map || !stop.latitude || !stop.longitude) return;
+
+  map.invalidateSize();
+
+  const marker = markers.find(m => {
+    const latLng = m.getLatLng();
+    return latLng.lat.toFixed(6) === Number(stop.latitude).toFixed(6) &&
+           latLng.lng.toFixed(6) === Number(stop.longitude).toFixed(6);
+  });
+
+  if (marker) {
+    marker.openPopup();
+    map.flyTo([stop.latitude, stop.longitude], 15, {
+      animate: true,
+      duration: 0.8
+    });
+  } else {
+    map.setView([stop.latitude, stop.longitude], 15, { animate: true });
+  }
+}
 
 const DefaultIcon = L.icon({
   iconUrl: iconUrl,
@@ -693,7 +830,6 @@ const showDeleteConfirmModal = ref(false);
 const showEditExpenseModal = ref(false);
 const showParticipantsModal = ref(false);
 const isSubmitting = ref(false);
-
 const itemToDelete = ref<{
   type: 'expense' | 'stop' | 'participant';
   id: number;
@@ -701,47 +837,125 @@ const itemToDelete = ref<{
   extraId?: number;
   action?: string
 } | null>(null);
+const isEditingStop = ref(false);
+const editingStopId = ref<number | null>(null);
+const showHubModal = ref(false);
+const editingHubDay = ref('');
+const hubStartTime = ref('09:00');
 const editingExpense = ref<any>(null);
 
-const openEditExpenseModal = (expense: any) => {
-  editingExpense.value = {
-    ...expense,
-    expenseDate: new Date(expense.expenseDate).toISOString().split('T')[0]
-  };
-  showEditExpenseModal.value = true;
-};
+const newStop = ref<any>({
+  title: '',
+  latitude: null,
+  longitude: null,
+  type: 'activity',
+  price: 0,
+  paidBy: null,
+  arrivalDate: '',
+  departureDate: '',
+  arrivalTime: '',
+  departureTime: ''
+});
 
-const updateExpense = async () => {
-  if (!editingExpense.value) return;
+watch(() => newStop.value.type, (newType) => {
+  if (newType === 'accommodation' && newStop.value.arrivalDate) {
+    const arrival = new Date(newStop.value.arrivalDate);
+    arrival.setDate(arrival.getDate() + 1);
+    newStop.value.departureDate = arrival.toISOString().split('T')[0];
+  }
+});
+
+function openHubEditModal(activity: any, date: string) {
+  console.log('Opening Hub Modal for:', activity.id, 'Date:', date);
+
+  const isTripStart = typeof activity.id === 'string' && activity.id.includes('start-trip');
+
+  if (!activity.isMorningDeparture && !isTripStart) {
+    console.log('Blocked: Not a morning departure hub');
+    return;
+  }
+
+  editingHubDay.value = date;
+  const currentSettings = trip.value?.settings || {};
+
+  const currentTime = extractTimeLocal(activity.departureDate);
+  hubStartTime.value = currentSettings[date]?.startTime || currentTime || '09:00';
+
+  console.log('Setting Hub Time to:', hubStartTime.value);
+  showHubModal.value = true;
+}
+
+async function updateHubTime() {
+  if (!trip.value) return;
   isSubmitting.value = true;
   try {
-    await api.patch(`/expenses/${editingExpense.value.id}`, {
-      title: editingExpense.value.title,
-      amount: editingExpense.value.amount,
-      category: editingExpense.value.category,
-      paidBy: editingExpense.value.paidBy,
-      expenseDate: editingExpense.value.expenseDate
-    });
-    showEditExpenseModal.value = false;
-    editingExpense.value = null;
-    await fetchTripDetails();
+    const settings = { ...(trip.value.settings || {}) };
+    settings[editingHubDay.value] = {
+      ...(settings[editingHubDay.value] || {}),
+      startTime: hubStartTime.value
+    };
+
+    await api.patch(`/trips/${trip.value.id}`, { settings });
+    trip.value.settings = settings;
+    showHubModal.value = false;
+    await calculateItineraryByDay();
+    updateMapMarkers();
   } catch (e) {
-    console.error(e);
-    alert("Erreur lors de la modification de la dépense");
+    console.error('Error updating hub time:', e);
+    alert('Erreur lors de la sauvegarde');
   } finally {
     isSubmitting.value = false;
   }
-};
+}
 
-const getParticipantAction = (participant: any): 'remove' | 'leave' | null => {
+function handleEditClick(activity: any, date: string) {
+  console.log('Handle Edit Click', activity.id);
+  if (typeof activity.id === 'string' && activity.id.includes('start-trip')) {
+    openHubEditModal(activity, date);
+  } else {
+    openEditStopModal(activity);
+  }
+}
+
+function openEditStopModal(stop: any) {
+  console.log('Opening Edit Stop Modal', stop.id);
+
+  isEditingStop.value = true;
+
+  let realId = stop.id;
+  if (typeof stop.id === 'string' && stop.id.startsWith('start-') && !stop.id.includes('trip')) {
+    const parts = stop.id.split('-');
+    realId = parseInt(parts[1]);
+  }
+
+  editingStopId.value = realId;
+  const originalStop = trip.value?.stops.find(s => s.id === realId) || stop;
+
+  newStop.value = {
+    title: originalStop.title,
+    latitude: originalStop.latitude,
+    longitude: originalStop.longitude,
+    type: originalStop.type,
+    price: originalStop.price || 0,
+    paidBy: originalStop.paidBy || null,
+    arrivalDate: extractDateLocal(originalStop.arrivalDate),
+    departureDate: extractDateLocal(originalStop.departureDate || originalStop.arrivalDate),
+    arrivalTime: extractTimeLocal(originalStop.arrivalDate),
+    departureTime: extractTimeLocal(originalStop.departureDate)
+  };
+
+  showStopModal.value = true;
+}
+
+function getParticipantAction(participant: any): 'remove' | 'leave' | null {
   if (!trip.value || !currentUser.value) return null;
   const isCreator = trip.value.creatorId === currentUser.value.id;
   const isMe = participant.id === currentUser.value.id;
   if (isCreator) return isMe ? null : 'remove';
   return isMe ? 'leave' : null;
-};
+}
 
-const openDeleteModal = (type: 'expense' | 'stop' | 'participant', item: any) => {
+function openDeleteModal(type: 'expense' | 'stop' | 'participant', item: any) {
   let name = '';
   let id = item.id;
   let extraId = undefined;
@@ -761,9 +975,9 @@ const openDeleteModal = (type: 'expense' | 'stop' | 'participant', item: any) =>
   }
   itemToDelete.value = {type, id, name, extraId};
   showDeleteConfirmModal.value = true;
-};
+}
 
-const confirmDeleteItem = async () => {
+async function confirmDeleteItem() {
   if (!itemToDelete.value || !trip.value) return;
   isSubmitting.value = true;
   try {
@@ -781,9 +995,75 @@ const confirmDeleteItem = async () => {
     showDeleteConfirmModal.value = false;
     itemToDelete.value = null;
     await fetchTripDetails();
+    await calculateItineraryByDay();
+    updateMapMarkers();
+  } catch (e) {
+    console.error('Error deleting item:', e);
+    alert("Erreur lors de la suppression");
+  } finally {
+    isSubmitting.value = false;
+  }
+}
+
+function openEditExpenseModal(expense: any) {
+  editingExpense.value = {
+    ...expense,
+    expenseDate: new Date(expense.expenseDate).toISOString().split('T')[0]
+  };
+  showEditExpenseModal.value = true;
+}
+
+async function updateExpense() {
+  if (!editingExpense.value) return;
+  isSubmitting.value = true;
+  try {
+    await api.patch(`/expenses/${editingExpense.value.id}`, {
+      title: editingExpense.value.title,
+      amount: editingExpense.value.amount,
+      category: editingExpense.value.category,
+      paidBy: editingExpense.value.paidBy,
+      expenseDate: editingExpense.value.expenseDate
+    });
+    showEditExpenseModal.value = false;
+    editingExpense.value = null;
+    await fetchTripDetails();
+  } catch (e) {
+    console.error('Error updating expense:', e);
+    alert("Erreur lors de la modification de la dépense");
+  } finally {
+    isSubmitting.value = false;
+  }
+}
+
+const updateStop = async () => {
+  if (!trip.value || !editingStopId.value) return;
+  isSubmitting.value = true;
+  try {
+    const formatDateTime = (date: string, time: string) => {
+      if (!date) return null;
+      const t = time || '00:00';
+      return `${date} ${t}:00`;
+    };
+
+    await api.patch(`/stops/${editingStopId.value}`, {
+      title: newStop.value.title,
+      type: newStop.value.type,
+      latitude: newStop.value.latitude,
+      longitude: newStop.value.longitude,
+      arrivalDate: formatDateTime(newStop.value.arrivalDate, newStop.value.arrivalTime),
+      departureDate: formatDateTime(newStop.value.departureDate || newStop.value.arrivalDate, newStop.value.departureTime),
+      address: newStop.value.title
+    });
+
+    showStopModal.value = false;
+    isEditingStop.value = false;
+    editingStopId.value = null;
+    await fetchTripDetails();
+    await calculateItineraryByDay();
+    updateMapMarkers();
   } catch (e) {
     console.error(e);
-    alert("Erreur lors de la suppression");
+    alert('Erreur lors de la modification');
   } finally {
     isSubmitting.value = false;
   }
@@ -811,16 +1091,6 @@ const inviteEmail = ref('');
 const locationSearch = ref('');
 const searchResults = ref<any[]>([]);
 const isSearching = ref(false);
-const newStop = ref<any>({
-  title: '',
-  latitude: null,
-  longitude: null,
-  type: 'activity',
-  price: 0,
-  paidBy: null,
-  arrivalDate: '',
-  departureDate: ''
-});
 let searchTimeout: any = null;
 
 const fetchTripDetails = async () => {
@@ -836,6 +1106,7 @@ const fetchTripDetails = async () => {
         routingPreference: 'fastest',
         avoidTolls: false
       };
+      await calculateItineraryByDay();
     }
     loading.value = false;
     await nextTick();
@@ -857,20 +1128,164 @@ const remainingBudget = computed(() => {
   return Number(trip.value.budget) - totalExpenses.value;
 });
 
-const itineraryByDay = computed(() => {
-  if (!trip.value) return [];
+const daysData = ref<any[]>([]);
+const itineraryByDay = computed(() => daysData.value);
+
+const calculateItineraryByDay = async () => {
+  if (!trip.value) return;
   const start = new Date(trip.value.startDate);
   const end = new Date(trip.value.endDate);
-  const days: { date: string; city: Stop | null; activities: Stop[] }[] = [];
+  const days: any[] = [];
+  const tripSettings = trip.value.settings || {};
+
   for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-    const currentDateStr = d.toISOString().split('T')[0];
-    const stopsForDay = trip.value.stops.filter(s => s.arrivalDate && s.arrivalDate.substring(0, 10) === currentDateStr);
-    const city = stopsForDay.find(s => s.type === 'city') || null;
-    const activities = stopsForDay.filter(s => s.type !== 'city');
-    days.push({date: currentDateStr, city, activities});
+    const currentDateStr = extractDateLocal(d.toISOString());
+
+    const arrivalsOnDay = trip.value.stops.filter(s =>
+      s.arrivalDate && extractDateLocal(s.arrivalDate) === currentDateStr
+    );
+
+    const city = trip.value.stops
+      .filter(s => s.type === 'city' && s.arrivalDate && extractDateLocal(s.arrivalDate) <= currentDateStr)
+      .sort((a, b) => (b.arrivalDate || '').localeCompare(a.arrivalDate || ''))[0] || null;
+
+    const morningAcc = trip.value.stops.find(s =>
+      s.type === 'accommodation' &&
+      s.arrivalDate &&
+      extractDateLocal(s.arrivalDate) < currentDateStr &&
+      (s.departureDate ? extractDateLocal(s.departureDate) >= currentDateStr : true)
+    );
+
+    const eveningAcc = trip.value.stops.find(s =>
+      s.type === 'accommodation' &&
+      s.arrivalDate &&
+      extractDateLocal(s.arrivalDate) <= currentDateStr &&
+      (s.departureDate ? extractDateLocal(s.departureDate) > currentDateStr : true)
+    );
+
+    const dayItinerary: any[] = [];
+
+    let activities = arrivalsOnDay.filter(s => s.type !== 'city');
+    activities.sort((a, b) => {
+      const timeA = extractTimeLocal(a.arrivalDate) || '00:00';
+      const timeB = extractTimeLocal(b.arrivalDate) || '00:00';
+      return timeA.localeCompare(timeB) || (a.order - b.order);
+    });
+
+    if (morningAcc) {
+      let startTime = tripSettings[currentDateStr]?.startTime;
+
+      if (!startTime && morningAcc.departureDate && extractDateLocal(morningAcc.departureDate) === currentDateStr) {
+        startTime = extractTimeLocal(morningAcc.departureDate);
+      }
+
+      const finalTime = startTime || '09:00';
+
+      dayItinerary.push({
+        ...morningAcc,
+        id: `start-${morningAcc.id}-${currentDateStr}`,
+        displayTitle: `Départ : ${morningAcc.title}`,
+        isAccommodationHub: true,
+        isMorningDeparture: true,
+        arrivalDate: `${currentDateStr}T${finalTime}:00`,
+        departureDate: `${currentDateStr}T${finalTime}:00`
+      });
+    } else if (currentDateStr === extractDateLocal(trip.value.startDate) && activities.length > 0) {
+      const finalTime = tripSettings[currentDateStr]?.startTime || '09:00';
+
+      dayItinerary.push({
+        id: `start-trip-${currentDateStr}`,
+        displayTitle: `Départ du voyage`,
+        type: 'poi',
+        latitude: activities[0].latitude,
+        longitude: activities[0].longitude,
+        isAccommodationHub: true,
+        isMorningDeparture: true,
+        arrivalDate: `${currentDateStr}T${finalTime}:00`,
+        departureDate: `${currentDateStr}T${finalTime}:00`
+      });
+    }
+
+    activities.forEach(activity => {
+      dayItinerary.push(activity);
+    });
+
+    if (eveningAcc) {
+      const arrivedBeforeToday = extractDateLocal(eveningAcc.arrivalDate) < currentDateStr;
+      const hotelArrivalIndex = dayItinerary.findIndex(a => a.id === eveningAcc.id);
+      const hasActivitiesAfterArrival = hotelArrivalIndex !== -1 && hotelArrivalIndex < dayItinerary.length - 1;
+
+      if (arrivedBeforeToday || hasActivitiesAfterArrival) {
+        dayItinerary.push({
+          ...eveningAcc,
+          id: `end-${eveningAcc.id}-${currentDateStr}`,
+          displayTitle: `${eveningAcc.title} (Retour)`,
+          isAccommodationHub: true,
+          isEveningReturn: true
+        });
+      }
+    }
+
+    days.push({ date: currentDateStr, city, activities: dayItinerary });
   }
-  return days;
-});
+
+  for (const day of days) {
+    if (day.activities.length < 2) continue;
+
+    const coords = day.activities
+      .filter(a => a.latitude && a.longitude)
+      .map(a => `${a.longitude},${a.latitude}`)
+      .join(';');
+
+    if (!coords || coords.split(';').length < 2) continue;
+
+    try {
+      const resp = await fetch(`https://router.project-osrm.org/table/v1/driving/${coords}?annotations=duration`);
+      const data = await resp.json();
+      if (data.durations) {
+        for (let i = 0; i < day.activities.length - 1; i++) {
+          const duration = data.durations[i][i+1];
+          if (duration !== null) {
+            day.activities[i].travelTimeToNext = Math.round(duration / 60);
+          }
+        }
+      }
+    } catch (e) {
+      console.error("OSRM Table error", e);
+    }
+  }
+
+  for (const day of days) {
+    let lastDeparture: Date | null = null;
+
+    for (let i = 0; i < day.activities.length; i++) {
+      const current = day.activities[i];
+
+      if (current.isMorningDeparture) {
+        lastDeparture = parseDateFloating(current.departureDate);
+      }
+
+      if (lastDeparture && !current.isMorningDeparture && (!current.arrivalDate || current.arrivalDate.length < 13)) {
+        const prev = day.activities[i - 1];
+        if (prev && prev.travelTimeToNext !== undefined) {
+          const estimatedArrival = new Date(lastDeparture.getTime() + prev.travelTimeToNext * 60000);
+          current.estimatedArrival = estimatedArrival.toISOString();
+          current.isEstimated = true;
+        }
+      }
+
+      if (current.departureDate && current.departureDate.length >= 13 && !current.isEveningReturn) {
+        lastDeparture = parseDateFloating(current.departureDate);
+      } else if (current.arrivalDate && current.arrivalDate.length >= 13 && !current.isEveningReturn) {
+        lastDeparture = new Date(parseDateFloating(current.arrivalDate).getTime() + 60 * 60000);
+      } else if (current.estimatedArrival && !current.isEveningReturn) {
+        lastDeparture = new Date(new Date(current.estimatedArrival).getTime() + 60 * 60000);
+      }
+    }
+  }
+  daysData.value = days;
+};
+
 
 const getCategoryIconClass = (category: string): string => {
   const iconMap: Record<string, string> = {
@@ -1010,21 +1425,28 @@ const updateMapMarkers = () => {
   estimatedTollCost.value = 0;
   segmentQueue = [];
   isProcessingQueue = false;
-  const stops = trip.value.stops;
-  const stopsByDay: Record<string, Stop[]> = {};
-  stops.forEach(s => {
-    const day = (s.arrivalDate || '').substring(0, 10);
-    if (!stopsByDay[day]) stopsByDay[day] = [];
-    stopsByDay[day].push(s);
+
+  let filteredStops: any[] = [];
+  itineraryByDay.value.forEach(day => {
+    filteredStops.push(...day.activities);
   });
-  let filteredStops: Stop[] = [];
-  Object.values(stopsByDay).forEach(dayStops => {
-    const activities = dayStops.filter(s => s.type !== 'city');
-    if (activities.length > 0) filteredStops.push(...activities);
-    else filteredStops.push(...dayStops);
+
+  const dedupedStops: any[] = [];
+  filteredStops.forEach((stop, i) => {
+    if (i === 0) {
+      dedupedStops.push(stop);
+    } else {
+      const prevStop = dedupedStops[dedupedStops.length - 1];
+      const isSameStop = stop.id === prevStop.id ||
+                        (stop.latitude === prevStop.latitude && stop.longitude === prevStop.longitude);
+
+      if (!isSameStop) {
+        dedupedStops.push(stop);
+      }
+    }
   });
-  filteredStops.sort((a, b) => (a.arrivalDate || '').localeCompare(b.arrivalDate || ''));
-  filteredStops.forEach((stop: any, index: number) => {
+
+  dedupedStops.forEach((stop: any, index: number) => {
     const marker = L.marker([stop.latitude, stop.longitude], {
       icon: createCustomIcon(index, stop.type)
     })
@@ -1039,10 +1461,10 @@ const updateMapMarkers = () => {
   };
   if (routeSettings.value.avoidTolls) routerOptions.routingOptions.exclude = ['toll'];
   router = L.Routing.osrmv1(routerOptions);
-  if (filteredStops.length > 1) {
-    for (let i = 0; i < filteredStops.length - 1; i++) {
-      const start = filteredStops[i];
-      const end = filteredStops[i + 1];
+  if (dedupedStops.length > 1) {
+    for (let i = 0; i < dedupedStops.length - 1; i++) {
+      const start = dedupedStops[i];
+      const end = dedupedStops[i + 1];
       const startDate = (start.arrivalDate || '').substring(0, 10);
       const endDate = (end.arrivalDate || '').substring(0, 10);
       const isSameDay = startDate === endDate;
@@ -1056,8 +1478,8 @@ const updateMapMarkers = () => {
       });
     }
     processNextSegment();
-  } else if (filteredStops.length === 1) {
-    map!.setView([filteredStops[0].latitude, filteredStops[0].longitude], 10);
+  } else if (dedupedStops.length === 1) {
+    map!.setView([dedupedStops[0].latitude, dedupedStops[0].longitude], 10);
   }
 };
 
@@ -1190,6 +1612,8 @@ const selectLocation = (result: any) => {
 };
 
 const openAddActivityModal = (date: string) => {
+  isEditingStop.value = false;
+  editingStopId.value = null;
   newStop.value = {
     title: '',
     latitude: null,
@@ -1198,7 +1622,9 @@ const openAddActivityModal = (date: string) => {
     price: 0,
     paidBy: currentUser.value?.id || null,
     arrivalDate: date,
-    departureDate: date
+    departureDate: date,
+    arrivalTime: '',
+    departureTime: ''
   };
   showStopModal.value = true;
 };
@@ -1207,13 +1633,19 @@ const addStop = async () => {
   if (!trip.value) return;
   isSubmitting.value = true;
   try {
+    const formatDateTime = (date: string, time: string) => {
+      if (!date) return null;
+      const t = time || '00:00';
+      return `${date} ${t}:00`;
+    };
+
     await api.post(`/trips/${trip.value.id}/stops`, {
       title: newStop.value.title,
       type: newStop.value.type,
       latitude: newStop.value.latitude,
       longitude: newStop.value.longitude,
-      arrivalDate: newStop.value.arrivalDate,
-      departureDate: newStop.value.departureDate,
+      arrivalDate: formatDateTime(newStop.value.arrivalDate, newStop.value.arrivalTime),
+      departureDate: formatDateTime(newStop.value.departureDate || newStop.value.arrivalDate, newStop.value.departureTime),
       price: newStop.value.price,
       paidBy: newStop.value.paidBy,
       order: trip.value.stops.length + 1,
@@ -1222,6 +1654,8 @@ const addStop = async () => {
     });
     showStopModal.value = false;
     await fetchTripDetails();
+    await calculateItineraryByDay();
+    updateMapMarkers();
   } catch (e) {
     console.error(e);
     alert('Erreur lors de l\'ajout');
@@ -1254,6 +1688,12 @@ const formatDate = (dateString?: string) => {
     day: 'numeric',
     month: 'short'
   });
+};
+
+const formatTime = (dateString?: string) => {
+  if (!dateString || dateString.length < 13) return '';
+  const parts = dateString.split(/[T ]/);
+  return parts[1] ? parts[1].substring(0, 5).replace(':', 'h') : '';
 };
 
 const formatDateRange = (start: string, end: string) => `${new Date(start).toLocaleDateString('fr-FR')} - ${new Date(end).toLocaleDateString('fr-FR')}`;
@@ -1292,7 +1732,7 @@ onMounted(async () => {
   } catch (e) {
     console.error("Failed to load user", e);
   }
-  fetchTripDetails();
+  await fetchTripDetails();
 });
 </script>
 

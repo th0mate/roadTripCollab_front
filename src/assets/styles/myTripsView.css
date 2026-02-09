@@ -430,6 +430,44 @@
   }
 }
 
+.my-trips__card-download {
+  position: absolute;
+  top: 16px;
+  right: 64px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 3;
+
+  i {
+    font-size: 1.1rem;
+    color: #6b7280;
+  }
+
+  &:hover {
+    background: #1e4d3d;
+    transform: scale(1.15) rotate(-10deg);
+    box-shadow: 0 6px 20px rgba(30, 77, 61, 0.4);
+
+    i {
+      color: white;
+    }
+  }
+
+  &:active {
+    transform: scale(1.05) rotate(-5deg);
+  }
+}
+
 .my-trips__card-content {
   padding: 24px;
   display: flex;

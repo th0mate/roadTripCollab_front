@@ -94,6 +94,14 @@
                   {{ formatStatus(trip.status) }}
                 </span>
                 <button
+                  v-if="trip.status === 'completed'"
+                  class="my-trips__card-download"
+                  @click.stop="downloadPhotos(trip)"
+                  title="Télécharger les photos"
+                >
+                  <i class="fi fi-rr-download"></i>
+                </button>
+                <button
                   class="my-trips__card-delete"
                   @click.stop="openDeleteModal(trip)"
                   title="Supprimer le voyage"
@@ -179,6 +187,14 @@
                   <i :class="getStatusIcon(trip.status)"></i>
                   {{ formatStatus(trip.status) }}
                 </span>
+                <button
+                  v-if="trip.status === 'completed'"
+                  class="my-trips__card-download"
+                  @click.stop="downloadPhotos(trip)"
+                  title="Télécharger les photos"
+                >
+                  <i class="fi fi-rr-download"></i>
+                </button>
                 <span v-if="trip.invitationStatus === 'pending'" class="my-trips__status my-trips__status--pending-invite" style="top: 50px; background: #f59e0b;">
                   <i class="fi fi-rr-envelope"></i>
                   Invitation reçue
@@ -312,6 +328,27 @@ const fetchTrips = async () => {
 
 const goToTrip = (id: number) => {
   router.push(`/trips/${id}`);
+};
+
+const downloadPhotos = async (trip: any) => {
+  try {
+    const response = await api.get(`/trips/${trip.id}/photos/download`, {
+      responseType: 'blob'
+    });
+    
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    const cleanTitle = trip.title.replace(/[^a-z0-9]/gi, '_');
+    link.setAttribute('download', `Trip-${cleanTitle}-Photos.zip`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error('Error downloading photos:', error);
+    alert('Impossible de télécharger les photos.');
+  }
 };
 
 const openDeleteModal = (trip: any) => {

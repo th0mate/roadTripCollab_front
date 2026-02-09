@@ -2150,6 +2150,320 @@ const inviteParticipant = async () => {
     isSubmitting.value = false;
   }
 };
+const searchLocation = () => {
+  if (searchTimeout) clearTimeout(searchTimeout);
+  if (locationSearch.value.length < 3) {
+    searchResults.value = [];
+    isSearching.value = false;
+    return;
+  }
+  isSearching.value = true;
+  searchTimeout = setTimeout(async () => {
+    try {
+      // Construction de l'URL de recherche
+      let searchUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(locationSearch.value)}`;
+
+      // Si une ville est disponible, limiter la recherche aux alentours (±0.5° ≈ 50km)
+      if (currentDayCity.value && currentDayCity.value.latitude && currentDayCity.value.longitude) {
+        const lat = Number(currentDayCity.value.latitude);
+        const lon = Number(currentDayCity.value.longitude);
+        const delta = 0.5; // ≈50km de rayon
+
+        // viewbox format: left,top,right,bottom (minLon,maxLat,maxLon,minLat)
+        const viewbox = `${lon - delta},${lat + delta},${lon + delta},${lat - delta}`;
+        searchUrl += `&viewbox=${viewbox}&bounded=1`;
+      }
+
+      searchResults.value = await (await fetch(searchUrl)).json();
+    } catch (e) {
+      console.error(e);
+    } finally {
+      isSearching.value = false;
+    }
+  }, 500);
+};
+
+const selectLocation = (result: any) => {
+  newStop.value.title = result.display_name.split(",")[0];
+  newStop.value.latitude = parseFloat(result.lat);
+  newStop.value.longitude = parseFloat(result.lon);
+  locationSearch.value = "";
+  searchResults.value = [];
+};
+
+/**
+ * Récupère les lieux à proximité via Google Places API avec cache localStorage
+ */
+const fetchNearbyPlaces = async (
+  latitude: number,
+  longitude: number,
+  types: string = "tourist_attraction",
+  limit: number = 4,
+) => {
+  // Conversion en number au cas où ce serait des strings
+  const lat = Number(latitude);
+  const lng = Number(longitude);
+
+  const cacheKey = `nearby_${lat.toFixed(4)}_${lng.toFixed(4)}_${types}_${limit}`;
+
+  // Vérifier le cache localStorage
+  const cached = localStorage.getItem(cacheKey);
+  if (cached) {
+    try {
+      const parsed = JSON.parse(cached);
+      // Cache valide pendant 24h
+      if (Date.now() - parsed.timestamp < 24 * 60 * 60 * 1000) {
+        nearbyPlaces.value = parsed.places;
+        return;
+      }
+    } catch (e) {
+      console.error("Erreur parsing cache:", e);
+    }
+  }
+
+  // Appel à l'API backend
+  isLoadingNearby.value = true;
+  try {
+    const response = await api.get("/places/nearby", {
+      params: {
+        latitude: lat,
+        longitude: lng,
+        radius: 5000, // 5km
+        types,
+        limit,
+      },
+    });
+
+    nearbyPlaces.value = response.data.places || [];
+
+    // Sauvegarder dans le cache
+    localStorage.setItem(
+      cacheKey,
+      JSON.stringify({
+        places: nearbyPlaces.value,
+        timestamp: Date.now(),
+      }),
+    );
+  } catch (error) {
+    console.error("Erreur lors de la récupération des lieux:", error);
+    nearbyPlaces.value = [];
+  } finally {
+    isLoadingNearby.value = false;
+  }
+};
+
+/**
+ * Sélectionne un lieu depuis la map nearby
+ */
+const selectNearbyPlace = (place: any) => {
+  newStop.value.title = place.displayName;
+  newStop.value.latitude = place.location.latitude;
+  newStop.value.longitude = place.location.longitude;
+};
+
+/**
+ * Initialise la carte Leaflet dans la modal
+ */
+const initModalMap = () => {
+  if (!currentDayCity.value) return;
+
+  // Détruire la carte existante si elle existe
+  if (modalMap) {
+    modalMap.remove();
+    modalMap = null;
+  }
+
+  const mapContainer = document.getElementById("modal-map");
+  if (!mapContainer) return;
+
+  // Créer la carte centrée sur la ville
+  modalMap = L.map("modal-map").setView(
+    [currentDayCity.value.latitude!, currentDayCity.value.longitude!],
+    13, // Zoom level
+  );
+
+  // Ajouter le layer CartoDB Voyager (même style que la map principale)
+  L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
+    attribution:
+      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    subdomains: "abcd",
+    maxZoom: 19,
+  }).addTo(modalMap);
+
+  // Marker custom pour la ville
+  const cityIcon = L.divIcon({
+    className: "custom-marker",
+    html: `
+      <div style="
+        width: 40px;
+        height: 40px;
+        background: linear-gradient(135deg, #1e4d3d 0%, #2d7a5f 100%);
+        border-radius: 50% 50% 50% 0;
+        transform: rotate(-45deg);
+        border: 3px solid white;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      ">
+        <i class="fi fi-rr-building" style="
+          transform: rotate(45deg);
+          color: white;
+          font-size: 18px;
+        "></i>
+      </div>
+    `,
+    iconSize: [40, 40],
+    iconAnchor: [20, 40],
+    popupAnchor: [0, -40],
+  });
+
+  L.marker([currentDayCity.value.latitude!, currentDayCity.value.longitude!], { icon: cityIcon })
+    .addTo(modalMap)
+    .bindPopup(`<b>${currentDayCity.value.title}</b><br><small>Ville de référence</small>`)
+    .openPopup();
+};
+
+/**
+ * Crée un marker custom pour un lieu nearby selon son type
+ */
+const createNearbyMarkerIcon = (types: string[]) => {
+  // Déterminer la couleur et l'icône selon le type
+  const typeConfig: Record<string, { color: string; icon: string }> = {
+    restaurant: { color: "#f97316", icon: "fi-rr-restaurant" },
+    cafe: { color: "#fbbf24", icon: "fi-rr-coffee" },
+    museum: { color: "#8b5cf6", icon: "fi-rr-bank" },
+    tourist_attraction: { color: "#3b82f6", icon: "fi-rr-marker" },
+    park: { color: "#10b981", icon: "fi-rr-tree" },
+    bar: { color: "#ef4444", icon: "fi-rr-glass-cheers" },
+  };
+
+  // Trouver le premier type correspondant
+  let config = { color: "#ec4899", icon: "fi-rr-marker" }; // Défaut
+  for (const type of types) {
+    if (typeConfig[type]) {
+      config = typeConfig[type];
+      break;
+    }
+  }
+
+  return L.divIcon({
+    className: "custom-marker",
+    html: `
+      <div style="
+        width: 36px;
+        height: 36px;
+        background: linear-gradient(135deg, ${config.color} 0%, ${adjustColor(config.color, 30)} 100%);
+        border-radius: 50% 50% 50% 0;
+        transform: rotate(-45deg);
+        border: 3px solid white;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      ">
+        <i class="${config.icon}" style="
+          transform: rotate(45deg);
+          color: white;
+          font-size: 14px;
+        "></i>
+      </div>
+    `,
+    iconSize: [36, 36],
+    iconAnchor: [18, 36],
+    popupAnchor: [0, -36],
+  });
+};
+
+/**
+ * Affiche les markers des lieux à proximité sur la map
+ */
+const displayNearbyMarkers = () => {
+  if (!modalMap) return;
+
+  // Supprimer les anciens markers
+  nearbyMarkers.forEach((marker) => marker.remove());
+  nearbyMarkers = [];
+
+  // Créer un marker custom pour chaque lieu
+  nearbyPlaces.value.forEach((place) => {
+    const marker = L.marker([place.location.latitude, place.location.longitude], {
+      icon: createNearbyMarkerIcon(place.types || []),
+    }).addTo(modalMap!);
+
+    // Popup avec infos et bouton "Sélectionner"
+    const popupContent = `
+      <div style="text-align: center; min-width: 200px;">
+        <strong style="font-size: 15px;">${place.displayName}</strong><br>
+        <small style="color: #6b7280;">${place.formattedAddress || ""}</small><br>
+        ${place.rating ? `<span style="color: #f59e0b;">⭐ ${place.rating}/5</span><br>` : ""}
+        <button onclick="window.selectNearbyPlaceFromMap('${place.placeId}')"
+                style="margin-top: 10px; padding: 8px 16px; background: #2563eb; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+          Sélectionner ce lieu
+        </button>
+      </div>
+    `;
+
+    marker.bindPopup(popupContent);
+    nearbyMarkers.push(marker);
+  });
+};
+
+// Fonction globale pour la sélection depuis la popup
+(window as any).selectNearbyPlaceFromMap = (placeId: string) => {
+  const place = nearbyPlaces.value.find((p) => p.placeId === placeId);
+  if (place) {
+    selectNearbyPlace(place);
+  }
+};
+
+/**
+ * Change le type de lieux à afficher (filtre)
+ */
+const changePlaceType = async (type: string) => {
+  if (!currentDayCity.value) return;
+
+  selectedPlaceType.value = type;
+  // Réinitialiser showMorePOI quand on change de type
+  showMorePOI.value = false;
+  const limit = type === "tourist_attraction" ? 4 : 10;
+
+  await fetchNearbyPlaces(
+    currentDayCity.value.latitude!,
+    currentDayCity.value.longitude!,
+    type,
+    limit,
+  );
+
+  displayNearbyMarkers();
+};
+
+/**
+ * Affiche plus de points d'intérêt (passe de 4 à 10)
+ */
+const loadMorePOI = async () => {
+  if (!currentDayCity.value) return;
+
+  showMorePOI.value = true;
+
+  await fetchNearbyPlaces(
+    currentDayCity.value.latitude!,
+    currentDayCity.value.longitude!,
+    "tourist_attraction",
+    10,
+  );
+
+  displayNearbyMarkers();
+};
+
+const openAddActivityModal = async (
+  date: string,
+  day?: { date: string; city: Stop | null; activities: Stop[] },
+) => {
+  newStop.value = {
+    title: "",
+    latitude: null,
+    longitude: null,
 
 const formatDate = (dateString?: string) => {
   if (!dateString) return "";

@@ -9,7 +9,7 @@
     {{ error }}
   </div>
 
-  <div v-else class="trip-dashboard">
+  <div v-else-if="trip" class="trip-dashboard">
     <div class="trip-dashboard__container">
       <header class="trip-dashboard__header">
         <div class="trip-dashboard__header-content">
@@ -30,8 +30,10 @@
             >
               {{ getInitials(participant.fullName) }}
             </div>
-            <div v-if="trip.participants.length > 4"
-                 class="trip-dashboard__avatar trip-dashboard__avatar--more">
+            <div
+              v-if="trip.participants.length > 4"
+              class="trip-dashboard__avatar trip-dashboard__avatar--more"
+            >
               +{{ trip.participants.length - 4 }}
             </div>
             <button class="trip-dashboard__avatar trip-dashboard__avatar--add">
@@ -46,31 +48,54 @@
             {{ formatStatus(trip.status) }}
           </span>
           <button
-              v-if="isCreator && trip.status === 'planning'"
-              class="trip-dashboard__btn trip-dashboard__btn--secondary trip-dashboard__btn--small"
-              @click="showEditTripModal = true"
-              style="margin-left: 0.5rem;"
+            v-if="isCreator && trip.status === 'planning'"
+            class="trip-dashboard__btn trip-dashboard__btn--secondary trip-dashboard__btn--small"
+            @click="showEditTripModal = true"
+            style="margin-left: 0.5rem"
           >
-              <i class="fi fi-rr-edit"></i>
-              Modifier
+            <i class="fi fi-rr-edit"></i>
+            Modifier
           </button>
         </div>
       </header>
 
-      <div v-if="isInvitationPending" class="trip-dashboard__invite-banner" style="background: #fffbeb; border: 1px solid #f59e0b; color: #b45309; padding: 1rem; margin-bottom: 1.5rem; border-radius: 0.5rem; display: flex; align-items: center; justify-content: space-between;">
-        <p style="margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+      <div
+        v-if="isInvitationPending"
+        class="trip-dashboard__invite-banner"
+        style="
+          background: #fffbeb;
+          border: 1px solid #f59e0b;
+          color: #b45309;
+          padding: 1rem;
+          margin-bottom: 1.5rem;
+          border-radius: 0.5rem;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        "
+      >
+        <p style="margin: 0; display: flex; align-items: center; gap: 0.5rem">
           <i class="fi fi-rr-envelope"></i>
           Vous avez été invité à rejoindre ce voyage.
         </p>
-        <button @click="acceptInvitation" :disabled="isSubmitting" class="trip-dashboard__btn trip-dashboard__btn--primary">
+        <button
+          @click="acceptInvitation"
+          :disabled="isSubmitting"
+          class="trip-dashboard__btn trip-dashboard__btn--primary"
+        >
           Accepter l'invitation
         </button>
       </div>
 
       <div class="trip-dashboard__grid">
         <div class="trip-dashboard__col-budget">
-          <section class="trip-dashboard__card trip-dashboard__card--delay-1"
-                   :class="{ 'trip-dashboard__card--collapsed': !budgetExpanded, 'trip-dashboard__card--expanded': budgetExpanded }">
+          <section
+            class="trip-dashboard__card trip-dashboard__card--delay-1"
+            :class="{
+              'trip-dashboard__card--collapsed': !budgetExpanded,
+              'trip-dashboard__card--expanded': budgetExpanded,
+            }"
+          >
             <div class="trip-dashboard__card-header">
               <h2 class="trip-dashboard__card-title">
                 <i class="fi fi-rr-wallet"></i>
@@ -79,7 +104,8 @@
               <button
                 v-if="!isInvitationPending"
                 class="trip-dashboard__btn trip-dashboard__btn--primary trip-dashboard__btn--small"
-                @click="showExpenseModal = true">
+                @click="showExpenseModal = true"
+              >
                 <i class="fi fi-rr-plus"></i>
                 Dépense
               </button>
@@ -104,8 +130,10 @@
                 </div>
               </div>
 
-              <div v-if="estimatedFuelCost > 0"
-                   class="trip-dashboard__estimate trip-dashboard__estimate--fuel">
+              <div
+                v-if="estimatedFuelCost > 0"
+                class="trip-dashboard__estimate trip-dashboard__estimate--fuel"
+              >
                 <div class="trip-dashboard__estimate-icon">
                   <i class="fi fi-rr-gas-pump"></i>
                 </div>
@@ -113,13 +141,16 @@
                   <p class="trip-dashboard__estimate-text">
                     Coût essence estimé : <strong>{{ estimatedFuelCost.toFixed(2) }} €</strong>
                   </p>
-                  <p class="trip-dashboard__estimate-detail">({{ trip?.carConsumption }}L/100km à
-                    {{ trip?.fuelPrice }}€/L)</p>
+                  <p class="trip-dashboard__estimate-detail">
+                    ({{ trip?.carConsumption }}L/100km à {{ trip?.fuelPrice }}€/L)
+                  </p>
                 </div>
               </div>
 
-              <div v-if="!routeSettings.avoidTolls"
-                   class="trip-dashboard__estimate trip-dashboard__estimate--toll">
+              <div
+                v-if="!routeSettings.avoidTolls"
+                class="trip-dashboard__estimate trip-dashboard__estimate--toll"
+              >
                 <div class="trip-dashboard__estimate-icon">
                   <i class="fi fi-rr-road"></i>
                 </div>
@@ -127,9 +158,9 @@
                   <p class="trip-dashboard__estimate-text">
                     Coût péage estimé : <strong>{{ estimatedTollCost.toFixed(2) }} €</strong>
                   </p>
-                  <p class="trip-dashboard__estimate-detail">(Moyenne {{
-                      routeSettings.tollRate
-                    }}€/km)</p>
+                  <p class="trip-dashboard__estimate-detail">
+                    (Moyenne {{ routeSettings.tollRate }}€/km)
+                  </p>
                 </div>
               </div>
 
@@ -141,18 +172,23 @@
                   class="trip-dashboard__expense-item"
                   @click="openEditExpenseModal(expense)"
                 >
-                  <div class="trip-dashboard__expense-icon"
-                       :class="`trip-dashboard__expense-icon--${expense.category}`">
+                  <div
+                    class="trip-dashboard__expense-icon"
+                    :class="`trip-dashboard__expense-icon--${expense.category}`"
+                  >
                     <i :class="getCategoryIconClass(expense.category)"></i>
                   </div>
                   <div class="trip-dashboard__expense-details">
                     <p class="trip-dashboard__expense-title">{{ expense.title }}</p>
-                    <p class="trip-dashboard__expense-payer">Payé par
-                      {{ expense.payer?.fullName || '?' }}</p>
+                    <p class="trip-dashboard__expense-payer">
+                      Payé par {{ expense.payer?.fullName || "?" }}
+                    </p>
                   </div>
                   <span class="trip-dashboard__expense-amount">-{{ expense.amount }} €</span>
-                  <button class="trip-dashboard__expense-delete"
-                          @click.stop="openDeleteModal('expense', expense)">
+                  <button
+                    class="trip-dashboard__expense-delete"
+                    @click.stop="openDeleteModal('expense', expense)"
+                  >
                     <i class="fi fi-rr-trash"></i>
                   </button>
                 </div>
@@ -171,15 +207,20 @@
               :class="{ 'trip-dashboard__expand-btn--expanded': budgetExpanded }"
               @click="budgetExpanded = !budgetExpanded"
             >
-              <span>{{ budgetExpanded ? 'Réduire' : 'Voir plus' }}</span>
+              <span>{{ budgetExpanded ? "Réduire" : "Voir plus" }}</span>
               <i class="fi fi-rr-angle-small-down"></i>
             </button>
           </section>
         </div>
 
         <div class="trip-dashboard__col-itinerary">
-          <section class="trip-dashboard__card trip-dashboard__card--delay-2"
-                   :class="{ 'trip-dashboard__card--collapsed': !itineraryExpanded, 'trip-dashboard__card--expanded': itineraryExpanded }">
+          <section
+            class="trip-dashboard__card trip-dashboard__card--delay-2"
+            :class="{
+              'trip-dashboard__card--collapsed': !itineraryExpanded,
+              'trip-dashboard__card--expanded': itineraryExpanded,
+            }"
+          >
             <div class="trip-dashboard__card-header">
               <h2 class="trip-dashboard__card-title">
                 <i class="fi fi-rr-marker"></i>
@@ -222,7 +263,7 @@
                     </div>
                     <div class="trip-dashboard__day-city">
                       <i class="fi fi-rr-map-marker"></i>
-                      {{ day.city ? day.city.title : 'Aucune étape' }}
+                      {{ day.city ? day.city.title : "Aucune étape" }}
                     </div>
                     <button
                       class="trip-dashboard__day-center-btn"
@@ -298,7 +339,11 @@
                       </div>
                     </div>
 
-                    <button class="trip-dashboard__add-activity" @click="openAddActivityModal(day.date)">
+                    <button
+                      v-if="!isInvitationPending"
+                      class="trip-dashboard__add-activity"
+                      @click="openAddActivityModal(day.date, day)"
+                    >
                       <i class="fi fi-rr-plus"></i>
                       Ajouter
                     </button>
@@ -312,7 +357,7 @@
               :class="{ 'trip-dashboard__expand-btn--expanded': itineraryExpanded }"
               @click="itineraryExpanded = !itineraryExpanded"
             >
-              <span>{{ itineraryExpanded ? 'Réduire' : 'Voir plus' }}</span>
+              <span>{{ itineraryExpanded ? "Réduire" : "Voir plus" }}</span>
               <i class="fi fi-rr-angle-small-down"></i>
             </button>
           </section>
@@ -324,7 +369,8 @@
               <button
                 v-if="!isInvitationPending"
                 class="trip-dashboard__btn trip-dashboard__btn--secondary trip-dashboard__btn--small"
-                @click="openRouteSettings">
+                @click="openRouteSettings"
+              >
                 <i class="fi fi-rr-settings"></i>
                 Options Trajet
               </button>
@@ -337,8 +383,11 @@
   </div>
 
   <Teleport to="body">
-    <div v-if="showRouteSettingsModal" class="trip-dashboard__modal-overlay"
-         @click.self="showRouteSettingsModal = false">
+    <div
+      v-if="showRouteSettingsModal"
+      class="trip-dashboard__modal-overlay"
+      @click.self="showRouteSettingsModal = false"
+    >
       <div class="trip-dashboard__modal">
         <h3 class="trip-dashboard__modal-title">
           <i class="fi fi-rr-settings"></i>
@@ -347,18 +396,33 @@
         <form @submit.prevent="saveRouteSettings">
           <div class="trip-dashboard__form-group">
             <label class="trip-dashboard__label">Consommation (L/100km)</label>
-            <input type="number" step="0.1" v-model="routeSettings.carConsumption" required
-                   class="trip-dashboard__input"/>
+            <input
+              type="number"
+              step="0.1"
+              v-model="routeSettings.carConsumption"
+              required
+              class="trip-dashboard__input"
+            />
           </div>
           <div class="trip-dashboard__form-group">
             <label class="trip-dashboard__label">Prix Carburant (€/L)</label>
-            <input type="number" step="0.01" v-model="routeSettings.fuelPrice" required
-                   class="trip-dashboard__input"/>
+            <input
+              type="number"
+              step="0.01"
+              v-model="routeSettings.fuelPrice"
+              required
+              class="trip-dashboard__input"
+            />
           </div>
           <div class="trip-dashboard__form-group">
             <label class="trip-dashboard__label">Coût Péage (€/km)</label>
-            <input type="number" step="0.01" v-model="routeSettings.tollRate" required
-                   class="trip-dashboard__input"/>
+            <input
+              type="number"
+              step="0.01"
+              v-model="routeSettings.tollRate"
+              required
+              class="trip-dashboard__input"
+            />
             <p class="trip-dashboard__form-hint">Moyenne France : 0.12€/km</p>
           </div>
           <div class="trip-dashboard__form-group">
@@ -370,16 +434,23 @@
           </div>
           <div class="trip-dashboard__form-group">
             <div class="trip-dashboard__checkbox-group">
-              <input type="checkbox" id="avoidTolls" v-model="routeSettings.avoidTolls"/>
+              <input type="checkbox" id="avoidTolls" v-model="routeSettings.avoidTolls" />
               <label for="avoidTolls">Éviter les péages</label>
             </div>
           </div>
           <div class="trip-dashboard__modal-actions">
-            <button type="button" class="trip-dashboard__btn trip-dashboard__btn--secondary"
-                    @click="showRouteSettingsModal = false">Annuler
+            <button
+              type="button"
+              class="trip-dashboard__btn trip-dashboard__btn--secondary"
+              @click="showRouteSettingsModal = false"
+            >
+              Annuler
             </button>
-            <button type="submit" class="trip-dashboard__btn trip-dashboard__btn--primary"
-                    :disabled="isSubmitting">
+            <button
+              type="submit"
+              class="trip-dashboard__btn trip-dashboard__btn--primary"
+              :disabled="isSubmitting"
+            >
               <i class="fi fi-rr-check"></i>
               Enregistrer
             </button>
@@ -388,8 +459,11 @@
       </div>
     </div>
 
-    <div v-if="showEditExpenseModal" class="trip-dashboard__modal-overlay"
-         @click.self="showEditExpenseModal = false">
+    <div
+      v-if="showEditExpenseModal"
+      class="trip-dashboard__modal-overlay"
+      @click.self="showEditExpenseModal = false"
+    >
       <div class="trip-dashboard__modal">
         <h3 class="trip-dashboard__modal-title">
           <i class="fi fi-rr-edit"></i>
@@ -398,18 +472,24 @@
         <form @submit.prevent="updateExpense">
           <div class="trip-dashboard__form-group">
             <label class="trip-dashboard__label">Titre</label>
-            <input v-model="editingExpense.title" required class="trip-dashboard__input"/>
+            <input v-model="editingExpense.title" required class="trip-dashboard__input" />
           </div>
           <div class="trip-dashboard__form-group">
             <label class="trip-dashboard__label">Montant (€)</label>
-            <input type="number" v-model="editingExpense.amount" required min="0" step="0.01"
-                   class="trip-dashboard__input"/>
+            <input
+              type="number"
+              v-model="editingExpense.amount"
+              required
+              min="0"
+              step="0.01"
+              class="trip-dashboard__input"
+            />
           </div>
           <div class="trip-dashboard__form-group">
             <label class="trip-dashboard__label">Payé par</label>
             <select v-model="editingExpense.paidBy" required class="trip-dashboard__select">
-              <option v-for="p in trip.participants" :key="p.id" :value="p.id">
-                {{ p.id === currentUser?.id ? 'Moi' : p.fullName }}
+              <option v-for="p in trip!.participants" :key="p.id" :value="p.id">
+                {{ p.id === currentUser?.id ? "Moi" : p.fullName }}
               </option>
             </select>
           </div>
@@ -427,15 +507,26 @@
           </div>
           <div class="trip-dashboard__form-group">
             <label class="trip-dashboard__label">Date</label>
-            <input type="date" v-model="editingExpense.expenseDate" required
-                   class="trip-dashboard__input"/>
+            <input
+              type="date"
+              v-model="editingExpense.expenseDate"
+              required
+              class="trip-dashboard__input"
+            />
           </div>
           <div class="trip-dashboard__modal-actions">
-            <button type="button" class="trip-dashboard__btn trip-dashboard__btn--secondary"
-                    @click="showEditExpenseModal = false">Annuler
+            <button
+              type="button"
+              class="trip-dashboard__btn trip-dashboard__btn--secondary"
+              @click="showEditExpenseModal = false"
+            >
+              Annuler
             </button>
-            <button type="submit" class="trip-dashboard__btn trip-dashboard__btn--primary"
-                    :disabled="isSubmitting">
+            <button
+              type="submit"
+              class="trip-dashboard__btn trip-dashboard__btn--primary"
+              :disabled="isSubmitting"
+            >
               <i class="fi fi-rr-check"></i>
               Enregistrer
             </button>
@@ -444,8 +535,11 @@
       </div>
     </div>
 
-    <div v-if="showExpenseModal" class="trip-dashboard__modal-overlay"
-         @click.self="showExpenseModal = false">
+    <div
+      v-if="showExpenseModal"
+      class="trip-dashboard__modal-overlay"
+      @click.self="showExpenseModal = false"
+    >
       <div class="trip-dashboard__modal">
         <h3 class="trip-dashboard__modal-title">
           <i class="fi fi-rr-receipt"></i>
@@ -454,19 +548,29 @@
         <form @submit.prevent="createExpense">
           <div class="trip-dashboard__form-group">
             <label class="trip-dashboard__label">Titre</label>
-            <input v-model="newExpense.title" required placeholder="Ex: Plein d'essence"
-                   class="trip-dashboard__input"/>
+            <input
+              v-model="newExpense.title"
+              required
+              placeholder="Ex: Plein d'essence"
+              class="trip-dashboard__input"
+            />
           </div>
           <div class="trip-dashboard__form-group">
             <label class="trip-dashboard__label">Montant (€)</label>
-            <input type="number" v-model="newExpense.amount" required min="0" step="0.01"
-                   class="trip-dashboard__input"/>
+            <input
+              type="number"
+              v-model="newExpense.amount"
+              required
+              min="0"
+              step="0.01"
+              class="trip-dashboard__input"
+            />
           </div>
           <div class="trip-dashboard__form-group">
             <label class="trip-dashboard__label">Payé par</label>
             <select v-model="newExpense.paidBy" required class="trip-dashboard__select">
-              <option v-for="p in trip.participants" :key="p.id" :value="p.id">
-                {{ p.id === currentUser?.id ? 'Moi' : p.fullName }}
+              <option v-for="p in trip!.participants" :key="p.id" :value="p.id">
+                {{ p.id === currentUser?.id ? "Moi" : p.fullName }}
               </option>
             </select>
           </div>
@@ -484,14 +588,21 @@
           </div>
           <div class="trip-dashboard__form-group">
             <label class="trip-dashboard__label">Date</label>
-            <input type="date" v-model="newExpense.date" required class="trip-dashboard__input"/>
+            <input type="date" v-model="newExpense.date" required class="trip-dashboard__input" />
           </div>
           <div class="trip-dashboard__modal-actions">
-            <button type="button" class="trip-dashboard__btn trip-dashboard__btn--secondary"
-                    @click="showExpenseModal = false">Annuler
+            <button
+              type="button"
+              class="trip-dashboard__btn trip-dashboard__btn--secondary"
+              @click="showExpenseModal = false"
+            >
+              Annuler
             </button>
-            <button type="submit" class="trip-dashboard__btn trip-dashboard__btn--primary"
-                    :disabled="isSubmitting">
+            <button
+              type="submit"
+              class="trip-dashboard__btn trip-dashboard__btn--primary"
+              :disabled="isSubmitting"
+            >
               <i class="fi fi-rr-plus"></i>
               Ajouter
             </button>
@@ -500,8 +611,11 @@
       </div>
     </div>
 
-    <div v-if="showStopModal" class="trip-dashboard__modal-overlay"
-         @click.self="showStopModal = false">
+    <div
+      v-if="showStopModal"
+      class="trip-dashboard__modal-overlay"
+      @click.self="showStopModal = false"
+    >
       <div class="trip-dashboard__modal trip-dashboard__modal--activity">
         <button class="trip-dashboard__modal-close" @click="showStopModal = false">
           <i class="fi fi-rr-cross-small"></i>
@@ -517,10 +631,106 @@
         </div>
 
         <div v-if="!newStop.latitude" class="trip-dashboard__activity-search">
-          <div class="trip-dashboard__form-group">
-            <label class="trip-dashboard__label">
-              Rechercher un lieu
-            </label>
+          <!-- Nearby Places avec Map (si ville disponible) -->
+          <div v-if="currentDayCity && !showManualSearch" class="trip-dashboard__nearby-container">
+            <div class="trip-dashboard__form-group">
+              <label class="trip-dashboard__label">
+                <i class="fi fi-rr-marker"></i>
+                Lieux recommandés près de {{ currentDayCity.title }}
+              </label>
+
+              <!-- Filtres de types -->
+              <div class="trip-dashboard__place-filters">
+                <button
+                  type="button"
+                  :class="[
+                    'trip-dashboard__filter-chip',
+                    { active: selectedPlaceType === 'tourist_attraction' },
+                  ]"
+                  @click="changePlaceType('tourist_attraction')"
+                >
+                  🏛️ Points d'intérêt
+                </button>
+                <button
+                  type="button"
+                  :class="[
+                    'trip-dashboard__filter-chip',
+                    { active: selectedPlaceType === 'restaurant' },
+                  ]"
+                  @click="changePlaceType('restaurant')"
+                >
+                  🍴 Restaurants
+                </button>
+                <button
+                  type="button"
+                  :class="[
+                    'trip-dashboard__filter-chip',
+                    { active: selectedPlaceType === 'museum' },
+                  ]"
+                  @click="changePlaceType('museum')"
+                >
+                  🖼️ Musées
+                </button>
+                <button
+                  type="button"
+                  :class="['trip-dashboard__filter-chip', { active: selectedPlaceType === 'cafe' }]"
+                  @click="changePlaceType('cafe')"
+                >
+                  ☕ Cafés
+                </button>
+              </div>
+
+              <!-- Map Container -->
+              <div id="modal-map" class="trip-dashboard__modal-map"></div>
+
+              <!-- Loading state -->
+              <div v-if="isLoadingNearby" class="trip-dashboard__nearby-loading">
+                <i class="fi fi-rr-spinner trip-dashboard__spinner"></i>
+                Chargement des lieux...
+              </div>
+
+              <!-- Message si aucun résultat -->
+              <div
+                v-if="!isLoadingNearby && nearbyPlaces.length === 0"
+                class="trip-dashboard__nearby-empty"
+              >
+                <i class="fi fi-rr-info"></i>
+                Aucun lieu trouvé à proximité
+              </div>
+
+              <!-- Boutons d'actions -->
+              <div class="trip-dashboard__nearby-actions">
+                <!-- Bouton "Afficher plus" pour les Points d'intérêt -->
+                <button
+                  v-if="
+                    selectedPlaceType === 'tourist_attraction' &&
+                    !showMorePOI &&
+                    nearbyPlaces.length > 0
+                  "
+                  type="button"
+                  class="trip-dashboard__btn trip-dashboard__btn--primary trip-dashboard__btn--small"
+                  @click="loadMorePOI"
+                >
+                  <i class="fi fi-rr-plus"></i>
+                  Afficher plus de points d'intérêt ({{ nearbyPlaces.length }}/10)
+                </button>
+
+                <!-- Bouton pour recherche manuelle -->
+                <button
+                  type="button"
+                  class="trip-dashboard__btn trip-dashboard__btn--secondary trip-dashboard__btn--small"
+                  @click="showManualSearch = true"
+                >
+                  <i class="fi fi-rr-search"></i>
+                  Recherche personnalisée
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Recherche manuelle (fallback) -->
+          <div v-if="!currentDayCity || showManualSearch" class="trip-dashboard__form-group">
+            <label class="trip-dashboard__label"> Rechercher un lieu </label>
             <div class="trip-dashboard__search-wrapper">
               <input
                 type="text"
@@ -535,35 +745,72 @@
             </div>
 
             <ul v-if="searchResults.length > 0" class="trip-dashboard__search-results-activity">
-              <li v-for="result in searchResults.slice(0, 5)" :key="result.place_id"
-                  @click="selectLocation(result)" class="trip-dashboard__search-result-item">
+              <li
+                v-for="result in searchResults.slice(0, 5)"
+                :key="result.place_id"
+                @click="selectLocation(result)"
+                class="trip-dashboard__search-result-item"
+              >
                 <div class="trip-dashboard__search-result-icon">
                   <i class="fi fi-rr-marker"></i>
                 </div>
                 <div class="trip-dashboard__search-result-info">
-                  <span class="trip-dashboard__search-result-name">{{ result.display_name.split(',')[0] }}</span>
-                  <span class="trip-dashboard__search-result-address">{{ result.display_name.split(',').slice(1, 3).join(',') }}</span>
+                  <span class="trip-dashboard__search-result-name">{{
+                    result.display_name.split(",")[0]
+                  }}</span>
+                  <span class="trip-dashboard__search-result-address">{{
+                    result.display_name.split(",").slice(1, 3).join(",")
+                  }}</span>
                 </div>
               </li>
             </ul>
 
-            <div v-if="locationSearch.length >= 3 && !isSearching && searchResults.length === 0" class="trip-dashboard__search-empty">
+            <div
+              v-if="locationSearch.length >= 3 && !isSearching && searchResults.length === 0"
+              class="trip-dashboard__search-empty"
+            >
               <i class="fi fi-rr-search-alt"></i>
               <p>Aucun résultat trouvé</p>
             </div>
 
-            <p v-if="locationSearch.length < 3 && !newStop.latitude" class="trip-dashboard__search-hint">
+            <p
+              v-if="locationSearch.length < 3 && !newStop.latitude"
+              class="trip-dashboard__search-hint"
+            >
               <i class="fi fi-rr-info"></i>
               Tapez au moins 3 caractères pour rechercher
             </p>
+
+            <button
+              v-if="currentDayCity && showManualSearch"
+              type="button"
+              class="trip-dashboard__btn trip-dashboard__btn--secondary trip-dashboard__btn--small"
+              style="margin-top: 0.5rem"
+              @click="showManualSearch = false"
+            >
+              <i class="fi fi-rr-arrow-left"></i>
+              Retour aux recommandations
+            </button>
           </div>
         </div>
 
-        <form v-if="newStop.latitude" @submit.prevent="isEditingStop ? updateStop() : addStop()" class="trip-dashboard__activity-form">
+        <form
+          v-if="newStop.latitude"
+          @submit.prevent="isEditingStop ? updateStop() : addStop()"
+          class="trip-dashboard__activity-form"
+        >
           <div class="trip-dashboard__selected-location">
             <i class="fi fi-rr-check-circle"></i>
             <span>{{ newStop.title }}</span>
-            <button type="button" class="trip-dashboard__change-location" @click="newStop.latitude = null; newStop.longitude = null; newStop.title = '';">
+            <button
+              type="button"
+              class="trip-dashboard__change-location"
+              @click="
+                newStop.latitude = null;
+                newStop.longitude = null;
+                newStop.title = '';
+              "
+            >
               <i class="fi fi-rr-pencil"></i>
             </button>
           </div>
@@ -587,8 +834,14 @@
                 <i class="fi fi-rr-euro"></i>
                 Prix estimé
               </label>
-              <input type="number" v-model="newStop.price" min="0" step="0.01" placeholder="0.00"
-                     class="trip-dashboard__input"/>
+              <input
+                type="number"
+                v-model="newStop.price"
+                min="0"
+                step="0.01"
+                placeholder="0.00"
+                class="trip-dashboard__input"
+              />
             </div>
           </div>
 
@@ -623,19 +876,25 @@
               Payé par
             </label>
             <select v-model="newStop.paidBy" class="trip-dashboard__select">
-              <option v-for="p in trip.participants" :key="p.id" :value="p.id">
-                {{ p.id === currentUser?.id ? 'Moi' : p.fullName }}
+              <option v-for="p in trip!.participants" :key="p.id" :value="p.id">
+                {{ p.id === currentUser?.id ? "Moi" : p.fullName }}
               </option>
             </select>
           </div>
 
           <div class="trip-dashboard__modal-actions">
-            <button type="button" class="trip-dashboard__btn trip-dashboard__btn--secondary"
-                    @click="showStopModal = false">
+            <button
+              type="button"
+              class="trip-dashboard__btn trip-dashboard__btn--secondary"
+              @click="showStopModal = false"
+            >
               Annuler
             </button>
-            <button type="submit" class="trip-dashboard__btn trip-dashboard__btn--primary"
-                    :disabled="isSubmitting">
+            <button
+              type="submit"
+              class="trip-dashboard__btn trip-dashboard__btn--primary"
+              :disabled="isSubmitting"
+            >
               <i v-if="isSubmitting" class="fi fi-rr-spinner trip-dashboard__spinner"></i>
               <i v-else class="fi fi-rr-check"></i>
               {{ isSubmitting ? (isEditingStop ? 'Modification...' : 'Ajout...') : (isEditingStop ? 'Modifier' : 'Ajouter') }}
@@ -643,17 +902,26 @@
           </div>
         </form>
 
-        <div v-if="!newStop.latitude" class="trip-dashboard__modal-actions trip-dashboard__modal-actions--center">
-          <button type="button" class="trip-dashboard__btn trip-dashboard__btn--secondary"
-                  @click="showStopModal = false">
+        <div
+          v-if="!newStop.latitude"
+          class="trip-dashboard__modal-actions trip-dashboard__modal-actions--center"
+        >
+          <button
+            type="button"
+            class="trip-dashboard__btn trip-dashboard__btn--secondary"
+            @click="showStopModal = false"
+          >
             Annuler
           </button>
         </div>
       </div>
     </div>
 
-    <div v-if="showInviteModal" class="trip-dashboard__modal-overlay"
-         @click.self="showInviteModal = false">
+    <div
+      v-if="showInviteModal"
+      class="trip-dashboard__modal-overlay"
+      @click.self="showInviteModal = false"
+    >
       <div class="trip-dashboard__modal">
         <h3 class="trip-dashboard__modal-title">
           <i class="fi fi-rr-envelope"></i>
@@ -662,15 +930,27 @@
         <form @submit.prevent="inviteParticipant">
           <div class="trip-dashboard__form-group">
             <label class="trip-dashboard__label">Email</label>
-            <input type="email" v-model="inviteEmail" required placeholder="ami@exemple.com"
-                   class="trip-dashboard__input"/>
+            <input
+              type="email"
+              v-model="inviteEmail"
+              required
+              placeholder="ami@exemple.com"
+              class="trip-dashboard__input"
+            />
           </div>
           <div class="trip-dashboard__modal-actions">
-            <button type="button" class="trip-dashboard__btn trip-dashboard__btn--secondary"
-                    @click="showInviteModal = false">Annuler
+            <button
+              type="button"
+              class="trip-dashboard__btn trip-dashboard__btn--secondary"
+              @click="showInviteModal = false"
+            >
+              Annuler
             </button>
-            <button type="submit" class="trip-dashboard__btn trip-dashboard__btn--primary"
-                    :disabled="isSubmitting">
+            <button
+              type="submit"
+              class="trip-dashboard__btn trip-dashboard__btn--primary"
+              :disabled="isSubmitting"
+            >
               <i class="fi fi-rr-paper-plane"></i>
               Inviter
             </button>
@@ -679,19 +959,24 @@
       </div>
     </div>
 
-    <div v-if="showParticipantsModal" class="trip-dashboard__modal-overlay"
-         @click.self="showParticipantsModal = false">
+    <div
+      v-if="showParticipantsModal"
+      class="trip-dashboard__modal-overlay"
+      @click.self="showParticipantsModal = false"
+    >
       <div class="trip-dashboard__modal">
         <h3 class="trip-dashboard__modal-title">
           <i class="fi fi-rr-users"></i>
           Participants
         </h3>
         <div class="trip-dashboard__participants-list">
-          <div v-for="participant in trip.participants" :key="participant.id"
-               class="trip-dashboard__participant-row">
-            <div class="trip-dashboard__participant-avatar">{{
-                getInitials(participant.fullName)
-              }}
+          <div
+            v-for="participant in trip!.participants"
+            :key="participant.id"
+            class="trip-dashboard__participant-row"
+          >
+            <div class="trip-dashboard__participant-avatar">
+              {{ getInitials(participant.fullName) }}
             </div>
             <div class="trip-dashboard__participant-info">
               <p class="trip-dashboard__participant-name">{{ participant.fullName }}</p>
@@ -702,16 +987,31 @@
               @click="openDeleteModal('participant', participant)"
             >
               <i
-                :class="getParticipantAction(participant) === 'leave' ? 'fi fi-rr-sign-out-alt' : 'fi fi-rr-trash'"></i>
+                :class="
+                  getParticipantAction(participant) === 'leave'
+                    ? 'fi fi-rr-sign-out-alt'
+                    : 'fi fi-rr-trash'
+                "
+              ></i>
             </button>
           </div>
         </div>
         <div class="trip-dashboard__modal-actions">
-          <button type="button" class="trip-dashboard__btn trip-dashboard__btn--secondary"
-                  @click="showParticipantsModal = false">Fermer
+          <button
+            type="button"
+            class="trip-dashboard__btn trip-dashboard__btn--secondary"
+            @click="showParticipantsModal = false"
+          >
+            Fermer
           </button>
-          <button type="button" class="trip-dashboard__btn trip-dashboard__btn--primary"
-                  @click="showParticipantsModal = false; showInviteModal = true">
+          <button
+            type="button"
+            class="trip-dashboard__btn trip-dashboard__btn--primary"
+            @click="
+              showParticipantsModal = false;
+              showInviteModal = true;
+            "
+          >
             <i class="fi fi-rr-user-add"></i>
             Inviter
           </button>
@@ -723,7 +1023,11 @@
       v-model="showDeleteConfirmModal"
       type="danger"
       :title="itemToDelete?.action === 'leave' ? 'Quitter le voyage' : `Supprimer`"
-      :message="itemToDelete?.action === 'leave' ? 'Êtes-vous sûr de vouloir quitter ce voyage ?' : `Êtes-vous sûr de vouloir supprimer '${itemToDelete?.name}' ?`"
+      :message="
+        itemToDelete?.action === 'leave'
+          ? 'Êtes-vous sûr de vouloir quitter ce voyage ?'
+          : `Êtes-vous sûr de vouloir supprimer '${itemToDelete?.name}' ?`
+      "
       :confirm-text="itemToDelete?.action === 'leave' ? 'Quitter' : 'Supprimer'"
       cancel-text="Annuler"
       @confirm="confirmDeleteItem"
@@ -756,7 +1060,7 @@
     </div>
 
     <TripEditModal
-      v-if="showEditTripModal"
+      v-if="showEditTripModal && trip"
       :trip="trip"
       :isSubmitting="isSubmitting"
       @close="showEditTripModal = false"
@@ -766,23 +1070,23 @@
 </template>
 
 <script setup lang="ts">
-import {ref, onMounted, nextTick, computed, watch} from 'vue';
-import {useRoute, useRouter} from 'vue-router';
-import api from '../services/api';
-import {getMe} from '../services/authService';
-import type {Trip, Stop} from '../types/trip';
-import type {User} from '../types/user';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
-import 'leaflet-routing-machine';
-import 'leaflet-routing-machine/dist/leaflet-routing-machine.css';
+import { ref, onMounted, nextTick, computed, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import api from "../services/api";
+import { getMe } from "../services/authService";
+import type { Trip, Stop } from "../types/trip";
+import type { User } from "../types/user";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+import "leaflet-routing-machine";
+import "leaflet-routing-machine/dist/leaflet-routing-machine.css";
 
-import iconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png';
-import iconUrl from 'leaflet/dist/images/marker-icon.png';
-import shadowUrl from 'leaflet/dist/images/marker-shadow.png';
+import iconRetinaUrl from "leaflet/dist/images/marker-icon-2x.png";
+import iconUrl from "leaflet/dist/images/marker-icon.png";
+import shadowUrl from "leaflet/dist/images/marker-shadow.png";
 
-import AppModal from '../components/AppModal.vue';
-import TripEditModal from '../components/TripEditModal.vue';
+import AppModal from "../components/AppModal.vue";
+import TripEditModal from "../components/TripEditModal.vue";
 
 function extractDateLocal(dateString?: string) {
   if (!dateString) return '';
@@ -834,29 +1138,29 @@ const DefaultIcon = L.icon({
   iconAnchor: [12, 41],
   popupAnchor: [1, -34],
   tooltipAnchor: [16, -28],
-  shadowSize: [41, 41]
+  shadowSize: [41, 41],
 });
 L.Marker.prototype.options.icon = DefaultIcon;
 
 const route = useRoute();
 const vueRouter = useRouter();
 const loading = ref(true);
-const error = ref('');
+const error = ref("");
 const trip = ref<Trip | null>(null);
 const currentUser = ref<User | null>(null);
 const myParticipant = computed(() => {
   if (!trip.value || !currentUser.value) return null;
-  return trip.value.participants.find(p => p.id === currentUser.value!.id);
+  return trip.value.participants.find((p) => p.id === currentUser.value!.id);
 });
 
 const isCreator = computed(() => {
-    return trip.value?.creatorId === currentUser.value?.id;
+  return trip.value?.creatorId === currentUser.value?.id;
 });
 
 const isInvitationPending = computed(() => {
   const pivot = myParticipant.value?.pivot as any;
   if (!pivot) return false;
-  return (pivot.invitationStatus === 'pending' || pivot.invitation_status === 'pending');
+  return pivot.invitationStatus === "pending" || pivot.invitation_status === "pending";
 });
 
 const acceptInvitation = async () => {
@@ -896,11 +1200,11 @@ const showParticipantsModal = ref(false);
 const showEditTripModal = ref(false);
 const isSubmitting = ref(false);
 const itemToDelete = ref<{
-  type: 'expense' | 'stop' | 'participant';
+  type: "expense" | "stop" | "participant";
   id: number;
   name: string;
   extraId?: number;
-  action?: string
+  action?: string;
 } | null>(null);
 const isEditingStop = ref(false);
 const editingStopId = ref<number | null>(null);
@@ -914,23 +1218,23 @@ const updateTrip = async (formData: any) => {
   isSubmitting.value = true;
   try {
     const data = new FormData();
-    data.append('title', formData.title);
-    if (formData.description) data.append('description', formData.description);
-    data.append('startDate', formData.startDate);
-    data.append('endDate', formData.endDate);
-    if (formData.budget) data.append('budget', formData.budget.toString());
-    data.append('status', formData.status);
+    data.append("title", formData.title);
+    if (formData.description) data.append("description", formData.description);
+    data.append("startDate", formData.startDate);
+    data.append("endDate", formData.endDate);
+    if (formData.budget) data.append("budget", formData.budget.toString());
+    data.append("status", formData.status);
     if (formData.coverImage) {
-      data.append('cover_image', formData.coverImage);
+      data.append("cover_image", formData.coverImage);
     }
 
     await api.patch(`/trips/${trip.value.id}`, data, {
-      headers: { 'Content-Type': 'multipart/form-data' }
+      headers: { "Content-Type": "multipart/form-data" },
     });
 
     showEditTripModal.value = false;
     await fetchTripDetails();
-    alert('Voyage modifié avec succès !');
+    alert("Voyage modifié avec succès !");
   } catch (e) {
     console.error(e);
     alert("Erreur lors de la modification du voyage");
@@ -1042,33 +1346,33 @@ function openEditStopModal(stop: any) {
   showStopModal.value = true;
 }
 
-function getParticipantAction(participant: any): 'remove' | 'leave' | null {
+const getParticipantAction = (participant: any): "remove" | "leave" | null => {
   if (!trip.value || !currentUser.value) return null;
   const isCreator = trip.value.creatorId === currentUser.value.id;
   const isMe = participant.id === currentUser.value.id;
-  if (isCreator) return isMe ? null : 'remove';
-  return isMe ? 'leave' : null;
-}
+  if (isCreator) return isMe ? null : "remove";
+  return isMe ? "leave" : null;
+};
 
-function openDeleteModal(type: 'expense' | 'stop' | 'participant', item: any) {
-  let name = '';
-  let id = item.id;
+const openDeleteModal = (type: "expense" | "stop" | "participant", item: any) => {
+  let name = "";
+  const id = item.id;
   let extraId = undefined;
 
-  if (type === 'expense') name = item.title;
-  if (type === 'stop') name = item.title;
-  if (type === 'participant') {
+  if (type === "expense") name = item.title;
+  if (type === "stop") name = item.title;
+  if (type === "participant") {
     const action = getParticipantAction(item);
     if (!action) return;
     name = item.fullName;
     extraId = item.id;
-    if (action === 'leave') {
-      itemToDelete.value = {type, id, name, extraId, action: 'leave'};
+    if (action === "leave") {
+      itemToDelete.value = { type, id, name, extraId, action: "leave" };
       showDeleteConfirmModal.value = true;
       return;
     }
   }
-  itemToDelete.value = {type, id, name, extraId};
+  itemToDelete.value = { type, id, name, extraId };
   showDeleteConfirmModal.value = true;
 }
 
@@ -1076,14 +1380,14 @@ async function confirmDeleteItem() {
   if (!itemToDelete.value || !trip.value) return;
   isSubmitting.value = true;
   try {
-    if (itemToDelete.value.type === 'expense') {
+    if (itemToDelete.value.type === "expense") {
       await api.delete(`/expenses/${itemToDelete.value.id}`);
-    } else if (itemToDelete.value.type === 'stop') {
+    } else if (itemToDelete.value.type === "stop") {
       await api.delete(`/stops/${itemToDelete.value.id}`);
-    } else if (itemToDelete.value.type === 'participant') {
+    } else if (itemToDelete.value.type === "participant") {
       await api.delete(`/trips/${trip.value.id}/participants/${itemToDelete.value.extraId}`);
-      if (itemToDelete.value.action === 'leave') {
-        vueRouter.push('/my-trips');
+      if (itemToDelete.value.action === "leave") {
+        vueRouter.push("/my-trips");
         return;
       }
     }
@@ -1168,25 +1472,36 @@ const estimatedFuelCost = ref(0);
 const estimatedTollCost = ref(0);
 const routeSettings = ref({
   carConsumption: 7.0,
-  fuelPrice: 1.80,
+  fuelPrice: 1.8,
   tollRate: 0.12,
-  routingPreference: 'fastest',
-  avoidTolls: false
+  routingPreference: "fastest",
+  avoidTolls: false,
 });
 
 const newExpense = ref({
-  title: '',
+  title: "",
   amount: 0,
-  category: 'food',
+  category: "food",
   paidBy: null as number | null,
-  date: new Date().toISOString().split('T')[0]
+  date: new Date().toISOString().split("T")[0],
 });
 
-const inviteEmail = ref('');
-const locationSearch = ref('');
+const inviteEmail = ref("");
+const locationSearch = ref("");
 const searchResults = ref<any[]>([]);
 const isSearching = ref(false);
+>>>>>>> /tmp/remote_horaires.vue
 let searchTimeout: any = null;
+
+// Variables pour la fonctionnalité Nearby Search
+const nearbyPlaces = ref<any[]>([]);
+const selectedPlaceType = ref("tourist_attraction");
+const isLoadingNearby = ref(false);
+const showManualSearch = ref(false);
+const showMorePOI = ref(false); // Pour afficher plus de points d'intérêt
+let modalMap: L.Map | null = null;
+let nearbyMarkers: L.Marker[] = [];
+const currentDayCity = ref<Stop | null>(null);
 
 const fetchTripDetails = async () => {
   try {
@@ -1196,10 +1511,10 @@ const fetchTripDetails = async () => {
     if (trip.value) {
       routeSettings.value = {
         carConsumption: trip.value.carConsumption || 7.0,
-        fuelPrice: trip.value.fuelPrice || 1.80,
+        fuelPrice: trip.value.fuelPrice || 1.8,
         tollRate: (trip.value as any).tollRate || 0.12,
-        routingPreference: 'fastest',
-        avoidTolls: false
+        routingPreference: "fastest",
+        avoidTolls: false,
       };
       await calculateItineraryByDay();
     }
@@ -1207,7 +1522,7 @@ const fetchTripDetails = async () => {
     await nextTick();
     initMap();
   } catch (err: any) {
-    console.error('Error loading trip:', err);
+    console.error("Error loading trip:", err);
     error.value = "Impossible de charger les détails du voyage.";
     loading.value = false;
   }
@@ -1384,36 +1699,36 @@ const calculateItineraryByDay = async () => {
 
 const getCategoryIconClass = (category: string): string => {
   const iconMap: Record<string, string> = {
-    'transport': 'fi fi-rr-plane',
-    'fuel': 'fi fi-rr-gas-pump',
-    'tolls': 'fi fi-rr-road',
-    'accommodation': 'fi fi-rr-bed',
-    'food': 'fi fi-rr-restaurant',
-    'activity': 'fi fi-rr-ticket',
-    'other': 'fi fi-rr-box'
+    transport: "fi fi-rr-plane",
+    fuel: "fi fi-rr-gas-pump",
+    tolls: "fi fi-rr-road",
+    accommodation: "fi fi-rr-bed",
+    food: "fi fi-rr-restaurant",
+    activity: "fi fi-rr-ticket",
+    other: "fi fi-rr-box",
   };
-  return iconMap[category] || 'fi fi-rr-coins';
+  return iconMap[category] || "fi fi-rr-coins";
 };
 
 const getStopIconClass = (type: string): string => {
   const iconMap: Record<string, string> = {
-    'city': 'fi fi-rr-building',
-    'accommodation': 'fi fi-rr-bed',
-    'restaurant': 'fi fi-rr-restaurant',
-    'activity': 'fi fi-rr-ticket',
-    'poi': 'fi fi-rr-marker'
+    city: "fi fi-rr-building",
+    accommodation: "fi fi-rr-bed",
+    restaurant: "fi fi-rr-restaurant",
+    activity: "fi fi-rr-ticket",
+    poi: "fi fi-rr-marker",
   };
-  return iconMap[type] || 'fi fi-rr-marker';
+  return iconMap[type] || "fi fi-rr-marker";
 };
 
 const getStatusIcon = (status: string): string => {
   const iconMap: Record<string, string> = {
-    'planning': 'fi fi-rr-time-quarter-past',
-    'active': 'fi fi-rr-rocket-lunch',
-    'completed': 'fi fi-rr-check-circle',
-    'cancelled': 'fi fi-rr-ban'
+    planning: "fi fi-rr-time-quarter-past",
+    active: "fi fi-rr-rocket-lunch",
+    completed: "fi fi-rr-check-circle",
+    cancelled: "fi fi-rr-ban",
   };
-  return iconMap[status] || 'fi fi-rr-circle';
+  return iconMap[status] || "fi fi-rr-circle";
 };
 
 const centerMapOnDay = (day: { date: string; city: Stop | null; activities: Stop[] }) => {
@@ -1423,9 +1738,9 @@ const centerMapOnDay = (day: { date: string; city: Stop | null; activities: Stop
   if (allStops.length === 0) return;
 
   if (allStops.length === 1) {
-    map.setView([allStops[0].latitude, allStops[0].longitude], 14, { animate: true });
+    map.setView([allStops[0]!.latitude!, allStops[0]!.longitude!], 14, { animate: true });
   } else {
-    const bounds = L.latLngBounds(allStops.map(s => [s.latitude, s.longitude]));
+    const bounds = L.latLngBounds(allStops.map((s) => [s.latitude!, s.longitude!]));
     map.fitBounds(bounds, { padding: [50, 50], animate: true, maxZoom: 15 });
   }
 };
@@ -1438,13 +1753,17 @@ const initMap = () => {
   }
   const stops = trip.value.stops;
   let initialView: L.LatLngExpression = [46.603354, 1.888334];
-  if (stops.length > 0) initialView = [stops[0].latitude, stops[0].longitude];
-  map = L.map('trip-map').setView(initialView, 10);
+  if (stops.length > 0) {
+    const firstStop = stops[0]!;
+    initialView = [firstStop.latitude!, firstStop.longitude!];
+  }
+  map = L.map("trip-map").setView(initialView, 10);
 
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
-    subdomains: 'abcd',
-    maxZoom: 19
+  L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
+    attribution:
+      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    subdomains: "abcd",
+    maxZoom: 19,
   }).addTo(map);
 
   updateMapMarkers();
@@ -1452,16 +1771,16 @@ const initMap = () => {
 
 const createCustomIcon = (index: number, type: string) => {
   const colors: Record<string, string> = {
-    'city': '#1e4d3d',
-    'accommodation': '#8b5cf6',
-    'restaurant': '#f97316',
-    'activity': '#ec4899',
-    'poi': '#3b82f6'
+    city: "#1e4d3d",
+    accommodation: "#8b5cf6",
+    restaurant: "#f97316",
+    activity: "#ec4899",
+    poi: "#3b82f6",
   };
-  const bgColor = colors[type] || '#1e4d3d';
+  const bgColor = colors[type] || "#1e4d3d";
 
   return L.divIcon({
-    className: 'custom-marker',
+    className: "custom-marker",
     html: `
       <div style="
         width: 36px;
@@ -1486,19 +1805,27 @@ const createCustomIcon = (index: number, type: string) => {
     `,
     iconSize: [36, 36],
     iconAnchor: [18, 36],
-    popupAnchor: [0, -36]
+    popupAnchor: [0, -36],
   });
 };
 
 const adjustColor = (hex: string, percent: number) => {
-  const num = parseInt(hex.replace('#', ''), 16);
+  const num = parseInt(hex.replace("#", ""), 16);
   const amt = Math.round(2.55 * percent);
   const R = (num >> 16) + amt;
-  const G = (num >> 8 & 0x00FF) + amt;
-  const B = (num & 0x0000FF) + amt;
-  return '#' + (0x1000000 + (R < 255 ? (R < 1 ? 0 : R) : 255) * 0x10000 +
-    (G < 255 ? (G < 1 ? 0 : G) : 255) * 0x100 +
-    (B < 255 ? (B < 1 ? 0 : B) : 255)).toString(16).slice(1);
+  const G = ((num >> 8) & 0x00ff) + amt;
+  const B = (num & 0x0000ff) + amt;
+  return (
+    "#" +
+    (
+      0x1000000 +
+      (R < 255 ? (R < 1 ? 0 : R) : 255) * 0x10000 +
+      (G < 255 ? (G < 1 ? 0 : G) : 255) * 0x100 +
+      (B < 255 ? (B < 1 ? 0 : B) : 255)
+    )
+      .toString(16)
+      .slice(1)
+  );
 };
 
 let segmentQueue: any[] = [];
@@ -1508,73 +1835,69 @@ let router: any = null;
 
 const updateMapMarkers = () => {
   if (!map || !trip.value) return;
-  markers.forEach(m => map!.removeLayer(m));
+  markers.forEach((m) => map!.removeLayer(m));
   markers = [];
-  routeLayers.forEach(l => map!.removeLayer(l));
+  routeLayers.forEach((l) => map!.removeLayer(l));
   routeLayers = [];
-  routingControls.forEach(c => {
-    if (c.onRemove) c.onRemove(map); else map!.removeControl(c);
+  routingControls.forEach((c) => {
+    if (c.onRemove) c.onRemove(map);
+    else map!.removeControl(c);
   });
   routingControls = [];
   estimatedFuelCost.value = 0;
   estimatedTollCost.value = 0;
   segmentQueue = [];
   isProcessingQueue = false;
-
-  let filteredStops: any[] = [];
-  itineraryByDay.value.forEach(day => {
-    filteredStops.push(...day.activities);
+  const stops = trip.value.stops;
+  const stopsByDay: Record<string, Stop[]> = {};
+  stops.forEach((s) => {
+    const day = (s.arrivalDate || "").substring(0, 10);
+    if (!stopsByDay[day]) stopsByDay[day] = [];
+    stopsByDay[day].push(s);
   });
-
-  const dedupedStops: any[] = [];
-  filteredStops.forEach((stop, i) => {
-    if (i === 0) {
-      dedupedStops.push(stop);
-    } else {
-      const prevStop = dedupedStops[dedupedStops.length - 1];
-      const isSameStop = stop.id === prevStop.id ||
-                        (stop.latitude === prevStop.latitude && stop.longitude === prevStop.longitude);
-
-      if (!isSameStop) {
-        dedupedStops.push(stop);
-      }
-    }
+  const filteredStops: Stop[] = [];
+  Object.values(stopsByDay).forEach((dayStops) => {
+    const activities = dayStops.filter((s) => s.type !== "city");
+    if (activities.length > 0) filteredStops.push(...activities);
+    else filteredStops.push(...dayStops);
   });
-
-  dedupedStops.forEach((stop: any, index: number) => {
+  filteredStops.sort((a, b) => (a.arrivalDate || "").localeCompare(b.arrivalDate || ""));
+  filteredStops.forEach((stop: any, index: number) => {
     const marker = L.marker([stop.latitude, stop.longitude], {
-      icon: createCustomIcon(index, stop.type)
+      icon: createCustomIcon(index, stop.type),
     })
-      .bindPopup(`<div style="text-align:center;"><b style="font-size:14px;">${stop.title}</b><br><span style="color:#666;font-size:12px;">${formatStopType(stop.type)}</span></div>`)
+      .bindPopup(
+        `<div style="text-align:center;"><b style="font-size:14px;">${stop.title}</b><br><span style="color:#666;font-size:12px;">${formatStopType(stop.type)}</span></div>`,
+      )
       .addTo(map!);
     markers.push(marker);
   });
   const routerOptions: any = {
-    serviceUrl: 'https://router.project-osrm.org/route/v1',
-    profile: 'driving',
-    routingOptions: {steps: true}
+    serviceUrl: "https://router.project-osrm.org/route/v1",
+    profile: "driving",
+    routingOptions: { steps: true },
   };
-  if (routeSettings.value.avoidTolls) routerOptions.routingOptions.exclude = ['toll'];
+  if (routeSettings.value.avoidTolls) routerOptions.routingOptions.exclude = ["toll"];
   router = L.Routing.osrmv1(routerOptions);
-  if (dedupedStops.length > 1) {
-    for (let i = 0; i < dedupedStops.length - 1; i++) {
-      const start = dedupedStops[i];
-      const end = dedupedStops[i + 1];
-      const startDate = (start.arrivalDate || '').substring(0, 10);
-      const endDate = (end.arrivalDate || '').substring(0, 10);
+  if (filteredStops.length > 1) {
+    for (let i = 0; i < filteredStops.length - 1; i++) {
+      const start = filteredStops[i]!;
+      const end = filteredStops[i + 1]!;
+      const startDate = (start.arrivalDate || "").substring(0, 10);
+      const endDate = (end.arrivalDate || "").substring(0, 10);
       const isSameDay = startDate === endDate;
-      const color = isSameDay ? '#ec4899' : '#1e4d3d';
+      const color = isSameDay ? "#ec4899" : "#1e4d3d";
       const weight = isSameDay ? 4 : 5;
-      const dashArray = isSameDay ? '8, 12' : undefined;
+      const dashArray = isSameDay ? "8, 12" : undefined;
       segmentQueue.push({
-        start: L.latLng(start.latitude, start.longitude),
-        end: L.latLng(end.latitude, end.longitude),
-        style: {color, weight, opacity: 0.85, dashArray, lineCap: 'round', lineJoin: 'round'}
+        start: L.latLng(start.latitude!, start.longitude!),
+        end: L.latLng(end.latitude!, end.longitude!),
+        style: { color, weight, opacity: 0.85, dashArray, lineCap: "round", lineJoin: "round" },
       });
     }
     processNextSegment();
-  } else if (dedupedStops.length === 1) {
-    map!.setView([dedupedStops[0].latitude, dedupedStops[0].longitude], 10);
+  } else if (filteredStops.length === 1) {
+    map!.setView([filteredStops[0]!.latitude!, filteredStops[0]!.longitude!], 10);
   }
 };
 
@@ -1583,7 +1906,7 @@ const processNextSegment = () => {
     isProcessingQueue = false;
     if (markers.length > 0) {
       const group = L.featureGroup([...markers, ...routeLayers]);
-      map!.fitBounds(group.getBounds(), {padding: [50, 50]});
+      map!.fitBounds(group.getBounds(), { padding: [50, 50] });
     }
     return;
   }
@@ -1591,37 +1914,52 @@ const processNextSegment = () => {
   const segment = segmentQueue.shift();
   const tempLayer = L.polyline([segment.start, segment.end], segment.style).addTo(map!);
   routeLayers.push(tempLayer);
-  router.route([{latLng: segment.start}, {latLng: segment.end}], (err: any, routes: any[]) => {
-    if (!err && routes && routes.length > 0) {
-      const bestRoute = routes[0];
-      if (bestRoute.coordinates && bestRoute.coordinates.length > 0) {
-        map!.removeLayer(tempLayer);
-        const idx = routeLayers.indexOf(tempLayer);
-        if (idx > -1) routeLayers.splice(idx, 1);
-        const realLayer = L.polyline(bestRoute.coordinates, segment.style).addTo(map!);
-        routeLayers.push(realLayer);
-        const dist = bestRoute.summary.totalDistance;
-        const distKm = dist / 1000;
-        estimatedFuelCost.value += (distKm / 100) * routeSettings.value.carConsumption * routeSettings.value.fuelPrice;
-        if (!routeSettings.value.avoidTolls && bestRoute.instructions) {
-          let segmentTollDist = 0;
-          bestRoute.instructions.forEach((instr: any) => {
-            const text = (instr.text || '').toLowerCase();
-            const isToll = instr.road && (text.includes('péage') || text.includes('toll') || instr.type === 'Toll' || instr.toll);
-            const isAutoroute = /a\s?\d{1,3}/.test(text) || (instr.road && /A\d+/.test(instr.road));
-            if (isToll || (isAutoroute && !text.includes('gratuit'))) segmentTollDist += instr.distance;
-          });
-          estimatedTollCost.value += (segmentTollDist / 1000) * routeSettings.value.tollRate;
+  router.route(
+    [{ latLng: segment.start }, { latLng: segment.end }],
+    (err: any, routes: any[]) => {
+      if (!err && routes && routes.length > 0) {
+        const bestRoute = routes[0];
+        if (bestRoute.coordinates && bestRoute.coordinates.length > 0) {
+          map!.removeLayer(tempLayer);
+          const idx = routeLayers.indexOf(tempLayer);
+          if (idx > -1) routeLayers.splice(idx, 1);
+          const realLayer = L.polyline(bestRoute.coordinates, segment.style).addTo(map!);
+          routeLayers.push(realLayer);
+          const dist = bestRoute.summary.totalDistance;
+          const distKm = dist / 1000;
+          estimatedFuelCost.value +=
+            (distKm / 100) * routeSettings.value.carConsumption * routeSettings.value.fuelPrice;
+          if (!routeSettings.value.avoidTolls && bestRoute.instructions) {
+            let segmentTollDist = 0;
+            bestRoute.instructions.forEach((instr: any) => {
+              const text = (instr.text || "").toLowerCase();
+              const isToll =
+                instr.road &&
+                (text.includes("péage") ||
+                  text.includes("toll") ||
+                  instr.type === "Toll" ||
+                  instr.toll);
+              const isAutoroute =
+                /a\s?\d{1,3}/.test(text) || (instr.road && /A\d+/.test(instr.road));
+              if (isToll || (isAutoroute && !text.includes("gratuit")))
+                segmentTollDist += instr.distance;
+            });
+            estimatedTollCost.value += (segmentTollDist / 1000) * routeSettings.value.tollRate;
+          }
         }
+      } else {
+        const distMeters = segment.start.distanceTo(segment.end);
+        const distKm = (distMeters / 1000) * 1.3;
+        estimatedFuelCost.value +=
+          (distKm / 100) * routeSettings.value.carConsumption * routeSettings.value.fuelPrice;
+        if (!routeSettings.value.avoidTolls)
+          estimatedTollCost.value += distKm * 0.6 * routeSettings.value.tollRate;
       }
-    } else {
-      const distMeters = segment.start.distanceTo(segment.end);
-      const distKm = (distMeters / 1000) * 1.3;
-      estimatedFuelCost.value += (distKm / 100) * routeSettings.value.carConsumption * routeSettings.value.fuelPrice;
-      if (!routeSettings.value.avoidTolls) estimatedTollCost.value += (distKm * 0.6) * routeSettings.value.tollRate;
-    }
-    setTimeout(() => processNextSegment(), 1000);
-  }, null, {});
+      setTimeout(() => processNextSegment(), 1000);
+    },
+    null,
+    {},
+  );
 };
 
 const openRouteSettings = () => {
@@ -1635,7 +1973,7 @@ const saveRouteSettings = async () => {
     await api.patch(`/trips/${trip.value.id}`, {
       carConsumption: routeSettings.value.carConsumption,
       fuelPrice: routeSettings.value.fuelPrice,
-      tollRate: routeSettings.value.tollRate
+      tollRate: routeSettings.value.tollRate,
     });
     trip.value.carConsumption = routeSettings.value.carConsumption;
     trip.value.fuelPrice = routeSettings.value.fuelPrice;
@@ -1660,20 +1998,20 @@ const createExpense = async () => {
       amount: newExpense.value.amount,
       category: newExpense.value.category,
       paidBy: newExpense.value.paidBy,
-      expenseDate: newExpense.value.date
+      expenseDate: newExpense.value.date,
     });
     showExpenseModal.value = false;
     newExpense.value = {
-      title: '',
+      title: "",
       amount: 0,
-      category: 'food',
+      category: "food",
       paidBy: currentUser.value?.id || null,
-      date: new Date().toISOString().split('T')[0]
+      date: new Date().toISOString().split("T")[0],
     };
     await fetchTripDetails();
   } catch (e) {
     console.error(e);
-    alert('Erreur lors de la création');
+    alert("Erreur lors de la création");
   } finally {
     isSubmitting.value = false;
   }
@@ -1689,7 +2027,21 @@ const searchLocation = () => {
   isSearching.value = true;
   searchTimeout = setTimeout(async () => {
     try {
-      searchResults.value = await (await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(locationSearch.value)}`)).json();
+      // Construction de l'URL de recherche
+      let searchUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(locationSearch.value)}`;
+
+      // Si une ville est disponible, limiter la recherche aux alentours (±0.5° ≈ 50km)
+      if (currentDayCity.value && currentDayCity.value.latitude && currentDayCity.value.longitude) {
+        const lat = Number(currentDayCity.value.latitude);
+        const lon = Number(currentDayCity.value.longitude);
+        const delta = 0.5; // ≈50km de rayon
+
+        // viewbox format: left,top,right,bottom (minLon,maxLat,maxLon,minLat)
+        const viewbox = `${lon - delta},${lat + delta},${lon + delta},${lat - delta}`;
+        searchUrl += `&viewbox=${viewbox}&bounded=1`;
+      }
+
+      searchResults.value = await (await fetch(searchUrl)).json();
     } catch (e) {
       console.error(e);
     } finally {
@@ -1699,10 +2051,10 @@ const searchLocation = () => {
 };
 
 const selectLocation = (result: any) => {
-  newStop.value.title = result.display_name.split(',')[0];
+  newStop.value.title = result.display_name.split(",")[0];
   newStop.value.latitude = parseFloat(result.lat);
   newStop.value.longitude = parseFloat(result.lon);
-  locationSearch.value = '';
+  locationSearch.value = "";
   searchResults.value = [];
 };
 
@@ -1710,18 +2062,41 @@ const openAddActivityModal = (date: string) => {
   isEditingStop.value = false;
   editingStopId.value = null;
   newStop.value = {
-    title: '',
+    title: "",
     latitude: null,
     longitude: null,
-    type: 'activity',
+    type: "activity",
     price: 0,
     paidBy: currentUser.value?.id || null,
     arrivalDate: date,
     departureDate: date,
+=======
     arrivalTime: '',
     departureTime: ''
+>>>>>>> /tmp/remote_horaires.vue
   };
+
+  // Réinitialiser l'état
+  nearbyPlaces.value = [];
+  showManualSearch.value = false;
+  showMorePOI.value = false;
+  selectedPlaceType.value = "tourist_attraction";
+  currentDayCity.value = day?.city || null;
+
   showStopModal.value = true;
+
+  // Si une ville est disponible, récupérer les lieux à proximité
+  if (currentDayCity.value && currentDayCity.value.latitude && currentDayCity.value.longitude) {
+    await nextTick(); // Attendre que la modal soit montée
+    initModalMap();
+    await fetchNearbyPlaces(
+      currentDayCity.value.latitude,
+      currentDayCity.value.longitude,
+      selectedPlaceType.value,
+      4, // Par défaut : 4 résultats
+    );
+    displayNearbyMarkers();
+  }
 };
 
 const addStop = async () => {
@@ -1745,7 +2120,7 @@ const addStop = async () => {
       paidBy: newStop.value.paidBy,
       order: trip.value.stops.length + 1,
       isLocked: false,
-      address: newStop.value.title
+      address: newStop.value.title,
     });
     showStopModal.value = false;
     await fetchTripDetails();
@@ -1753,7 +2128,7 @@ const addStop = async () => {
     updateMapMarkers();
   } catch (e) {
     console.error(e);
-    alert('Erreur lors de l\'ajout');
+    alert("Erreur lors de l'ajout");
   } finally {
     isSubmitting.value = false;
   }
@@ -1763,62 +2138,57 @@ const inviteParticipant = async () => {
   if (!trip.value) return;
   isSubmitting.value = true;
   try {
-    await api.post(`/trips/${trip.value.id}/participants`, {email: inviteEmail.value});
+    await api.post(`/trips/${trip.value.id}/participants`, { email: inviteEmail.value });
     showInviteModal.value = false;
-    inviteEmail.value = '';
-    alert('Invitation envoyée !');
+    inviteEmail.value = "";
+    alert("Invitation envoyée !");
     await fetchTripDetails();
   } catch (e: any) {
     console.error(e);
-    alert(e.response?.data?.message || 'Erreur');
+    alert(e.response?.data?.message || "Erreur");
   } finally {
     isSubmitting.value = false;
   }
 };
 
 const formatDate = (dateString?: string) => {
-  if (!dateString) return '';
-  return new Date(dateString).toLocaleDateString('fr-FR', {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short'
+  if (!dateString) return "";
+  return new Date(dateString).toLocaleDateString("fr-FR", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
   });
 };
 
-const formatTime = (dateString?: string) => {
-  if (!dateString || dateString.length < 13) return '';
-  const parts = dateString.split(/[T ]/);
-  return parts[1] ? parts[1].substring(0, 5).replace(':', 'h') : '';
-};
-
-const formatDateRange = (start: string, end: string) => `${new Date(start).toLocaleDateString('fr-FR')} - ${new Date(end).toLocaleDateString('fr-FR')}`;
+const formatDateRange = (start: string, end: string) =>
+  `${new Date(start).toLocaleDateString("fr-FR")} - ${new Date(end).toLocaleDateString("fr-FR")}`;
 
 const formatStatus = (status: string) => {
   const map: Record<string, string> = {
-    'planning': 'En planification',
-    'active': 'En cours',
-    'completed': 'Terminé',
-    'cancelled': 'Annulé'
+    planning: "En planification",
+    active: "En cours",
+    completed: "Terminé",
+    cancelled: "Annulé",
   };
   return map[status] || status;
 };
 
 const formatStopType = (type: string) => {
   const map: Record<string, string> = {
-    'poi': 'Point d\'intérêt',
-    'accommodation': 'Hébergement',
-    'restaurant': 'Restauration',
-    'activity': 'Activité',
-    'city': 'Ville étape'
+    poi: "Point d'intérêt",
+    accommodation: "Hébergement",
+    restaurant: "Restauration",
+    activity: "Activité",
+    city: "Ville étape",
   };
   return map[type] || type;
 };
 
 const getInitials = (name: string) => {
-  if (!name) return '?';
-  const parts = name.trim().split(' ');
-  if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-  return parts[0]?.substring(0, 2).toUpperCase() || '?';
+  if (!name) return "?";
+  const parts = name.trim().split(" ");
+  if (parts.length >= 2) return (parts[0]![0]! + parts[parts.length - 1]![0]!).toUpperCase();
+  return parts[0]?.substring(0, 2).toUpperCase() || "?";
 };
 
 onMounted(async () => {

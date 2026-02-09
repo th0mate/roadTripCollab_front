@@ -1000,6 +1000,11 @@
   color: var(--td-info);
 }
 
+.trip-dashboard__activity-btn--photos:hover {
+  background: #f0fdf4;
+  color: var(--td-primary);
+}
+
 .trip-dashboard__activity-btn--delete:hover {
   background: #fee2e2;
   color: var(--td-danger);

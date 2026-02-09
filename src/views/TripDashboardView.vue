@@ -273,6 +273,14 @@
 
                           <div class="trip-dashboard__activity-actions">
                             <button
+                              class="trip-dashboard__activity-btn trip-dashboard__activity-btn--photos"
+                              @click.stop="openPhotosModal(activity)"
+                              title="Gérer les photos"
+                              type="button"
+                            >
+                              <i class="fi fi-rr-camera"></i>
+                            </button>
+                            <button
                               v-if="activity.isMorningDeparture || !activity.isAccommodationHub"
                               class="trip-dashboard__activity-btn trip-dashboard__activity-btn--edit"
                               @click.stop="handleEditClick(activity, day.date)"
@@ -762,6 +770,12 @@
       @close="showEditTripModal = false"
       @update="updateTrip"
     />
+
+    <TripPhotosModal
+      v-if="showPhotosModal && selectedStopForPhotos"
+      :stop="selectedStopForPhotos"
+      @close="showPhotosModal = false"
+    />
   </Teleport>
 </template>
 
@@ -783,6 +797,7 @@ import shadowUrl from 'leaflet/dist/images/marker-shadow.png';
 
 import AppModal from '../components/AppModal.vue';
 import TripEditModal from '../components/TripEditModal.vue';
+import TripPhotosModal from '../components/TripPhotosModal.vue';
 
 function extractDateLocal(dateString?: string) {
   if (!dateString) return '';
@@ -894,6 +909,8 @@ const showDeleteConfirmModal = ref(false);
 const showEditExpenseModal = ref(false);
 const showParticipantsModal = ref(false);
 const showEditTripModal = ref(false);
+const showPhotosModal = ref(false);
+const selectedStopForPhotos = ref<any>(null);
 const isSubmitting = ref(false);
 const itemToDelete = ref<{
   type: 'expense' | 'stop' | 'participant';
@@ -978,6 +995,11 @@ function openHubEditModal(activity: any, date: string) {
 
   console.log('Setting Hub Time to:', hubStartTime.value);
   showHubModal.value = true;
+}
+
+function openPhotosModal(stop: any) {
+  selectedStopForPhotos.value = stop;
+  showPhotosModal.value = true;
 }
 
 async function updateHubTime() {

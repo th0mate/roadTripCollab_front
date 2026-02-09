@@ -60,4 +60,5 @@ export interface Trip {
 
   carConsumption: number;
   fuelPrice: number;
+  settings?: Record<string, { startTime?: string; [key: string]: any }>;
 }

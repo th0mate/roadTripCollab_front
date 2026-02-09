@@ -1297,6 +1297,25 @@
   border: 1px solid rgba(30, 77, 61, 0.1);
 }
 
+/* Modal plus large pour l'ajout d'activité avec map */
+.trip-dashboard__modal--activity {
+  max-width: 1100px;
+  width: 95vw;
+  min-width: 700px;
+  max-height: 92vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+}
+
+@media (max-width: 768px) {
+  .trip-dashboard__modal--activity {
+    min-width: auto;
+    width: 95vw;
+  }
+}
+
 .trip-dashboard__modal-title {
   font-size: 1.15rem;
   font-weight: 800;
@@ -2109,7 +2128,183 @@
     margin: 10px;
   }
 
+  .trip-dashboard__modal--activity {
+    max-width: 95vw;
+  }
+
   .trip-dashboard__modal-title {
     font-size: 1.05rem;
   }
+
+  .trip-dashboard__place-filters {
+    gap: 0.5rem;
+  }
+
+  .trip-dashboard__filter-chip {
+    font-size: 0.8rem;
+    padding: 0.5rem 0.875rem;
+  }
+}
+
+/* ========================================
+   NEARBY PLACES & MAP MODAL
+   ======================================== */
+
+.trip-dashboard__nearby-container {
+  width: 100%;
+  flex-shrink: 0;
+}
+
+.trip-dashboard__nearby-container .trip-dashboard__label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  color: var(--td-primary);
+  margin-bottom: 0.75rem;
+  font-size: 0.95rem;
+}
+
+.trip-dashboard__nearby-container .trip-dashboard__label i {
+  color: var(--td-primary);
+  font-size: 1.1rem;
+}
+
+/* Header fixe (icône, titre, date) */
+.trip-dashboard__modal-header-icon,
+.trip-dashboard__modal-title,
+.trip-dashboard__modal-date {
+  flex-shrink: 0;
+  margin-bottom: 0.75rem;
+}
+
+.trip-dashboard__modal-title {
+  margin-bottom: 0.5rem !important;
+}
+
+/* Wrapper scrollable pour le contenu en dessous de la map */
+.trip-dashboard__activity-search {
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+  padding-right: 0.25rem;
+}
+
+/* Zone scrollable pour le formulaire */
+.trip-dashboard__activity-form {
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+  padding-right: 0.5rem;
+  margin-top: 1rem;
+}
+
+.trip-dashboard__place-filters {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.875rem;
+  padding: 0.5rem;
+  background: rgba(30, 77, 61, 0.02);
+  border-radius: 12px;
+  border: 1px solid rgba(30, 77, 61, 0.08);
+  flex-shrink: 0;
+}
+
+.trip-dashboard__filter-chip {
+  padding: 0.5rem 1rem;
+  border: 2px solid rgba(30, 77, 61, 0.12);
+  border-radius: 24px;
+  background: white;
+  color: var(--td-text);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+}
+
+.trip-dashboard__filter-chip:hover {
+  border-color: var(--td-primary);
+  color: var(--td-primary);
+  background: rgba(30, 77, 61, 0.05);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+}
+
+.trip-dashboard__filter-chip.active {
+  background: var(--td-gradient);
+  color: white;
+  border-color: var(--td-primary);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(30, 77, 61, 0.25);
+}
+
+.trip-dashboard__modal-map {
+  width: 100%;
+  height: 350px;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 0.75rem;
+  border: 2px solid rgba(30, 77, 61, 0.15);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  flex-shrink: 0;
+}
+
+/* Responsive : réduire la hauteur sur mobile */
+@media (max-width: 768px) {
+  .trip-dashboard__modal-map {
+    height: 280px;
+  }
+}
+
+.trip-dashboard__nearby-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-top: 1rem;
+  align-items: center;
+}
+
+.trip-dashboard__nearby-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 2rem;
+  color: #6b7280;
+}
+
+.trip-dashboard__nearby-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 2rem;
+  color: #9ca3af;
+  background: #f9fafb;
+  border-radius: 8px;
+  margin: 1rem 0;
+}
+
+.trip-dashboard__nearby-empty i {
+  font-size: 1.25rem;
+}
+
+/* Animation pour le spinner */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.trip-dashboard__spinner {
+  animation: spin 1s linear infinite;
+  display: inline-block;
 }

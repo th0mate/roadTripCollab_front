@@ -281,7 +281,7 @@
                         :class="{
                           'trip-dashboard__activity-item--hub': activity.isAccommodationHub,
                           'trip-dashboard__activity-item--departure': activity.isMorningDeparture,
-                          'trip-dashboard__activity-item--clickable': true
+                          'trip-dashboard__activity-item--clickable': true,
                         }"
                         @click="focusStopOnMap(activity)"
                       >
@@ -289,24 +289,52 @@
                           <i :class="getStopIconClass(activity.type)"></i>
                         </div>
                         <div class="trip-dashboard__activity-info">
-                          <p class="trip-dashboard__activity-title">{{ activity.displayTitle || activity.title }}</p>
-                          <p class="trip-dashboard__activity-type">{{ formatStopType(activity.type) }}</p>
+                          <p class="trip-dashboard__activity-title">
+                            {{ activity.displayTitle || activity.title }}
+                          </p>
+                          <p class="trip-dashboard__activity-type">
+                            {{ formatStopType(activity.type) }}
+                          </p>
                         </div>
 
                         <div class="trip-dashboard__activity-right">
                           <div class="trip-dashboard__activity-time-info">
-                            <span v-if="activity.isMorningDeparture" class="trip-dashboard__activity-time trip-dashboard__activity-time--departure-label">
+                            <span
+                              v-if="activity.isMorningDeparture"
+                              class="trip-dashboard__activity-time trip-dashboard__activity-time--departure-label"
+                            >
                               <i class="fi fi-rr-arrow-right-from-bracket"></i>
                               {{ formatTime(activity.departureDate) }}
                             </span>
 
-                            <span v-else-if="formatTime(activity.arrivalDate) || formatTime(activity.estimatedArrival)"
-                                  class="trip-dashboard__activity-time"
-                                  :class="{ 'trip-dashboard__activity-time--estimated': !formatTime(activity.arrivalDate) }">
-                              <i v-if="!formatTime(activity.arrivalDate)" class="fi fi-rr-time-past"></i>
-                              {{ formatTime(activity.arrivalDate) || formatTime(activity.estimatedArrival) }}
+                            <span
+                              v-else-if="
+                                formatTime(activity.arrivalDate) ||
+                                formatTime(activity.estimatedArrival)
+                              "
+                              class="trip-dashboard__activity-time"
+                              :class="{
+                                'trip-dashboard__activity-time--estimated': !formatTime(
+                                  activity.arrivalDate,
+                                ),
+                              }"
+                            >
+                              <i
+                                v-if="!formatTime(activity.arrivalDate)"
+                                class="fi fi-rr-time-past"
+                              ></i>
+                              {{
+                                formatTime(activity.arrivalDate) ||
+                                formatTime(activity.estimatedArrival)
+                              }}
                               <span v-if="!formatTime(activity.arrivalDate)"> (est.)</span>
-                              <span v-if="formatTime(activity.departureDate) && activity.type !== 'accommodation' && !activity.isEveningReturn">
+                              <span
+                                v-if="
+                                  formatTime(activity.departureDate) &&
+                                  activity.type !== 'accommodation' &&
+                                  !activity.isEveningReturn
+                                "
+                              >
                                 - {{ formatTime(activity.departureDate) }}
                               </span>
                             </span>
@@ -624,7 +652,9 @@
         <div class="trip-dashboard__modal-header-icon">
           <i class="fi fi-rr-marker"></i>
         </div>
-        <h3 class="trip-dashboard__modal-title">{{ isEditingStop ? 'Modifier l\'activité' : 'Ajouter une activité' }}</h3>
+        <h3 class="trip-dashboard__modal-title">
+          {{ isEditingStop ? "Modifier l'activité" : "Ajouter une activité" }}
+        </h3>
         <div class="trip-dashboard__modal-date">
           <i class="fi fi-rr-calendar"></i>
           {{ formatDate(newStop.arrivalDate) }}
@@ -851,14 +881,14 @@
                 <i class="fi fi-rr-clock"></i>
                 Heure d'arrivée (Optionnel)
               </label>
-              <input type="time" v-model="newStop.arrivalTime" class="trip-dashboard__input"/>
+              <input type="time" v-model="newStop.arrivalTime" class="trip-dashboard__input" />
             </div>
             <div class="trip-dashboard__form-group">
               <label class="trip-dashboard__label">
                 <i class="fi fi-rr-clock-three"></i>
                 Heure de départ (Optionnel)
               </label>
-              <input type="time" v-model="newStop.departureTime" class="trip-dashboard__input"/>
+              <input type="time" v-model="newStop.departureTime" class="trip-dashboard__input" />
             </div>
           </div>
 
@@ -867,7 +897,13 @@
               <i class="fi fi-rr-calendar"></i>
               Date de départ
             </label>
-            <input type="date" v-model="newStop.departureDate" required class="trip-dashboard__input" :min="newStop.arrivalDate"/>
+            <input
+              type="date"
+              v-model="newStop.departureDate"
+              required
+              class="trip-dashboard__input"
+              :min="newStop.arrivalDate"
+            />
           </div>
 
           <div class="trip-dashboard__form-group" v-if="newStop.price > 0">
@@ -897,7 +933,15 @@
             >
               <i v-if="isSubmitting" class="fi fi-rr-spinner trip-dashboard__spinner"></i>
               <i v-else class="fi fi-rr-check"></i>
-              {{ isSubmitting ? (isEditingStop ? 'Modification...' : 'Ajout...') : (isEditingStop ? 'Modifier' : 'Ajouter') }}
+              {{
+                isSubmitting
+                  ? isEditingStop
+                    ? "Modification..."
+                    : "Ajout..."
+                  : isEditingStop
+                    ? "Modifier"
+                    : "Ajouter"
+              }}
             </button>
           </div>
         </form>
@@ -1033,23 +1077,38 @@
       @confirm="confirmDeleteItem"
     />
 
-    <div v-if="showHubModal" class="trip-dashboard__modal-overlay" @click.self="showHubModal = false">
+    <div
+      v-if="showHubModal"
+      class="trip-dashboard__modal-overlay"
+      @click.self="showHubModal = false"
+    >
       <div class="trip-dashboard__modal">
         <h3 class="trip-dashboard__modal-title">
           <i class="fi fi-rr-alarm-clock"></i>
           Départ de la journée
         </h3>
-        <p class="trip-dashboard__form-hint" style="text-align: center; margin-bottom: 20px;">
-          À quelle heure souhaitez-vous quitter l'hébergement le <strong>{{ formatDate(editingHubDay) }}</strong> ?
+        <p class="trip-dashboard__form-hint" style="text-align: center; margin-bottom: 20px">
+          À quelle heure souhaitez-vous quitter l'hébergement le
+          <strong>{{ formatDate(editingHubDay) }}</strong> ?
         </p>
         <form @submit.prevent="updateHubTime">
           <div class="trip-dashboard__form-group">
             <label class="trip-dashboard__label">Heure de départ</label>
-            <input type="time" v-model="hubStartTime" required class="trip-dashboard__input"/>
+            <input type="time" v-model="hubStartTime" required class="trip-dashboard__input" />
           </div>
           <div class="trip-dashboard__modal-actions">
-            <button type="button" class="trip-dashboard__btn trip-dashboard__btn--secondary" @click="showHubModal = false">Annuler</button>
-            <button type="submit" class="trip-dashboard__btn trip-dashboard__btn--primary" :disabled="isSubmitting">
+            <button
+              type="button"
+              class="trip-dashboard__btn trip-dashboard__btn--secondary"
+              @click="showHubModal = false"
+            >
+              Annuler
+            </button>
+            <button
+              type="submit"
+              class="trip-dashboard__btn trip-dashboard__btn--primary"
+              :disabled="isSubmitting"
+            >
               <i v-if="isSubmitting" class="fi fi-rr-spinner trip-dashboard__spinner"></i>
               <i v-else class="fi fi-rr-check"></i>
               Enregistrer
@@ -1102,9 +1161,14 @@ function extractTimeLocal(dateString?: string) {
 function parseDateFloating(dateString: string) {
   const d = extractDateLocal(dateString);
   const t = extractTimeLocal(dateString) || '00:00';
-  const [y, m, day] = d.split('-').map(Number);
-  const [h, min] = t.split(':').map(Number);
+  const [y = 0, m = 1, day = 1] = d.split('-').map(Number);
+  const [h = 0, min = 0] = t.split(':').map(Number);
   return new Date(y, m - 1, day, h, min);
+}
+
+function formatTime(dateString?: string) {
+  if (!dateString) return '';
+  return extractTimeLocal(dateString);
 }
 
 function focusStopOnMap(stop: any) {
@@ -1601,13 +1665,15 @@ const calculateItineraryByDay = async () => {
       });
     } else if (currentDateStr === extractDateLocal(trip.value.startDate) && activities.length > 0) {
       const finalTime = tripSettings[currentDateStr]?.startTime || '09:00';
+      const firstActivity = activities[0];
+      if (!firstActivity) continue;
 
       dayItinerary.push({
         id: `start-trip-${currentDateStr}`,
         displayTitle: `Départ du voyage`,
         type: 'poi',
-        latitude: activities[0].latitude,
-        longitude: activities[0].longitude,
+        latitude: firstActivity.latitude,
+        longitude: firstActivity.longitude,
         isAccommodationHub: true,
         isMorningDeparture: true,
         arrivalDate: `${currentDateStr}T${finalTime}:00`,
@@ -1642,8 +1708,8 @@ const calculateItineraryByDay = async () => {
     if (day.activities.length < 2) continue;
 
     const coords = day.activities
-      .filter(a => a.latitude && a.longitude)
-      .map(a => `${a.longitude},${a.latitude}`)
+      .filter((a: any) => a.latitude && a.longitude)
+      .map((a: any) => `${a.longitude},${a.latitude}`)
       .join(';');
 
     if (!coords || coords.split(';').length < 2) continue;
@@ -2057,7 +2123,10 @@ const selectLocation = (result: any) => {
   searchResults.value = [];
 };
 
-const openAddActivityModal = (date: string) => {
+const openAddActivityModal = async (
+  date: string,
+  day?: { date: string; city: Stop | null; activities: Stop[] },
+) => {
   isEditingStop.value = false;
   editingStopId.value = null;
   newStop.value = {
@@ -2146,46 +2215,6 @@ const inviteParticipant = async () => {
   } finally {
     isSubmitting.value = false;
   }
-};
-const searchLocation = () => {
-  if (searchTimeout) clearTimeout(searchTimeout);
-  if (locationSearch.value.length < 3) {
-    searchResults.value = [];
-    isSearching.value = false;
-    return;
-  }
-  isSearching.value = true;
-  searchTimeout = setTimeout(async () => {
-    try {
-      // Construction de l'URL de recherche
-      let searchUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(locationSearch.value)}`;
-
-      // Si une ville est disponible, limiter la recherche aux alentours (±0.5° ≈ 50km)
-      if (currentDayCity.value && currentDayCity.value.latitude && currentDayCity.value.longitude) {
-        const lat = Number(currentDayCity.value.latitude);
-        const lon = Number(currentDayCity.value.longitude);
-        const delta = 0.5; // ≈50km de rayon
-
-        // viewbox format: left,top,right,bottom (minLon,maxLat,maxLon,minLat)
-        const viewbox = `${lon - delta},${lat + delta},${lon + delta},${lat - delta}`;
-        searchUrl += `&viewbox=${viewbox}&bounded=1`;
-      }
-
-      searchResults.value = await (await fetch(searchUrl)).json();
-    } catch (e) {
-      console.error(e);
-    } finally {
-      isSearching.value = false;
-    }
-  }, 500);
-};
-
-const selectLocation = (result: any) => {
-  newStop.value.title = result.display_name.split(",")[0];
-  newStop.value.latitude = parseFloat(result.lat);
-  newStop.value.longitude = parseFloat(result.lon);
-  locationSearch.value = "";
-  searchResults.value = [];
 };
 
 /**
@@ -2452,15 +2481,6 @@ const loadMorePOI = async () => {
 
   displayNearbyMarkers();
 };
-
-const openAddActivityModal = async (
-  date: string,
-  day?: { date: string; city: Stop | null; activities: Stop[] },
-) => {
-  newStop.value = {
-    title: "",
-    latitude: null,
-    longitude: null,
 
 const formatDate = (dateString?: string) => {
   if (!dateString) return "";

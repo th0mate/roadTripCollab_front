@@ -1490,7 +1490,6 @@ const inviteEmail = ref("");
 const locationSearch = ref("");
 const searchResults = ref<any[]>([]);
 const isSearching = ref(false);
->>>>>>> /tmp/remote_horaires.vue
 let searchTimeout: any = null;
 
 // Variables pour la fonctionnalité Nearby Search
@@ -2070,10 +2069,8 @@ const openAddActivityModal = (date: string) => {
     paidBy: currentUser.value?.id || null,
     arrivalDate: date,
     departureDate: date,
-=======
     arrivalTime: '',
     departureTime: ''
->>>>>>> /tmp/remote_horaires.vue
   };
 
   // Réinitialiser l'état

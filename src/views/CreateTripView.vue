@@ -70,6 +70,30 @@
               ></textarea>
             </div>
 
+            <div class="create-trip__form-group">
+              <label for="coverImage" class="create-trip__label">
+                <i class="fi fi-rr-picture"></i>
+                Photo de couverture
+              </label>
+              
+              <div v-if="previewUrl" class="create-trip__preview">
+                <img :src="previewUrl" alt="Aperçu" class="create-trip__preview-img" />
+                <button @click="removeImage" type="button" class="create-trip__preview-remove">
+                  <i class="fi fi-rr-cross-small"></i>
+                </button>
+              </div>
+
+              <input
+                v-if="!previewUrl"
+                type="file"
+                id="coverImage"
+                @change="handleFileUpload"
+                accept="image/*"
+                class="create-trip__input"
+                required
+              />
+            </div>
+
             <div class="create-trip__form-row">
               <div class="create-trip__form-group">
                 <label for="startDate" class="create-trip__label">
@@ -80,6 +104,7 @@
                   type="date"
                   id="startDate"
                   v-model="trip.startDate"
+                  :min="today"
                   class="create-trip__input"
                   required
                 />
@@ -93,6 +118,8 @@
                   type="date"
                   id="endDate"
                   v-model="trip.endDate"
+                  :min="trip.startDate"
+                  :disabled="!trip.startDate"
                   class="create-trip__input"
                   required
                 />
@@ -327,6 +354,7 @@ const router = useRouter();
 const currentStep = ref(1);
 const isLoading = ref(false);
 const apiError = ref('');
+const today = new Date().toISOString().split('T')[0];
 
 const trip = ref({
   title: '',
@@ -335,6 +363,22 @@ const trip = ref({
   endDate: '',
   budget: 0,
 });
+
+const selectedFile = ref<File | null>(null);
+const previewUrl = ref<string | null>(null);
+
+const handleFileUpload = (event: Event) => {
+  const target = event.target as HTMLInputElement;
+  if (target.files && target.files.length > 0) {
+    selectedFile.value = target.files[0];
+    previewUrl.value = URL.createObjectURL(selectedFile.value);
+  }
+};
+
+const removeImage = () => {
+  selectedFile.value = null;
+  previewUrl.value = null;
+};
 
 const newParticipantEmail = ref('');
 const participants = ref<string[]>([]);
@@ -359,7 +403,7 @@ const searchResults = ref<City[]>([]);
 let searchTimeout: ReturnType<typeof setTimeout> | null = null;
 
 const isStep1Valid = computed(() => {
-  return trip.value.title && trip.value.startDate && trip.value.endDate;
+  return trip.value.title && trip.value.startDate && trip.value.endDate && selectedFile.value;
 });
 
 const areAllDaysFilled = computed(() => {
@@ -417,7 +461,7 @@ const getStepTitle = (step: number) => {
   return titles[step as keyof typeof titles] || '';
 };
 
-const addParticipant = () => {
+const addParticipant = async () => {
   const email = newParticipantEmail.value.trim();
   if (!email) return;
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -429,9 +473,21 @@ const addParticipant = () => {
     participantError.value = "Cet email est déjà ajouté";
     return;
   }
-  participants.value.push(email);
-  newParticipantEmail.value = '';
-  participantError.value = '';
+
+  // Vérifier si l'email existe dans la base de données
+  try {
+    await api.post('/participants/check', { email });
+    // Si pas d'erreur, l'utilisateur existe
+    participants.value.push(email);
+    newParticipantEmail.value = '';
+    participantError.value = '';
+  } catch (error: any) {
+    if (error.response && error.response.status === 404) {
+      participantError.value = "Cet utilisateur n'existe pas dans l'application";
+    } else {
+      participantError.value = "Erreur lors de la vérification";
+    }
+  }
 };
 
 const removeParticipant = (index: number) => {
@@ -489,13 +545,22 @@ const createTrip = async () => {
   apiError.value = '';
 
   try {
-    const tripResponse = await api.post('/trips', {
-      title: trip.value.title,
-      description: trip.value.description,
-      startDate: trip.value.startDate,
-      endDate: trip.value.endDate,
-      budget: trip.value.budget,
-      status: 'planning'
+    const formData = new FormData();
+    formData.append('title', trip.value.title);
+    if (trip.value.description) formData.append('description', trip.value.description);
+    formData.append('startDate', trip.value.startDate);
+    formData.append('endDate', trip.value.endDate);
+    if (trip.value.budget) formData.append('budget', trip.value.budget.toString());
+    formData.append('status', 'planning');
+    
+    if (selectedFile.value) {
+      formData.append('cover_image', selectedFile.value);
+    }
+
+    const tripResponse = await api.post('/trips', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
     });
 
     const tripId = tripResponse.data.id;

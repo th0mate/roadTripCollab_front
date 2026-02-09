@@ -45,8 +45,27 @@
             <i :class="getStatusIcon(trip.status)"></i>
             {{ formatStatus(trip.status) }}
           </span>
+          <button
+              v-if="isCreator && trip.status === 'planning'"
+              class="trip-dashboard__btn trip-dashboard__btn--secondary trip-dashboard__btn--small"
+              @click="showEditTripModal = true"
+              style="margin-left: 0.5rem;"
+          >
+              <i class="fi fi-rr-edit"></i>
+              Modifier
+          </button>
         </div>
       </header>
+
+      <div v-if="isInvitationPending" class="trip-dashboard__invite-banner" style="background: #fffbeb; border: 1px solid #f59e0b; color: #b45309; padding: 1rem; margin-bottom: 1.5rem; border-radius: 0.5rem; display: flex; align-items: center; justify-content: space-between;">
+        <p style="margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+          <i class="fi fi-rr-envelope"></i>
+          Vous avez été invité à rejoindre ce voyage.
+        </p>
+        <button @click="acceptInvitation" :disabled="isSubmitting" class="trip-dashboard__btn trip-dashboard__btn--primary">
+          Accepter l'invitation
+        </button>
+      </div>
 
       <div class="trip-dashboard__grid">
         <div class="trip-dashboard__col-budget">
@@ -58,6 +77,7 @@
                 Dépenses
               </h2>
               <button
+                v-if="!isInvitationPending"
                 class="trip-dashboard__btn trip-dashboard__btn--primary trip-dashboard__btn--small"
                 @click="showExpenseModal = true">
                 <i class="fi fi-rr-plus"></i>
@@ -302,6 +322,7 @@
           <div class="trip-dashboard__map-card">
             <div class="trip-dashboard__map-header">
               <button
+                v-if="!isInvitationPending"
                 class="trip-dashboard__btn trip-dashboard__btn--secondary trip-dashboard__btn--small"
                 @click="openRouteSettings">
                 <i class="fi fi-rr-settings"></i>
@@ -733,6 +754,14 @@
         </form>
       </div>
     </div>
+
+    <TripEditModal
+      v-if="showEditTripModal"
+      :trip="trip"
+      :isSubmitting="isSubmitting"
+      @close="showEditTripModal = false"
+      @update="updateTrip"
+    />
   </Teleport>
 </template>
 
@@ -753,6 +782,7 @@ import iconUrl from 'leaflet/dist/images/marker-icon.png';
 import shadowUrl from 'leaflet/dist/images/marker-shadow.png';
 
 import AppModal from '../components/AppModal.vue';
+import TripEditModal from '../components/TripEditModal.vue';
 
 function extractDateLocal(dateString?: string) {
   if (!dateString) return '';
@@ -814,6 +844,40 @@ const loading = ref(true);
 const error = ref('');
 const trip = ref<Trip | null>(null);
 const currentUser = ref<User | null>(null);
+const myParticipant = computed(() => {
+  if (!trip.value || !currentUser.value) return null;
+  return trip.value.participants.find(p => p.id === currentUser.value!.id);
+});
+
+const isCreator = computed(() => {
+    return trip.value?.creatorId === currentUser.value?.id;
+});
+
+const isInvitationPending = computed(() => {
+  const pivot = myParticipant.value?.pivot as any;
+  if (!pivot) return false;
+  return (pivot.invitationStatus === 'pending' || pivot.invitation_status === 'pending');
+});
+
+const acceptInvitation = async () => {
+  const pivot = myParticipant.value?.pivot as any;
+  if (!pivot || !pivot.id) {
+    alert("Impossible de trouver l'invitation.");
+    return;
+  }
+
+  isSubmitting.value = true;
+  try {
+    await api.post(`/invitations/${pivot.id}/accept`);
+    await fetchTripDetails();
+  } catch (e) {
+    console.error(e);
+    alert("Erreur lors de l'acceptation.");
+  } finally {
+    isSubmitting.value = false;
+  }
+};
+
 let map: L.Map | null = null;
 let markers: L.Marker[] = [];
 let routingControls: any[] = [];
@@ -829,6 +893,7 @@ const showRouteSettingsModal = ref(false);
 const showDeleteConfirmModal = ref(false);
 const showEditExpenseModal = ref(false);
 const showParticipantsModal = ref(false);
+const showEditTripModal = ref(false);
 const isSubmitting = ref(false);
 const itemToDelete = ref<{
   type: 'expense' | 'stop' | 'participant';
@@ -843,6 +908,36 @@ const showHubModal = ref(false);
 const editingHubDay = ref('');
 const hubStartTime = ref('09:00');
 const editingExpense = ref<any>(null);
+
+const updateTrip = async (formData: any) => {
+  if (!trip.value) return;
+  isSubmitting.value = true;
+  try {
+    const data = new FormData();
+    data.append('title', formData.title);
+    if (formData.description) data.append('description', formData.description);
+    data.append('startDate', formData.startDate);
+    data.append('endDate', formData.endDate);
+    if (formData.budget) data.append('budget', formData.budget.toString());
+    data.append('status', formData.status);
+    if (formData.coverImage) {
+      data.append('cover_image', formData.coverImage);
+    }
+
+    await api.patch(`/trips/${trip.value.id}`, data, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+
+    showEditTripModal.value = false;
+    await fetchTripDetails();
+    alert('Voyage modifié avec succès !');
+  } catch (e) {
+    console.error(e);
+    alert("Erreur lors de la modification du voyage");
+  } finally {
+    isSubmitting.value = false;
+  }
+};
 
 const newStop = ref<any>({
   title: '',

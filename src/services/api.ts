@@ -2,7 +2,7 @@ import axios from 'axios'
 import { getToken } from './authService'
 
 const apiClient = axios.create({
-  baseURL: 'http://localhost:3333',
+  baseURL: import.meta.env.VITE_BACKEND_URL || 'http://localhost:3333',
   headers: {
     'Content-Type': 'application/json',
   },

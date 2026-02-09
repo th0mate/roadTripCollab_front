@@ -32,6 +32,11 @@ coverage
 /cypress/videos/
 /cypress/screenshots/
 
+# Environment variables
+.env
+.env.local
+.env.*.local
+
 # Vitest
 __screenshots__/
 /.env

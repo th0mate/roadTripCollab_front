@@ -2110,11 +2110,11 @@ const updateMapMarkers = () => {
     if (!stopsByDay[day]) stopsByDay[day] = [];
     stopsByDay[day].push(s);
   });
-  const filteredStops: Stop[] = [];
+  const dedupedStops: Stop[] = [];
   Object.values(stopsByDay).forEach((dayStops) => {
     const activities = dayStops.filter((s) => s.type !== "city");
-    if (activities.length > 0) filteredStops.push(...activities);
-    else filteredStops.push(...dayStops);
+    if (activities.length > 0) dedupedStops.push(...activities);
+    else dedupedStops.push(...dayStops);
   });
 
   dedupedStops.forEach((stop: any, index: number) => {

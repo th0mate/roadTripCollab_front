@@ -50,26 +50,40 @@ class GoogleMapsService {
     if (!this.API_KEY || points.length < 2) return null;
 
     try {
-      const origin = { latitude: Number(points[0].lat), longitude: Number(points[0].lng) };
-      const destination = { latitude: Number(points[points.length - 1].lat), longitude: Number(points[points.length - 1].lng) };
+      const lat1 = Number(points[0].lat);
+      const lng1 = Number(points[0].lng);
+      const lat2 = Number(points[points.length - 1].lat);
+      const lng2 = Number(points[points.length - 1].lng);
+
+      if (isNaN(lat1) || isNaN(lng1) || isNaN(lat2) || isNaN(lng2)) {
+        console.warn("estimateTolls: Coordonnées invalides détectées (NaN)", points);
+        return null;
+      }
+
+      const origin = { latitude: lat1, longitude: lng1 };
+      const destination = { latitude: lat2, longitude: lng2 };
+
+      const departureTime = new Date(Date.now() + 10000).toISOString();
+
+      const requestBody = {
+        origin: { location: { latLng: origin } },
+        destination: { location: { latLng: destination } },
+        travelMode: 'DRIVE',
+        routingPreference: 'TRAFFIC_AWARE',
+        departureTime: departureTime,
+        extraComputations: ['TOLLS'],
+        routeModifiers: {
+          avoidTolls: false,
+          avoidHighways: false,
+          vehicleInfo: { emissionType: 'GASOLINE' }
+        },
+        languageCode: 'fr-FR',
+        units: 'METRIC'
+      };
 
       const response = await axios.post(
         'https://routes.googleapis.com/directions/v2:computeRoutes',
-        {
-          origin: { location: { latLng: origin } },
-          destination: { location: { latLng: destination } },
-          travelMode: 'DRIVE',
-          routingPreference: 'TRAFFIC_AWARE_OPTIMAL',
-          departureTime: new Date().toISOString(),
-          extraComputations: ['TOLLS'],
-          routeModifiers: {
-            avoidTolls: false,
-            avoidHighways: false,
-            vehicleInfo: { emissionType: 'GASOLINE' }
-          },
-          languageCode: 'fr-FR',
-          units: 'METRIC'
-        },
+        requestBody,
         {
           headers: {
             'Content-Type': 'application/json',
@@ -81,8 +95,6 @@ class GoogleMapsService {
 
       const route = response.data.routes?.[0];
       if (!route) return null;
-
-      console.log("Raw Route Response:", JSON.stringify(route, null, 2));
 
       let totalTollPrice = 0;
       const tollInfo = route.travelAdvisory?.tollInfo;
@@ -102,7 +114,11 @@ class GoogleMapsService {
         polyline: route.polyline?.encodedPolyline
       };
     } catch (error: any) {
-      console.error('API Routes Error:', error.response?.data || error.message);
+      console.error('API Routes Error Detailed:', {
+        status: error.response?.status,
+        data: error.response?.data,
+        message: error.message
+      });
       return null;
     }
   }

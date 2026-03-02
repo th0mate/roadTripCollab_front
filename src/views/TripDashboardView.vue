@@ -1842,7 +1842,11 @@ const calculateItineraryByDay = async () => {
   }
 
   for (const day of days) {
-    const validActivities = day.activities.filter(a => a.latitude !== null && a.longitude !== null);
+    const validActivities = day.activities.filter(a => {
+      const lat = parseFloat(a.latitude);
+      const lng = parseFloat(a.longitude);
+      return !isNaN(lat) && !isNaN(lng) && a.latitude !== null && a.longitude !== null;
+    });
     if (validActivities.length < 2) continue;
 
     for (let i = 0; i < validActivities.length - 1; i++) {
@@ -1862,10 +1866,21 @@ const calculateItineraryByDay = async () => {
         start.travelTimeToNext = Math.round(durationMin);
         start.distanceToNext = Math.round(distKm * 10) / 10;
         start.fuelCostNext = (distKm / 100) * routeSettings.value.carConsumption * routeSettings.value.fuelPrice;
-        start.tollCostNext = routeData.tolls;
+        
+        // Si l'API renvoie 0 alors que c'est un long trajet, on applique l'estimation manuelle suggérée
+        if (routeData.tolls > 0) {
+          start.tollCostNext = routeData.tolls;
+        } else if (distKm > 20 && !routeSettings.value.avoidTolls) {
+          // Estimation de secours : on considère que 70% du trajet est sur autoroute payante pour les longs trajets
+          start.tollCostNext = distKm * 0.7 * (routeSettings.value.tollRate || 0.12);
+          console.log(`Estimation péage secours: ${start.tollCostNext.toFixed(2)}€`);
+        } else {
+          start.tollCostNext = 0;
+        }
+
         start.polylineNext = routeData.polyline;
 
-        console.log(`Résultat: ${distKm.toFixed(1)}km, Péage: ${routeData.tolls}€`);
+        console.log(`Résultat: ${distKm.toFixed(1)}km, Péage: ${start.tollCostNext.toFixed(2)}€`);
       }
     }
   }

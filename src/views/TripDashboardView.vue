@@ -2050,13 +2050,30 @@ const updateMapMarkers = async () => {
 
   const dedupedStops: Stop[] = [];
   const stopsByDay: Record<string, Stop[]> = {};
+
+  const tripSettings = trip.value.settings || {};
+  const firstDayStr = extractDateLocal(trip.value.startDate);
+  if (tripSettings.startLocation?.latitude) {
+    stopsByDay[firstDayStr] = [{
+      id: `start-trip-${firstDayStr}`,
+      title: tripSettings.startLocation.title || 'Départ du voyage',
+      type: 'poi',
+      isMorningDeparture: true,
+      latitude: tripSettings.startLocation.latitude,
+      longitude: tripSettings.startLocation.longitude,
+      arrivalDate: `${firstDayStr}T09:00:00`,
+      departureDate: `${firstDayStr}T09:00:00`,
+    } as any];
+  }
+  
   trip.value.stops.forEach((s) => {
     const day = (s.arrivalDate || "").substring(0, 10);
     if (!stopsByDay[day]) stopsByDay[day] = [];
     stopsByDay[day].push(s);
   });
 
-  Object.values(stopsByDay).forEach((dayStops) => {
+  Object.keys(stopsByDay).sort().forEach(dayKey => {
+    const dayStops = stopsByDay[dayKey];
     const activities = dayStops.filter((s) => s.type !== "city");
     if (activities.length > 0) dedupedStops.push(...activities);
     else dedupedStops.push(...dayStops);

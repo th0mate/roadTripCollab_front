@@ -1221,7 +1221,7 @@
 </template>
 
 <script setup lang="ts">
-import {ref, onMounted, nextTick, computed, watch} from "vue";
+import {ref, onMounted, nextTick, computed, watch, shallowRef} from "vue";
 import {useRoute, useRouter} from "vue-router";
 import api from "../services/api";
 import {getMe} from "../services/authService";
@@ -1229,12 +1229,17 @@ import type {Trip, Stop} from "../types/trip";
 import type {User} from "../types/user";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import "leaflet-routing-machine";
-import "leaflet-routing-machine/dist/leaflet-routing-machine.css";
+
+import {osrmService} from "../services/osrmService";
+import {useTripMap} from "../composables/useTripMap";
 
 import iconRetinaUrl from "leaflet/dist/images/marker-icon-2x.png";
 import iconUrl from "leaflet/dist/images/marker-icon.png";
 import shadowUrl from "leaflet/dist/images/marker-shadow.png";
+
+const { initMap: initTripMap, clearMap, addMarker, drawRoute, fitBounds, map: tripMap } = useTripMap();
+const markers_list = ref<L.Marker[]>([]);
+const routeLayers_list = ref<any[]>([]);
 
 import AppModal from '../components/AppModal.vue';
 import TripEditModal from '../components/TripEditModal.vue';
@@ -1272,26 +1277,11 @@ function formatDuration(minutes: number) {
 }
 
 function focusStopOnMap(stop: any) {
-  console.log('Focus stop on map', stop);
-  if (!map || !stop.latitude || !stop.longitude) return;
-
-  map.invalidateSize();
-
-  const marker = markers.find(m => {
-    const latLng = m.getLatLng();
-    return latLng.lat.toFixed(6) === Number(stop.latitude).toFixed(6) &&
-      latLng.lng.toFixed(6) === Number(stop.longitude).toFixed(6);
+  if (!tripMap.value || !stop.latitude || !stop.longitude) return;
+  tripMap.value.flyTo([stop.latitude, stop.longitude], 15, {
+    animate: true,
+    duration: 0.8
   });
-
-  if (marker) {
-    marker.openPopup();
-    map.flyTo([stop.latitude, stop.longitude], 15, {
-      animate: true,
-      duration: 0.8
-    });
-  } else {
-    map.setView([stop.latitude, stop.longitude], 15, {animate: true});
-  }
 }
 
 const DefaultIcon = L.icon({
@@ -1345,10 +1335,6 @@ const acceptInvitation = async () => {
     isSubmitting.value = false;
   }
 };
-
-let map: L.Map | null = null;
-let markers: L.Marker[] = [];
-let routingControls: any[] = [];
 
 const budgetExpanded = ref(false);
 const itineraryExpanded = ref(false);
@@ -1616,7 +1602,6 @@ function openEditStopModal(stop: any) {
   editingStopId.value = realId;
   const originalStop = trip.value?.stops.find(s => s.id === realId) || stop;
 
-  // En édition, on considère que les heures sont déjà "manuelles" (on ne veut pas les recalculer au chargement)
   isManualArrival.value = !!originalStop.arrivalDate;
   isManualDeparture.value = !!originalStop.departureDate;
 
@@ -1782,12 +1767,11 @@ const searchResults = ref<any[]>([]);
 const isSearching = ref(false);
 let searchTimeout: any = null;
 
-// Variables pour la fonctionnalité Nearby Search
 const nearbyPlaces = ref<any[]>([]);
 const selectedPlaceType = ref("tourist_attraction");
 const isLoadingNearby = ref(false);
 const showManualSearch = ref(false);
-const showMorePOI = ref(false); // Pour afficher plus de points d'intérêt
+const showMorePOI = ref(false);
 let modalMap: L.Map | null = null;
 let nearbyMarkers: L.Marker[] = [];
 const currentDayCity = ref<Stop | null>(null);
@@ -1843,245 +1827,90 @@ const calculateItineraryByDay = async () => {
 
   for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
     const currentDateStr = extractDateLocal(d.toISOString());
+    const arrivalsOnDay = trip.value.stops.filter(s => s.arrivalDate && extractDateLocal(s.arrivalDate) === currentDateStr);
+    const city = trip.value.stops.filter(s => s.type === 'city' && s.arrivalDate && extractDateLocal(s.arrivalDate) <= currentDateStr).sort((a, b) => (b.arrivalDate || '').localeCompare(a.arrivalDate || ''))[0] || null;
 
-    const arrivalsOnDay = trip.value.stops.filter(s =>
-      s.arrivalDate && extractDateLocal(s.arrivalDate) === currentDateStr
-    );
-
-    const city = trip.value.stops
-      .filter(s => s.type === 'city' && s.arrivalDate && extractDateLocal(s.arrivalDate) <= currentDateStr)
-      .sort((a, b) => (b.arrivalDate || '').localeCompare(a.arrivalDate || ''))[0] || null;
-
-    let morningAcc = sortedAccommodations.find(s =>
-      extractDateLocal(s.arrivalDate!) < currentDateStr &&
-      (s.departureDate ? extractDateLocal(s.departureDate) >= currentDateStr : true)
-    );
-
+    let morningAcc = sortedAccommodations.find(s => extractDateLocal(s.arrivalDate!) < currentDateStr && (s.departureDate ? extractDateLocal(s.departureDate) >= currentDateStr : true));
     if (!morningAcc && currentDateStr !== extractDateLocal(trip.value.startDate)) {
       morningAcc = sortedAccommodations.find(s => extractDateLocal(s.arrivalDate!) < currentDateStr);
     }
-
-    const eveningAcc = sortedAccommodations.find(s =>
-      extractDateLocal(s.arrivalDate!) <= currentDateStr &&
-      (s.departureDate ? extractDateLocal(s.departureDate) > currentDateStr : true)
-    ) || sortedAccommodations.find(s => extractDateLocal(s.arrivalDate!) <= currentDateStr);
+    const eveningAcc = sortedAccommodations.find(s => extractDateLocal(s.arrivalDate!) <= currentDateStr && (s.departureDate ? extractDateLocal(s.departureDate) > currentDateStr : true)) || sortedAccommodations.find(s => extractDateLocal(s.arrivalDate!) <= currentDateStr);
 
     const dayItinerary: any[] = [];
-
-    let activities = arrivalsOnDay.filter(s => s.type !== 'city');
-    activities.sort((a, b) => {
-      const timeA = extractTimeLocal(a.arrivalDate) || '00:00';
-      const timeB = extractTimeLocal(b.arrivalDate) || '00:00';
-      return timeA.localeCompare(timeB) || (a.order - b.order);
-    });
-
     if (morningAcc) {
-      let startTime = tripSettings[currentDateStr]?.startTime;
-
-      if (!startTime && morningAcc.departureDate && extractDateLocal(morningAcc.departureDate) === currentDateStr) {
-        startTime = extractTimeLocal(morningAcc.departureDate);
-      }
-
-      const finalTime = startTime || '09:00';
-
-      dayItinerary.push({
-        ...morningAcc,
-        id: `start-${morningAcc.id}-${currentDateStr}`,
-        displayTitle: `Départ : ${morningAcc.title}`,
-        isAccommodationHub: true,
-        isMorningDeparture: true,
-        latitude: parseFloat(morningAcc.latitude as any),
-        longitude: parseFloat(morningAcc.longitude as any),
-        arrivalDate: `${currentDateStr}T${finalTime}:00`,
-        departureDate: `${currentDateStr}T${finalTime}:00`
-      });
+      let startTime = tripSettings[currentDateStr]?.startTime || (morningAcc.departureDate && extractDateLocal(morningAcc.departureDate) === currentDateStr ? extractTimeLocal(morningAcc.departureDate) : '09:00');
+      dayItinerary.push({...morningAcc, id: `start-${morningAcc.id}-${currentDateStr}`, displayTitle: `Départ : ${morningAcc.title}`, isAccommodationHub: true, isMorningDeparture: true, latitude: parseFloat(morningAcc.latitude as any), longitude: parseFloat(morningAcc.longitude as any), arrivalDate: `${currentDateStr}T${startTime}:00`, departureDate: `${currentDateStr}T${startTime}:00`});
     } else if (currentDateStr === extractDateLocal(trip.value.startDate)) {
-      const finalTime = tripSettings[currentDateStr]?.startTime || '09:00';
       const startLoc = tripSettings.startLocation || {};
-
-      const hasConfiguredStart = startLoc.latitude !== undefined && startLoc.latitude !== null;
-
-      dayItinerary.push({
-        id: `start-trip-${currentDateStr}`,
-        displayTitle: startLoc.title || `Départ du voyage`,
-        type: 'poi',
-        latitude: hasConfiguredStart ? parseFloat(startLoc.latitude) : null,
-        longitude: hasConfiguredStart ? parseFloat(startLoc.longitude) : null,
-        isAccommodationHub: true,
-        isMorningDeparture: true,
-        arrivalDate: `${currentDateStr}T${finalTime}:00`,
-        departureDate: `${currentDateStr}T${finalTime}:00`
-      });
+      dayItinerary.push({id: `start-trip-${currentDateStr}`, displayTitle: startLoc.title || `Départ du voyage`, type: 'poi', latitude: startLoc.latitude ? parseFloat(startLoc.latitude) : null, longitude: startLoc.longitude ? parseFloat(startLoc.longitude) : null, isAccommodationHub: true, isMorningDeparture: true, arrivalDate: `${currentDateStr}T${tripSettings[currentDateStr]?.startTime || '09:00'}:00`, departureDate: `${currentDateStr}T${tripSettings[currentDateStr]?.startTime || '09:00'}:00`});
     }
 
-    activities.forEach(activity => {
-      dayItinerary.push({
-        ...activity,
-        latitude: parseFloat(activity.latitude as any),
-        longitude: parseFloat(activity.longitude as any)
-      });
-    });
+    let activities = arrivalsOnDay.filter(s => s.type !== 'city').sort((a, b) => (extractTimeLocal(a.arrivalDate) || '00:00').localeCompare(extractTimeLocal(b.arrivalDate) || '00:00') || (a.order - b.order));
+    activities.forEach(a => dayItinerary.push({...a, latitude: parseFloat(a.latitude as any), longitude: parseFloat(a.longitude as any)}));
 
     if (eveningAcc) {
-      const arrivedBeforeToday = extractDateLocal(eveningAcc.arrivalDate) < currentDateStr;
-      const hotelArrivalIndex = dayItinerary.findIndex(a => a.id === eveningAcc.id);
-      const hasActivitiesAfterArrival = hotelArrivalIndex !== -1 && hotelArrivalIndex < dayItinerary.length - 1;
-
-      if (arrivedBeforeToday || hasActivitiesAfterArrival) {
-        dayItinerary.push({
-          ...eveningAcc,
-          id: `end-${eveningAcc.id}-${currentDateStr}`,
-          displayTitle: `${eveningAcc.title} (Retour)`,
-          isAccommodationHub: true,
-          isEveningReturn: true,
-          latitude: parseFloat(eveningAcc.latitude as any),
-          longitude: parseFloat(eveningAcc.longitude as any),
-          // On vide les dates originales pour ne pas fausser les calculs de retard/avance du jour
-          arrivalDate: null,
-          departureDate: null
-        });
+      if (extractDateLocal(eveningAcc.arrivalDate) < currentDateStr || dayItinerary.findIndex(a => a.id === eveningAcc.id) !== -1) {
+        dayItinerary.push({...eveningAcc, id: `end-${eveningAcc.id}-${currentDateStr}`, displayTitle: `${eveningAcc.title} (Retour)`, isAccommodationHub: true, isEveningReturn: true, latitude: parseFloat(eveningAcc.latitude as any), longitude: parseFloat(eveningAcc.longitude as any), arrivalDate: null, departureDate: null});
       }
     }
-
     days.push({date: currentDateStr, city, activities: dayItinerary});
   }
 
-  // Calculer les temps de trajet en parallèle avec cache localStorage
-  const osrmPromises = days.map(async (day) => {
-        if (day.activities.length < 2) return;
+  await Promise.all(days.map(async (day) => {
+    if (day.activities.length < 2) return;
+    const coords = day.activities.filter(a => a.latitude !== null).map(a => `${a.longitude},${a.latitude}`).join(';');
+    if (!coords || coords.split(';').length < 2) return;
 
-        const coords = day.activities
-          .filter(a => a.latitude !== null)
-          .map(a => `${a.longitude},${a.latitude}`)
-          .join(';');
-
-        if (!coords || coords.split(';').length < 2) return;
-
-        // Clé de cache basée sur les coordonnées
-        const cacheKey = `osrm_${coords.replace(/[;,]/g, '_')}`;
-
-        // Vérifier le cache (valide 7 jours)
-        const cached = localStorage.getItem(cacheKey);
-        if (cached) {
-          try {
-            const parsed = JSON.parse(cached);
-            if (Date.now() - parsed.timestamp < 7 * 24 * 60 * 60 * 1000 && parsed.durations && parsed.distances) {
-              for (let i = 0; i < day.activities.length - 1; i++) {
-                const duration = parsed.durations[i]?.[i + 1];
-                const distance = parsed.distances[i]?.[i + 1];
-                if (duration !== null && duration !== undefined) {
-                  day.activities[i].travelTimeToNext = Math.round(duration / 60);
-                }
-                if (distance !== null && distance !== undefined) {
-                  const distKm = distance / 1000;
-                  day.activities[i].distanceToNext = Math.round(distKm * 10) / 10;
-                  day.activities[i].fuelCostNext = (distKm / 100) * routeSettings.value.carConsumption * routeSettings.value.fuelPrice;
-                  day.activities[i].tollCostNext = distKm * routeSettings.value.tollRate * 0.4;
-                }
-              }
-              return;
-            }
-          } catch (e) {
-            console.error("Erreur parsing cache OSRM:", e);
-          }
-        }
-
-        try {
-          const resp = await fetch(`https://router.project-osrm.org/table/v1/driving/${coords}?annotations=duration,distance`);
-          const data = await resp.json();
-          if (data.durations && data.distances) {
-            localStorage.setItem(cacheKey, JSON.stringify({
-              durations: data.durations,
-              distances: data.distances,
-              timestamp: Date.now()
-            }));
-            for (let i = 0; i < day.activities.length - 1; i++) {
-              const duration = data.durations[i][i + 1];
-              const distance = data.distances[i][i + 1];
-              if (duration !== null && distance !== null) {
-                const distKm = distance / 1000;
-                day.activities[i].travelTimeToNext = Math.round(duration / 60);
-                day.activities[i].distanceToNext = Math.round(distKm * 10) / 10;
-                day.activities[i].fuelCostNext = (distKm / 100) * routeSettings.value.carConsumption * routeSettings.value.fuelPrice;
-                day.activities[i].tollCostNext = distKm * routeSettings.value.tollRate * 0.4;
-              }
-            }
-          }
-        } catch
-          (e) {
-          console.error("OSRM Table error", e);
+    const data = await osrmService.getTable(coords);
+    if (data && data.durations && data.distances) {
+      for (let i = 0; i < day.activities.length - 1; i++) {
+        const duration = data.durations[i][i + 1];
+        const distance = data.distances[i][i + 1];
+        if (duration !== null && distance !== null) {
+          const distKm = distance / 1000;
+          day.activities[i].travelTimeToNext = Math.round(duration / 60);
+          day.activities[i].distanceToNext = Math.round(distKm * 10) / 10;
+          day.activities[i].fuelCostNext = (distKm / 100) * routeSettings.value.carConsumption * routeSettings.value.fuelPrice;
+          day.activities[i].tollCostNext = distKm * routeSettings.value.tollRate * 0.4;
         }
       }
-    )
-  ;
+    }
+  }));
 
-  // Attendre tous les appels en parallèle
-  await Promise.all(osrmPromises);
-
-  for (const day of days) {
-    // Ajustement de l'heure de départ de la journée si la première activité a une heure fixe
+  days.forEach(day => {
     const morningDep = day.activities.find((a: any) => a.isMorningDeparture);
-    const firstRealActivity = day.activities.find((a: any) => !a.isMorningDeparture && a.arrivalDate && a.arrivalDate.length >= 13);
-
-    if (morningDep && firstRealActivity && morningDep.travelTimeToNext !== undefined) {
-      // Si l'utilisateur n'a pas forcé d'heure de départ dans les réglages
-      const tripSettings = trip.value?.settings || {};
-      if (!tripSettings[day.date]?.startTime) {
-        const arrivalTime = parseDateFloating(firstRealActivity.arrivalDate);
-        const departureTime = new Date(arrivalTime.getTime() - morningDep.travelTimeToNext * 60000);
-
-        // Formater en ISO sans changer le fuseau (on garde l'heure locale telle quelle)
-        const pad = (n: number) => n.toString().padStart(2, '0');
-        const timeStr = `${pad(departureTime.getHours())}:${pad(departureTime.getMinutes())}`;
-        const finalDateStr = `${day.date}T${timeStr}:00`;
-
-        morningDep.arrivalDate = finalDateStr;
-        morningDep.departureDate = finalDateStr;
-      }
+    const firstReal = day.activities.find((a: any) => !a.isMorningDeparture && a.arrivalDate && a.arrivalDate.length >= 13);
+    if (morningDep && firstReal && morningDep.travelTimeToNext !== undefined && !tripSettings[day.date]?.startTime) {
+      const arrivalTime = parseDateFloating(firstReal.arrivalDate);
+      const departureTime = new Date(arrivalTime.getTime() - morningDep.travelTimeToNext * 60000);
+      const timeStr = `${departureTime.getHours().toString().padStart(2, '0')}:${departureTime.getMinutes().toString().padStart(2, '0')}`;
+      morningDep.arrivalDate = morningDep.departureDate = `${day.date}T${timeStr}:00`;
     }
 
     let lastDeparture: Date | null = null;
-
-    for (let i = 0; i < day.activities.length; i++) {
-      const current = day.activities[i];
-
-      if (current.isMorningDeparture) {
-        lastDeparture = parseDateFloating(current.departureDate);
-      }
-
+    day.activities.forEach((current, i) => {
+      if (current.isMorningDeparture) lastDeparture = parseDateFloating(current.departureDate);
       if (lastDeparture && i > 0 && current.arrivalDate && current.arrivalDate.length >= 13) {
         const prev = day.activities[i - 1];
-        if (prev && prev.travelTimeToNext !== undefined) {
-          const estimatedArrival = new Date(lastDeparture.getTime() + prev.travelTimeToNext * 60000);
-          const fixedArrival = parseDateFloating(current.arrivalDate);
-          const buffer = Math.round((fixedArrival.getTime() - estimatedArrival.getTime()) / 60000);
-
-          if (buffer > 0) {
-            current.bufferTimeBefore = buffer;
-          } else if (buffer < 0) {
-            current.delayTimeBefore = Math.abs(buffer);
-          }
+        if (prev?.travelTimeToNext !== undefined) {
+          const buffer = Math.round((parseDateFloating(current.arrivalDate).getTime() - (lastDeparture.getTime() + prev.travelTimeToNext * 60000)) / 60000);
+          if (buffer > 0) current.bufferTimeBefore = buffer;
+          else if (buffer < 0) current.delayTimeBefore = Math.abs(buffer);
         }
       }
-
       if (lastDeparture && !current.isMorningDeparture && (!current.arrivalDate || current.arrivalDate.length < 13)) {
         const prev = day.activities[i - 1];
-        if (prev && prev.travelTimeToNext !== undefined) {
-          const estimatedArrival = new Date(lastDeparture.getTime() + prev.travelTimeToNext * 60000);
-          current.estimatedArrival = estimatedArrival.toISOString();
+        if (prev?.travelTimeToNext !== undefined) {
+          current.estimatedArrival = new Date(lastDeparture.getTime() + prev.travelTimeToNext * 60000).toISOString();
           current.isEstimated = true;
         }
       }
+      if (current.departureDate?.length >= 13 && !current.isEveningReturn) lastDeparture = parseDateFloating(current.departureDate);
+      else if (current.arrivalDate?.length >= 13 && !current.isEveningReturn) lastDeparture = new Date(parseDateFloating(current.arrivalDate).getTime() + 60 * 60000);
+      else if (current.estimatedArrival && !current.isEveningReturn) lastDeparture = new Date(new Date(current.estimatedArrival).getTime() + 60 * 60000);
+    });
+  });
 
-      if (current.departureDate && current.departureDate.length >= 13 && !current.isEveningReturn) {
-        lastDeparture = parseDateFloating(current.departureDate);
-      } else if (current.arrivalDate && current.arrivalDate.length >= 13 && !current.isEveningReturn) {
-        lastDeparture = new Date(parseDateFloating(current.arrivalDate).getTime() + 60 * 60000);
-      } else if (current.estimatedArrival && !current.isEveningReturn) {
-        lastDeparture = new Date(new Date(current.estimatedArrival).getTime() + 60 * 60000);
-      }
-    }
-  }
   daysData.value = days;
 };
 
@@ -2120,41 +1949,33 @@ const getStatusIcon = (status: string): string => {
   return iconMap[status] || "fi fi-rr-circle";
 };
 
-const centerMapOnDay = (day: { date: string; city: Stop | null; activities: Stop[] }) => {
-  if (!map) return;
-  const allStops = [...day.activities];
+const focusDayOnMap = (day: any) => {
+  if (!tripMap.value) return;
+  const allStops: any[] = [];
+  day.activities.forEach((a: any) => {
+    if (a.latitude && a.longitude) allStops.push(a);
+  });
   if (day.city) allStops.push(day.city);
   if (allStops.length === 0) return;
 
   if (allStops.length === 1) {
-    map.setView([allStops[0]!.latitude!, allStops[0]!.longitude!], 14, {animate: true});
+    tripMap.value.setView([allStops[0].latitude, allStops[0].longitude], 14, {animate: true});
   } else {
-    const bounds = L.latLngBounds(allStops.map((s) => [s.latitude!, s.longitude!]));
-    map.fitBounds(bounds, {padding: [50, 50], animate: true, maxZoom: 15});
+    const bounds = L.latLngBounds(allStops.map((s) => [s.latitude, s.longitude]));
+    tripMap.value.fitBounds(bounds, {padding: [50, 50], animate: true, maxZoom: 15});
   }
 };
 
 const initMap = () => {
   if (!trip.value || !trip.value.stops) return;
-  if (map) {
-    updateMapMarkers();
-    return;
-  }
-  const stops = trip.value.stops;
-  let initialView: L.LatLngExpression = [46.603354, 1.888334];
-  if (stops.length > 0) {
-    const firstStop = stops[0]!;
-    initialView = [firstStop.latitude!, firstStop.longitude!];
-  }
-  map = L.map("trip-map").setView(initialView, 10);
 
-  L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
-    attribution:
-      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
-    subdomains: "abcd",
-    maxZoom: 19,
-  }).addTo(map);
+  let initialView: [number, number] = [46.603354, 1.888334];
+  if (trip.value.stops.length > 0) {
+    const first = trip.value.stops[0];
+    initialView = [parseFloat(first.latitude as any), parseFloat(first.longitude as any)];
+  }
 
+  initTripMap("trip-map", initialView);
   updateMapMarkers();
 };
 
@@ -2222,29 +2043,19 @@ let isProcessingQueue = false;
 let routeLayers: L.Layer[] = [];
 let router: any = null;
 
-const updateMapMarkers = () => {
-  if (!map || !trip.value) return;
-  markers.forEach((m) => map!.removeLayer(m));
-  markers = [];
-  routeLayers.forEach((l) => map!.removeLayer(l));
-  routeLayers = [];
-  routingControls.forEach((c) => {
-    if (c.onRemove) c.onRemove(map);
-    else map!.removeControl(c);
-  });
-  routingControls = [];
-  estimatedFuelCost.value = 0;
-  estimatedTollCost.value = 0;
-  segmentQueue = [];
-  isProcessingQueue = false;
-  const stops = trip.value.stops;
+const updateMapMarkers = async () => {
+  if (!tripMap.value || !trip.value) return;
+
+  clearMap();
+
+  const dedupedStops: Stop[] = [];
   const stopsByDay: Record<string, Stop[]> = {};
-  stops.forEach((s) => {
+  trip.value.stops.forEach((s) => {
     const day = (s.arrivalDate || "").substring(0, 10);
     if (!stopsByDay[day]) stopsByDay[day] = [];
     stopsByDay[day].push(s);
   });
-  const dedupedStops: Stop[] = [];
+
   Object.values(stopsByDay).forEach((dayStops) => {
     const activities = dayStops.filter((s) => s.type !== "city");
     if (activities.length > 0) dedupedStops.push(...activities);
@@ -2252,51 +2063,40 @@ const updateMapMarkers = () => {
   });
 
   dedupedStops.forEach((stop: any, index: number) => {
-    const lat = parseFloat(stop.latitude);
-    const lng = parseFloat(stop.longitude);
+    if (isNaN(parseFloat(stop.latitude)) || isNaN(parseFloat(stop.longitude))) return;
 
-    if (isNaN(lat) || isNaN(lng)) return;
-
-    const marker = L.marker([lat, lng], {
-      icon: createCustomIcon(index, stop.isMorningDeparture ? 'city' : stop.type)
-    })
-      .bindPopup(`<div style="text-align:center;"><b style="font-size:14px;">${stop.displayTitle || stop.title}</b><br><span style="color:#666;font-size:12px;">${stop.isMorningDeparture ? 'Point de départ' : formatStopType(stop.type)}</span></div>`)
-      .addTo(map!);
-    markers.push(marker);
+    addMarker(parseFloat(stop.latitude), parseFloat(stop.longitude), {
+      title: stop.title,
+      icon: createCustomIcon(index, stop.isMorningDeparture ? 'city' : stop.type),
+      popupHtml: `<div style="text-align:center;"><b style="font-size:14px;">${stop.displayTitle || stop.title}</b><br><span style="color:#666;font-size:12px;">${stop.isMorningDeparture ? 'Point de départ' : formatStopType(stop.type)}</span></div>`
+    });
   });
-  const routerOptions: any = {
-    serviceUrl: "https://router.project-osrm.org/route/v1",
-    profile: "driving",
-    routingOptions: {steps: true},
-  };
-  if (routeSettings.value.avoidTolls) routerOptions.routingOptions.exclude = ["toll"];
-  router = L.Routing.osrmv1(routerOptions);
+
   if (dedupedStops.length > 1) {
     for (let i = 0; i < dedupedStops.length - 1; i++) {
       const start = dedupedStops[i];
       const end = dedupedStops[i + 1];
 
-      if (start.latitude === null || start.longitude === null ||
-          end.latitude === null || end.longitude === null) {
-        continue;
-      }
+      if (start.latitude && start.longitude && end.latitude && end.longitude) {
+        const isSameDay = (start.arrivalDate || '').substring(0, 10) === (end.arrivalDate || '').substring(0, 10);
 
-      const startDate = (start.arrivalDate || '').substring(0, 10);
-      const endDate = (end.arrivalDate || '').substring(0, 10);
-      const isSameDay = startDate === endDate;
-      const color = isSameDay ? "#ec4899" : "#1e4d3d";
-      const weight = isSameDay ? 4 : 5;
-      const dashArray = isSameDay ? "8, 12" : undefined;
-      segmentQueue.push({
-        start: L.latLng(start.latitude!, start.longitude!),
-        end: L.latLng(end.latitude!, end.longitude!),
-        style: {color, weight, opacity: 0.85, dashArray, lineCap: "round", lineJoin: "round"},
-      });
+        drawRoute(
+          [parseFloat(start.latitude as any), parseFloat(start.longitude as any)],
+          [parseFloat(end.latitude as any), parseFloat(end.longitude as any)],
+          {
+            color: isSameDay ? "#ec4899" : "#1e4d3d",
+            weight: isSameDay ? 4 : 5,
+            opacity: 0.85,
+            dashArray: isSameDay ? "8, 12" : undefined,
+            lineCap: "round",
+            lineJoin: "round"
+          }
+        );
+      }
     }
-    processNextSegment();
-  } else if (dedupedStops.length === 1 && dedupedStops[0].latitude !== null) {
-    map!.setView([dedupedStops[0].latitude, dedupedStops[0].longitude], 10);
   }
+
+  fitBounds();
 };
 
 const processNextSegment = () => {
@@ -2425,16 +2225,13 @@ const searchLocation = () => {
   isSearching.value = true;
   searchTimeout = setTimeout(async () => {
     try {
-      // Construction de l'URL de recherche
       let searchUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(locationSearch.value)}`;
 
-      // Si une ville est disponible, limiter la recherche aux alentours (±0.5° ≈ 50km)
       if (currentDayCity.value && currentDayCity.value.latitude && currentDayCity.value.longitude) {
         const lat = Number(currentDayCity.value.latitude);
         const lon = Number(currentDayCity.value.longitude);
-        const delta = 0.5; // ≈50km de rayon
+        const delta = 0.5;
 
-        // viewbox format: left,top,right,bottom (minLon,maxLat,maxLon,minLat)
         const viewbox = `${lon - delta},${lat + delta},${lon + delta},${lat - delta}`;
         searchUrl += `&viewbox=${viewbox}&bounded=1`;
       }
@@ -2480,7 +2277,6 @@ const openAddActivityModal = async (
     departureTime: ''
   };
 
-  // Réinitialiser l'état
   nearbyPlaces.value = [];
   showManualSearch.value = false;
   showMorePOI.value = false;
@@ -2489,15 +2285,14 @@ const openAddActivityModal = async (
 
   showStopModal.value = true;
 
-  // Si une ville est disponible, récupérer les lieux à proximité
   if (currentDayCity.value && currentDayCity.value.latitude && currentDayCity.value.longitude) {
-    await nextTick(); // Attendre que la modal soit montée
+    await nextTick();
     initModalMap();
     await fetchNearbyPlaces(
       currentDayCity.value.latitude,
       currentDayCity.value.longitude,
       selectedPlaceType.value,
-      4, // Par défaut : 4 résultats
+      4,
     );
     displayNearbyMarkers();
   }
@@ -2564,18 +2359,15 @@ const fetchNearbyPlaces = async (
   types: string = "tourist_attraction",
   limit: number = 4,
 ) => {
-  // Conversion en number au cas où ce serait des strings
   const lat = Number(latitude);
   const lng = Number(longitude);
 
   const cacheKey = `nearby_${lat.toFixed(4)}_${lng.toFixed(4)}_${types}_${limit}`;
 
-  // Vérifier le cache localStorage
   const cached = localStorage.getItem(cacheKey);
   if (cached) {
     try {
       const parsed = JSON.parse(cached);
-      // Cache valide pendant 24h
       if (Date.now() - parsed.timestamp < 24 * 60 * 60 * 1000) {
         nearbyPlaces.value = parsed.places;
         return;
@@ -2585,14 +2377,13 @@ const fetchNearbyPlaces = async (
     }
   }
 
-  // Appel à l'API backend
   isLoadingNearby.value = true;
   try {
     const response = await api.get("/places/nearby", {
       params: {
         latitude: lat,
         longitude: lng,
-        radius: 5000, // 5km
+        radius: 5000,
         types,
         limit,
       },
@@ -2600,7 +2391,6 @@ const fetchNearbyPlaces = async (
 
     nearbyPlaces.value = response.data.places || [];
 
-    // Sauvegarder dans le cache
     localStorage.setItem(
       cacheKey,
       JSON.stringify({
@@ -2632,7 +2422,6 @@ const selectNearbyPlace = async (place: any) => {
 const initModalMap = () => {
   if (!currentDayCity.value) return;
 
-  // Détruire la carte existante si elle existe
   if (modalMap) {
     modalMap.remove();
     modalMap = null;
@@ -2641,13 +2430,11 @@ const initModalMap = () => {
   const mapContainer = document.getElementById("modal-map");
   if (!mapContainer) return;
 
-  // Créer la carte centrée sur la ville
   modalMap = L.map("modal-map").setView(
     [currentDayCity.value.latitude!, currentDayCity.value.longitude!],
-    13, // Zoom level
+    13,
   );
 
-  // Ajouter le layer CartoDB Voyager (même style que la map principale)
   L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
     attribution:
       '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
@@ -2655,7 +2442,6 @@ const initModalMap = () => {
     maxZoom: 19,
   }).addTo(modalMap);
 
-  // Marker custom pour la ville
   const cityIcon = L.divIcon({
     className: "custom-marker",
     html: `
@@ -2693,7 +2479,6 @@ const initModalMap = () => {
  * Crée un marker custom pour un lieu nearby selon son type
  */
 const createNearbyMarkerIcon = (types: string[]) => {
-  // Déterminer la couleur et l'icône selon le type
   const typeConfig: Record<string, { color: string; icon: string }> = {
     restaurant: {color: "#f97316", icon: "fi-rr-restaurant"},
     cafe: {color: "#fbbf24", icon: "fi-rr-coffee"},
@@ -2703,8 +2488,7 @@ const createNearbyMarkerIcon = (types: string[]) => {
     bar: {color: "#ef4444", icon: "fi-rr-glass-cheers"},
   };
 
-  // Trouver le premier type correspondant
-  let config = {color: "#ec4899", icon: "fi-rr-marker"}; // Défaut
+  let config = {color: "#ec4899", icon: "fi-rr-marker"};
   for (const type of types) {
     if (typeConfig[type]) {
       config = typeConfig[type];
@@ -2746,17 +2530,14 @@ const createNearbyMarkerIcon = (types: string[]) => {
 const displayNearbyMarkers = () => {
   if (!modalMap) return;
 
-  // Supprimer les anciens markers
   nearbyMarkers.forEach((marker) => marker.remove());
   nearbyMarkers = [];
 
-  // Créer un marker custom pour chaque lieu
   nearbyPlaces.value.forEach((place) => {
     const marker = L.marker([place.location.latitude, place.location.longitude], {
       icon: createNearbyMarkerIcon(place.types || []),
     }).addTo(modalMap!);
 
-    // Popup avec infos et bouton "Sélectionner"
     const popupContent = `
       <div style="text-align: center; min-width: 200px;">
         <strong style="font-size: 15px;">${place.displayName}</strong><br>
@@ -2774,7 +2555,6 @@ const displayNearbyMarkers = () => {
   });
 };
 
-// Fonction globale pour la sélection depuis la popup
 (window as any).selectNearbyPlaceFromMap = async (placeId: string) => {
   const place = nearbyPlaces.value.find((p) => p.placeId === placeId);
   if (place) {
@@ -2789,7 +2569,6 @@ const changePlaceType = async (type: string) => {
   if (!currentDayCity.value) return;
 
   selectedPlaceType.value = type;
-  // Réinitialiser showMorePOI quand on change de type
   showMorePOI.value = false;
   const limit = (type === "tourist_attraction" || type === "lodging") ? 4 : 10;
 

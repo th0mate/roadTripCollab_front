@@ -718,6 +718,16 @@
                   type="button"
                   :class="[
                     'trip-dashboard__filter-chip',
+                    { active: selectedPlaceType === 'lodging' },
+                  ]"
+                  @click="changePlaceType('lodging')"
+                >
+                  🏨 Hôtels
+                </button>
+                <button
+                  type="button"
+                  :class="[
+                    'trip-dashboard__filter-chip',
                     { active: selectedPlaceType === 'restaurant' },
                   ]"
                   @click="changePlaceType('restaurant')"
@@ -914,14 +924,14 @@
                 <i class="fi fi-rr-clock"></i>
                 Heure d'arrivée (Optionnel)
               </label>
-              <input type="time" v-model="newStop.arrivalTime" class="trip-dashboard__input"/>
+              <input type="time" v-model="newStop.arrivalTime" @input="isManualArrival = true" class="trip-dashboard__input"/>
             </div>
             <div class="trip-dashboard__form-group">
               <label class="trip-dashboard__label">
                 <i class="fi fi-rr-clock-three"></i>
                 Heure de départ (Optionnel)
               </label>
-              <input type="time" v-model="newStop.departureTime" class="trip-dashboard__input"/>
+              <input type="time" v-model="newStop.departureTime" @input="isManualDeparture = true" class="trip-dashboard__input"/>
             </div>
           </div>
 
@@ -1417,12 +1427,97 @@ const newStop = ref<any>({
   arrivalTime: '',
   departureTime: ''
 });
+const currentDayActivities = ref<any[]>([]);
+const isManualArrival = ref(false);
+const isManualDeparture = ref(false);
+
+async function updateTravelTimeForNewStop() {
+  if (!newStop.value.latitude || !newStop.value.longitude) return;
+
+  if (!isManualArrival.value) {
+    const activities = currentDayActivities.value.filter(a => !a.isEveningReturn);
+    if (activities.length > 0) {
+      const last = activities[activities.length - 1];
+      const coordsArrival = `${last.longitude},${last.latitude};${newStop.value.longitude},${newStop.value.latitude}`;
+
+      try {
+        const resp = await fetch(`https://router.project-osrm.org/route/v1/driving/${coordsArrival}?overview=false`);
+        const data = await resp.json();
+
+        if (data.routes && data.routes[0]) {
+          const travelMin = Math.round(data.routes[0].duration / 60);
+          let baseTime: Date | null = null;
+          if (last.departureDate && last.departureDate.length >= 13) {
+            baseTime = parseDateFloating(last.departureDate);
+          } else if (last.arrivalDate && last.arrivalDate.length >= 13) {
+            baseTime = new Date(parseDateFloating(last.arrivalDate).getTime() + 60 * 60000);
+          } else if (last.estimatedArrival) {
+            baseTime = new Date(last.estimatedArrival);
+          }
+
+          if (baseTime) {
+            const arrival = new Date(baseTime.getTime() + travelMin * 60000);
+            const pad = (n: number) => n.toString().padStart(2, '0');
+            newStop.value.arrivalTime = `${pad(arrival.getHours())}:${pad(arrival.getMinutes())}`;
+
+            if (!isManualDeparture.value && newStop.value.type !== 'accommodation') {
+              const departure = new Date(arrival.getTime() + 60 * 60000);
+              newStop.value.departureTime = `${pad(departure.getHours())}:${pad(departure.getMinutes())}`;
+            }
+          }
+        }
+      } catch (e) {
+        console.error("Erreur calcul trajet arrivée:", e);
+      }
+    }
+  }
+
+  if (newStop.value.type === 'accommodation' && newStop.value.arrivalDate && !isManualDeparture.value) {
+    const arrivalDate = new Date(newStop.value.arrivalDate);
+    const nextDayDate = new Date(arrivalDate.getTime() + 24 * 60 * 60 * 1000);
+    const nextDayStr = extractDateLocal(nextDayDate.toISOString());
+    const nextDay = daysData.value.find(d => d.date === nextDayStr);
+
+    if (nextDay && nextDay.activities) {
+      const firstReal = nextDay.activities.find(a => !a.isMorningDeparture && a.arrivalDate && a.arrivalDate.length >= 13);
+      if (firstReal) {
+        const coordsDeparture = `${newStop.value.longitude},${newStop.value.latitude};${firstReal.longitude},${firstReal.latitude}`;
+        try {
+          const resp = await fetch(`https://router.project-osrm.org/route/v1/driving/${coordsDeparture}?overview=false`);
+          const data = await resp.json();
+          if (data.routes && data.routes[0]) {
+            const travelMin = Math.round(data.routes[0].duration / 60);
+            const arrivalTimeNextDay = parseDateFloating(firstReal.arrivalDate);
+            const departureTime = new Date(arrivalTimeNextDay.getTime() - travelMin * 60000);
+
+            const pad = (n: number) => n.toString().padStart(2, '0');
+            newStop.value.departureTime = `${pad(departureTime.getHours())}:${pad(departureTime.getMinutes())}`;
+          }
+        } catch (e) {
+          console.error("Erreur calcul trajet départ hôtel:", e);
+        }
+      } else {
+        newStop.value.departureTime = '09:00';
+      }
+    }
+  }
+}
 
 watch(() => newStop.value.type, (newType) => {
-  if (newType === 'accommodation' && newStop.value.arrivalDate) {
-    const arrival = new Date(newStop.value.arrivalDate);
-    arrival.setDate(arrival.getDate() + 1);
-    newStop.value.departureDate = arrival.toISOString().split('T')[0];
+  if (newType === 'accommodation') {
+    if (newStop.value.arrivalDate) {
+      const arrival = new Date(newStop.value.arrivalDate);
+      arrival.setDate(arrival.getDate() + 1);
+      newStop.value.departureDate = arrival.toISOString().split('T')[0];
+    }
+    updateTravelTimeForNewStop();
+  } else {
+    newStop.value.departureDate = newStop.value.arrivalDate;
+    if (newStop.value.arrivalTime && !isManualDeparture.value) {
+      const [h, m] = newStop.value.arrivalTime.split(':').map(Number);
+      const pad = (n: number) => n.toString().padStart(2, '0');
+      newStop.value.departureTime = `${pad((h + 1) % 24)}:${pad(m)}`;
+    }
   }
 });
 
@@ -1520,6 +1615,10 @@ function openEditStopModal(stop: any) {
 
   editingStopId.value = realId;
   const originalStop = trip.value?.stops.find(s => s.id === realId) || stop;
+
+  // En édition, on considère que les heures sont déjà "manuelles" (on ne veut pas les recalculer au chargement)
+  isManualArrival.value = !!originalStop.arrivalDate;
+  isManualDeparture.value = !!originalStop.departureDate;
 
   newStop.value = {
     title: originalStop.title,
@@ -1738,6 +1837,10 @@ const calculateItineraryByDay = async () => {
   const days: any[] = [];
   const tripSettings = trip.value.settings || {};
 
+  const sortedAccommodations = [...trip.value.stops]
+    .filter(s => s.type === 'accommodation' && s.arrivalDate)
+    .sort((a, b) => (b.arrivalDate || '').localeCompare(a.arrivalDate || ''));
+
   for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
     const currentDateStr = extractDateLocal(d.toISOString());
 
@@ -1749,19 +1852,19 @@ const calculateItineraryByDay = async () => {
       .filter(s => s.type === 'city' && s.arrivalDate && extractDateLocal(s.arrivalDate) <= currentDateStr)
       .sort((a, b) => (b.arrivalDate || '').localeCompare(a.arrivalDate || ''))[0] || null;
 
-    const morningAcc = trip.value.stops.find(s =>
-      s.type === 'accommodation' &&
-      s.arrivalDate &&
-      extractDateLocal(s.arrivalDate) < currentDateStr &&
+    let morningAcc = sortedAccommodations.find(s =>
+      extractDateLocal(s.arrivalDate!) < currentDateStr &&
       (s.departureDate ? extractDateLocal(s.departureDate) >= currentDateStr : true)
     );
 
-    const eveningAcc = trip.value.stops.find(s =>
-      s.type === 'accommodation' &&
-      s.arrivalDate &&
-      extractDateLocal(s.arrivalDate) <= currentDateStr &&
+    if (!morningAcc && currentDateStr !== extractDateLocal(trip.value.startDate)) {
+      morningAcc = sortedAccommodations.find(s => extractDateLocal(s.arrivalDate!) < currentDateStr);
+    }
+
+    const eveningAcc = sortedAccommodations.find(s =>
+      extractDateLocal(s.arrivalDate!) <= currentDateStr &&
       (s.departureDate ? extractDateLocal(s.departureDate) > currentDateStr : true)
-    );
+    ) || sortedAccommodations.find(s => extractDateLocal(s.arrivalDate!) <= currentDateStr);
 
     const dayItinerary: any[] = [];
 
@@ -1830,7 +1933,12 @@ const calculateItineraryByDay = async () => {
           id: `end-${eveningAcc.id}-${currentDateStr}`,
           displayTitle: `${eveningAcc.title} (Retour)`,
           isAccommodationHub: true,
-          isEveningReturn: true
+          isEveningReturn: true,
+          latitude: parseFloat(eveningAcc.latitude as any),
+          longitude: parseFloat(eveningAcc.longitude as any),
+          // On vide les dates originales pour ne pas fausser les calculs de retard/avance du jour
+          arrivalDate: null,
+          departureDate: null
         });
       }
     }
@@ -1911,6 +2019,27 @@ const calculateItineraryByDay = async () => {
   await Promise.all(osrmPromises);
 
   for (const day of days) {
+    // Ajustement de l'heure de départ de la journée si la première activité a une heure fixe
+    const morningDep = day.activities.find((a: any) => a.isMorningDeparture);
+    const firstRealActivity = day.activities.find((a: any) => !a.isMorningDeparture && a.arrivalDate && a.arrivalDate.length >= 13);
+
+    if (morningDep && firstRealActivity && morningDep.travelTimeToNext !== undefined) {
+      // Si l'utilisateur n'a pas forcé d'heure de départ dans les réglages
+      const tripSettings = trip.value?.settings || {};
+      if (!tripSettings[day.date]?.startTime) {
+        const arrivalTime = parseDateFloating(firstRealActivity.arrivalDate);
+        const departureTime = new Date(arrivalTime.getTime() - morningDep.travelTimeToNext * 60000);
+
+        // Formater en ISO sans changer le fuseau (on garde l'heure locale telle quelle)
+        const pad = (n: number) => n.toString().padStart(2, '0');
+        const timeStr = `${pad(departureTime.getHours())}:${pad(departureTime.getMinutes())}`;
+        const finalDateStr = `${day.date}T${timeStr}:00`;
+
+        morningDep.arrivalDate = finalDateStr;
+        morningDep.departureDate = finalDateStr;
+      }
+    }
+
     let lastDeparture: Date | null = null;
 
     for (let i = 0; i < day.activities.length; i++) {
@@ -2319,12 +2448,13 @@ const searchLocation = () => {
   }, 500);
 };
 
-const selectLocation = (result: any) => {
+const selectLocation = async (result: any) => {
   newStop.value.title = result.display_name.split(",")[0];
   newStop.value.latitude = parseFloat(result.lat);
   newStop.value.longitude = parseFloat(result.lon);
   locationSearch.value = "";
   searchResults.value = [];
+  await updateTravelTimeForNewStop();
 };
 
 const openAddActivityModal = async (
@@ -2333,6 +2463,10 @@ const openAddActivityModal = async (
 ) => {
   isEditingStop.value = false;
   editingStopId.value = null;
+  currentDayActivities.value = day?.activities || [];
+  isManualArrival.value = false;
+  isManualDeparture.value = false;
+
   newStop.value = {
     title: "",
     latitude: null,
@@ -2485,10 +2619,11 @@ const fetchNearbyPlaces = async (
 /**
  * Sélectionne un lieu depuis la map nearby
  */
-const selectNearbyPlace = (place: any) => {
+const selectNearbyPlace = async (place: any) => {
   newStop.value.title = place.displayName;
   newStop.value.latitude = place.location.latitude;
   newStop.value.longitude = place.location.longitude;
+  await updateTravelTimeForNewStop();
 };
 
 /**
@@ -2640,10 +2775,10 @@ const displayNearbyMarkers = () => {
 };
 
 // Fonction globale pour la sélection depuis la popup
-(window as any).selectNearbyPlaceFromMap = (placeId: string) => {
+(window as any).selectNearbyPlaceFromMap = async (placeId: string) => {
   const place = nearbyPlaces.value.find((p) => p.placeId === placeId);
   if (place) {
-    selectNearbyPlace(place);
+    await selectNearbyPlace(place);
   }
 };
 
@@ -2656,7 +2791,7 @@ const changePlaceType = async (type: string) => {
   selectedPlaceType.value = type;
   // Réinitialiser showMorePOI quand on change de type
   showMorePOI.value = false;
-  const limit = type === "tourist_attraction" ? 4 : 10;
+  const limit = (type === "tourist_attraction" || type === "lodging") ? 4 : 10;
 
   await fetchNearbyPlaces(
     currentDayCity.value.latitude!,

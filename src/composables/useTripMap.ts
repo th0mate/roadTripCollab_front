@@ -5,7 +5,7 @@ export function useTripMap() {
   const markers = ref<any[]>([]);
   const polylines = ref<google.maps.Polyline[]>([]);
 
-  const initMap = async (elementId: string, initialView: { lat: number, lng: number }) => {
+  const initMap = async (elementId: string, initialView: { lat: number, lng: number }, options?: { onPoiClick?: (poi: any) => void }) => {
     if (map.value) return;
     try {
       const mapElement = document.getElementById(elementId);
@@ -17,8 +17,19 @@ export function useTripMap() {
         mapId: 'DEMO_MAP_ID',
         disableDefaultUI: true,
         zoomControl: true,
-        styles: [{ featureType: "poi", elementType: "labels", stylers: [{ visibility: "off" }] }]
       });
+
+      if (options?.onPoiClick) {
+        map.value.addListener('click', (event: google.maps.MapMouseEvent | google.maps.IconMouseEvent) => {
+          if ('placeId' in event && event.placeId) {
+            event.stop();
+            options.onPoiClick({
+              placeId: event.placeId,
+              location: event.latLng?.toJSON()
+            });
+          }
+        });
+      }
     } catch (error) { console.error("Erreur Google Maps:", error); }
   };
 

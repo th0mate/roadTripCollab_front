@@ -1035,35 +1035,113 @@
   font-size: 0.6rem;
 }
 
-.trip-dashboard__travel-time {
+.trip-dashboard__travel-compact {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin: 4px 0 4px 40px;
-  padding: 4px 12px;
-  font-size: 0.7rem;
-  font-weight: 600;
+  flex-wrap: wrap;
+  margin: 0;
+  padding: 10px 10px;
+  font-size: 0.65rem;
   color: var(--td-text-muted);
-  background: white;
+  font-weight: 500;
   border-left: 2px dashed var(--td-border);
   position: relative;
+  transition: all 0.2s ease;
+  pointer-events: none;
 }
 
-.trip-dashboard__travel-time i {
-  font-size: 0.75rem;
-  color: var(--td-primary-light);
-}
-
-.trip-dashboard__travel-time::before {
+.trip-dashboard__travel-compact::before {
   content: '';
   position: absolute;
   left: -2px;
   top: 0;
   bottom: 0;
   width: 2px;
-  background: linear-gradient(to bottom, var(--td-border) 50%, transparent 50%);
-  background-size: 1px 8px;
+  background: linear-gradient(to bottom, var(--td-primary-lighter) 0%, var(--td-border) 100%);
+  opacity: 0;
+  transition: opacity 0.2s ease;
 }
+
+.trip-dashboard__travel-compact:hover::before {
+  opacity: 1;
+}
+
+.trip-dashboard__travel-compact i {
+  font-size: 0.6rem;
+  opacity: 0.8;
+}
+
+.trip-dashboard__travel-compact>i:first-child {
+  color: var(--td-primary);
+  opacity: 1;
+}
+
+.trip-dashboard__travel-compact>span {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.trip-dashboard__travel-cost {
+  color: var(--td-text-light);
+  padding: 1px 5px;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.trip-dashboard__travel-cost:hover {
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--td-text-muted);
+}
+
+.trip-dashboard__travel-cost i {
+  font-size: 0.55rem;
+}
+
+.trip-dashboard__travel-buffer-compact {
+  color: var(--td-info);
+  font-weight: 600;
+  padding: 2px 6px;
+  background: rgba(59, 130, 246, 0.1);
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.trip-dashboard__travel-buffer-compact:hover {
+  background: rgba(59, 130, 246, 0.15);
+}
+
+.trip-dashboard__travel-buffer-compact i {
+  font-size: 0.55rem;
+}
+
+.trip-dashboard__travel-delay-compact {
+  color: var(--td-warning);
+  font-weight: 600;
+  padding: 2px 6px;
+  background: rgba(245, 158, 11, 0.1);
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.trip-dashboard__travel-delay-compact:hover {
+  background: rgba(245, 158, 11, 0.15);
+}
+
+.trip-dashboard__travel-delay-compact i {
+  font-size: 0.55rem;
+}
+
+@media (max-width: 768px) {
+  .trip-dashboard__travel-compact {
+    margin-left: 22px;
+    gap: 6px;
+    padding: 4px 8px;
+  }
+}
+
 
 .trip-dashboard__activity-title {
   font-size: 0.9rem;

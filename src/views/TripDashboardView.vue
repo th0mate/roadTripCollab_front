@@ -272,9 +272,18 @@
                         </div>
                       </div>
 
-                      <div v-if="activity.travelTimeToNext" class="trip-dashboard__travel-time">
+                      <div v-if="activity.travelTimeToNext || day.activities[day.activities.indexOf(activity) + 1]?.bufferTimeBefore || day.activities[day.activities.indexOf(activity) + 1]?.delayTimeBefore"
+                           class="trip-dashboard__travel-compact">
                         <i class="fi fi-rr-car-side"></i>
-                        <span>{{ activity.travelTimeToNext }} min de trajet</span>
+                        <span v-if="activity.travelTimeToNext">{{ formatDuration(activity.travelTimeToNext) }} · {{ activity.distanceToNext }} km</span>
+                        <span v-if="activity.fuelCostNext > 0" class="trip-dashboard__travel-cost"><i class="fi fi-rr-gas-pump"></i>{{ activity.fuelCostNext.toFixed(2) }}€</span>
+                        <span v-if="activity.tollCostNext > 0" class="trip-dashboard__travel-cost"><i class="fi fi-rr-road"></i>{{ activity.tollCostNext.toFixed(2) }}€</span>
+                        <span v-if="day.activities[day.activities.indexOf(activity) + 1]?.bufferTimeBefore" class="trip-dashboard__travel-buffer-compact">
+                          <i class="fi fi-rr-clock"></i>Avance : {{ formatDuration(day.activities[day.activities.indexOf(activity) + 1].bufferTimeBefore) }}
+                        </span>
+                        <span v-if="day.activities[day.activities.indexOf(activity) + 1]?.delayTimeBefore" class="trip-dashboard__travel-delay-compact">
+                          <i class="fi fi-rr-exclamation"></i>Retard : {{ formatDuration(day.activities[day.activities.indexOf(activity) + 1].delayTimeBefore) }}
+                        </span>
                       </div>
                     </div>
 
@@ -718,6 +727,43 @@
           À quelle heure souhaitez-vous quitter l'hébergement le <strong>{{ formatDate(editingHubDay) }}</strong> ?
         </p>
         <form @submit.prevent="updateHubTime">
+          <div v-if="isEditingTripStart" class="trip-dashboard__form-group">
+            <label class="trip-dashboard__label">
+              <i class="fi fi-rr-marker"></i>
+              Lieu de départ
+            </label>
+            <div class="trip-dashboard__search-wrapper" style="margin-bottom: 10px;">
+              <input
+                type="text"
+                v-model="locationSearch"
+                @input="searchLocation"
+                placeholder="Domicile, Gare, Aéroport..."
+                class="trip-dashboard__input trip-dashboard__input--search"
+              />
+              <div v-if="isSearching" class="trip-dashboard__search-spinner">
+                <i class="fi fi-rr-spinner trip-dashboard__spinner"></i>
+              </div>
+            </div>
+
+            <ul v-if="searchResults.length > 0 && isEditingTripStart" class="trip-dashboard__search-results-activity" style="margin-bottom: 10px;">
+              <li v-for="result in searchResults.slice(0, 5)" :key="result.place_id"
+                  @click="selectHubLocation(result)" class="trip-dashboard__search-result-item">
+                <div class="trip-dashboard__search-result-icon">
+                  <i class="fi fi-rr-marker"></i>
+                </div>
+                <div class="trip-dashboard__search-result-info">
+                  <span class="trip-dashboard__search-result-name">{{ result.display_name.split(',')[0] }}</span>
+                  <span class="trip-dashboard__search-result-address">{{ result.display_name.split(',').slice(1, 3).join(',') }}</span>
+                </div>
+              </li>
+            </ul>
+
+            <div v-if="hubLocation.latitude" class="trip-dashboard__selected-location" style="margin-top: 10px;">
+              <i class="fi fi-rr-check-circle"></i>
+              <span>{{ hubLocation.title }}</span>
+            </div>
+          </div>
+
           <div class="trip-dashboard__form-group">
             <label class="trip-dashboard__label">Heure de départ</label>
             <input type="time" v-model="hubStartTime" required class="trip-dashboard__input"/>
@@ -771,6 +817,13 @@ function parseDateFloating(dateString: string) {
   const [y, m, day] = d.split('-').map(Number);
   const [h, min] = t.split(':').map(Number);
   return new Date(y, m - 1, day, h, min);
+}
+
+function formatDuration(minutes: number) {
+  if (minutes < 60) return `${minutes} min`;
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return m > 0 ? `${h}h${String(m).padStart(2, '0')}` : `${h}h`;
 }
 
 function focusStopOnMap(stop: any) {
@@ -842,6 +895,12 @@ const editingStopId = ref<number | null>(null);
 const showHubModal = ref(false);
 const editingHubDay = ref('');
 const hubStartTime = ref('09:00');
+const isEditingTripStart = ref(false);
+const hubLocation = ref({
+  title: '',
+  latitude: null as number | null,
+  longitude: null as number | null
+});
 const editingExpense = ref<any>(null);
 
 const newStop = ref<any>({
@@ -868,9 +927,9 @@ watch(() => newStop.value.type, (newType) => {
 function openHubEditModal(activity: any, date: string) {
   console.log('Opening Hub Modal for:', activity.id, 'Date:', date);
 
-  const isTripStart = typeof activity.id === 'string' && activity.id.includes('start-trip');
+  isEditingTripStart.value = typeof activity.id === 'string' && activity.id.includes('start-trip');
 
-  if (!activity.isMorningDeparture && !isTripStart) {
+  if (!activity.isMorningDeparture && !isEditingTripStart.value) {
     console.log('Blocked: Not a morning departure hub');
     return;
   }
@@ -881,8 +940,24 @@ function openHubEditModal(activity: any, date: string) {
   const currentTime = extractTimeLocal(activity.departureDate);
   hubStartTime.value = currentSettings[date]?.startTime || currentTime || '09:00';
 
+  if (isEditingTripStart.value) {
+    hubLocation.value = {
+      title: currentSettings.startLocation?.title || activity.displayTitle || activity.title || 'Départ du voyage',
+      latitude: currentSettings.startLocation?.latitude || activity.latitude,
+      longitude: currentSettings.startLocation?.longitude || activity.longitude
+    };
+  }
+
   console.log('Setting Hub Time to:', hubStartTime.value);
   showHubModal.value = true;
+}
+
+function selectHubLocation(result: any) {
+  hubLocation.value.title = result.display_name.split(',')[0];
+  hubLocation.value.latitude = parseFloat(result.lat);
+  hubLocation.value.longitude = parseFloat(result.lon);
+  searchResults.value = [];
+  locationSearch.value = '';
 }
 
 async function updateHubTime() {
@@ -894,6 +969,14 @@ async function updateHubTime() {
       ...(settings[editingHubDay.value] || {}),
       startTime: hubStartTime.value
     };
+
+    if (isEditingTripStart.value) {
+      settings.startLocation = {
+        title: hubLocation.value.title,
+        latitude: hubLocation.value.latitude,
+        longitude: hubLocation.value.longitude
+      };
+    }
 
     await api.patch(`/trips/${trip.value.id}`, { settings });
     trip.value.settings = settings;
@@ -1187,18 +1270,23 @@ const calculateItineraryByDay = async () => {
         displayTitle: `Départ : ${morningAcc.title}`,
         isAccommodationHub: true,
         isMorningDeparture: true,
+        latitude: parseFloat(morningAcc.latitude as any),
+        longitude: parseFloat(morningAcc.longitude as any),
         arrivalDate: `${currentDateStr}T${finalTime}:00`,
         departureDate: `${currentDateStr}T${finalTime}:00`
       });
-    } else if (currentDateStr === extractDateLocal(trip.value.startDate) && activities.length > 0) {
+    } else if (currentDateStr === extractDateLocal(trip.value.startDate)) {
       const finalTime = tripSettings[currentDateStr]?.startTime || '09:00';
+      const startLoc = tripSettings.startLocation || {};
+
+      const hasConfiguredStart = startLoc.latitude !== undefined && startLoc.latitude !== null;
 
       dayItinerary.push({
         id: `start-trip-${currentDateStr}`,
-        displayTitle: `Départ du voyage`,
+        displayTitle: startLoc.title || `Départ du voyage`,
         type: 'poi',
-        latitude: activities[0].latitude,
-        longitude: activities[0].longitude,
+        latitude: hasConfiguredStart ? parseFloat(startLoc.latitude) : null,
+        longitude: hasConfiguredStart ? parseFloat(startLoc.longitude) : null,
         isAccommodationHub: true,
         isMorningDeparture: true,
         arrivalDate: `${currentDateStr}T${finalTime}:00`,
@@ -1207,7 +1295,11 @@ const calculateItineraryByDay = async () => {
     }
 
     activities.forEach(activity => {
-      dayItinerary.push(activity);
+      dayItinerary.push({
+        ...activity,
+        latitude: parseFloat(activity.latitude as any),
+        longitude: parseFloat(activity.longitude as any)
+      });
     });
 
     if (eveningAcc) {
@@ -1233,20 +1325,25 @@ const calculateItineraryByDay = async () => {
     if (day.activities.length < 2) continue;
 
     const coords = day.activities
-      .filter(a => a.latitude && a.longitude)
+      .filter(a => a.latitude !== null)
       .map(a => `${a.longitude},${a.latitude}`)
       .join(';');
 
     if (!coords || coords.split(';').length < 2) continue;
 
     try {
-      const resp = await fetch(`https://router.project-osrm.org/table/v1/driving/${coords}?annotations=duration`);
+      const resp = await fetch(`https://router.project-osrm.org/table/v1/driving/${coords}?annotations=duration,distance`);
       const data = await resp.json();
-      if (data.durations) {
+      if (data.durations && data.distances) {
         for (let i = 0; i < day.activities.length - 1; i++) {
           const duration = data.durations[i][i+1];
-          if (duration !== null) {
+          const distance = data.distances[i][i+1];
+          if (duration !== null && distance !== null) {
+            const distKm = distance / 1000;
             day.activities[i].travelTimeToNext = Math.round(duration / 60);
+            day.activities[i].distanceToNext = Math.round(distKm * 10) / 10;
+            day.activities[i].fuelCostNext = (distKm / 100) * routeSettings.value.carConsumption * routeSettings.value.fuelPrice;
+            day.activities[i].tollCostNext = distKm * routeSettings.value.tollRate * 0.4;
           }
         }
       }
@@ -1263,6 +1360,21 @@ const calculateItineraryByDay = async () => {
 
       if (current.isMorningDeparture) {
         lastDeparture = parseDateFloating(current.departureDate);
+      }
+
+      if (lastDeparture && i > 0 && current.arrivalDate && current.arrivalDate.length >= 13) {
+        const prev = day.activities[i - 1];
+        if (prev && prev.travelTimeToNext !== undefined) {
+          const estimatedArrival = new Date(lastDeparture.getTime() + prev.travelTimeToNext * 60000);
+          const fixedArrival = parseDateFloating(current.arrivalDate);
+          const buffer = Math.round((fixedArrival.getTime() - estimatedArrival.getTime()) / 60000);
+
+          if (buffer > 0) {
+            current.bufferTimeBefore = buffer;
+          } else if (buffer < 0) {
+            current.delayTimeBefore = Math.abs(buffer);
+          }
+        }
       }
 
       if (lastDeparture && !current.isMorningDeparture && (!current.arrivalDate || current.arrivalDate.length < 13)) {
@@ -1447,10 +1559,15 @@ const updateMapMarkers = () => {
   });
 
   dedupedStops.forEach((stop: any, index: number) => {
-    const marker = L.marker([stop.latitude, stop.longitude], {
-      icon: createCustomIcon(index, stop.type)
+    const lat = parseFloat(stop.latitude);
+    const lng = parseFloat(stop.longitude);
+
+    if (isNaN(lat) || isNaN(lng)) return;
+
+    const marker = L.marker([lat, lng], {
+      icon: createCustomIcon(index, stop.isMorningDeparture ? 'city' : stop.type)
     })
-      .bindPopup(`<div style="text-align:center;"><b style="font-size:14px;">${stop.title}</b><br><span style="color:#666;font-size:12px;">${formatStopType(stop.type)}</span></div>`)
+      .bindPopup(`<div style="text-align:center;"><b style="font-size:14px;">${stop.displayTitle || stop.title}</b><br><span style="color:#666;font-size:12px;">${stop.isMorningDeparture ? 'Point de départ' : formatStopType(stop.type)}</span></div>`)
       .addTo(map!);
     markers.push(marker);
   });
@@ -1465,6 +1582,12 @@ const updateMapMarkers = () => {
     for (let i = 0; i < dedupedStops.length - 1; i++) {
       const start = dedupedStops[i];
       const end = dedupedStops[i + 1];
+
+      if (start.latitude === null || start.longitude === null ||
+          end.latitude === null || end.longitude === null) {
+        continue;
+      }
+
       const startDate = (start.arrivalDate || '').substring(0, 10);
       const endDate = (end.arrivalDate || '').substring(0, 10);
       const isSameDay = startDate === endDate;
@@ -1478,7 +1601,7 @@ const updateMapMarkers = () => {
       });
     }
     processNextSegment();
-  } else if (dedupedStops.length === 1) {
+  } else if (dedupedStops.length === 1 && dedupedStops[0].latitude !== null) {
     map!.setView([dedupedStops[0].latitude, dedupedStops[0].longitude], 10);
   }
 };

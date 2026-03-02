@@ -1077,12 +1077,12 @@
   opacity: 0.8;
 }
 
-.trip-dashboard__travel-compact>i:first-child {
+.trip-dashboard__travel-compact > i:first-child {
   color: var(--td-primary);
   opacity: 1;
 }
 
-.trip-dashboard__travel-compact>span {
+.trip-dashboard__travel-compact > span {
   display: inline-flex;
   align-items: center;
   gap: 3px;
@@ -1247,6 +1247,7 @@
   gap: 10px;
   align-items: center;
   pointer-events: none;
+  flex-wrap: wrap; /* Permet aux suggestions de passer en dessous */
 }
 
 .trip-dashboard__map-search {
@@ -1310,6 +1311,71 @@
   transform: scale(1.1);
 }
 
+.trip-dashboard__map-quick-suggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 8px;
+  background: white;
+  border-radius: 12px;
+  border: 1px solid rgba(30, 77, 61, 0.08);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+  z-index: 100;
+  padding: 14px;
+  animation: tripFadeIn 0.2s ease-out;
+  pointer-events: auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.trip-dashboard__map-quick-title {
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: var(--td-text-light);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 12px;
+}
+
+.trip-dashboard__map-quick-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.trip-dashboard__map-quick-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: #f8fafc;
+  border: 1px solid #f1f5f9;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--td-text);
+  width: 100%;
+  text-align: left;
+}
+
+.trip-dashboard__map-quick-item i {
+  font-size: 0.9rem;
+  color: var(--td-primary);
+}
+
+.trip-dashboard__map-quick-item span {
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.trip-dashboard__map-quick-item:hover {
+  background: white;
+  border: 1px solid var(--td-primary);
+  box-shadow: 0 4px 12px rgba(30, 77, 61, 0.08);
+  transform: translateY(-1px);
+}
+
 .trip-dashboard__map-search-clear i {
   font-size: 1rem;
   display: block;
@@ -1330,7 +1396,7 @@
   overflow: hidden;
   padding: 6px 0;
   z-index: 2000 !important;
-  
+
   /* Largeur identique au header de la map via variable JS */
   width: var(--map-header-width) !important;
   max-width: calc(100vw - 32px) !important;
@@ -1349,7 +1415,7 @@
   font-weight: 300;
   color: var(--td-text-muted);
   font-size: 0.82rem;
-  
+
   /* Ellipsis sur l'ensemble de la ligne */
   white-space: nowrap;
   overflow: hidden;
@@ -1637,8 +1703,8 @@
   width: 100%;
   max-width: 440px;
   box-shadow: 0 25px 80px rgba(0, 0, 0, 0.25),
-    0 0 0 1px rgba(255, 255, 255, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  0 0 0 1px rgba(255, 255, 255, 0.1),
+  inset 0 1px 0 rgba(255, 255, 255, 0.8);
   max-height: 85vh;
   overflow-y: auto;
   animation: tripFadeIn 0.25s ease-out;

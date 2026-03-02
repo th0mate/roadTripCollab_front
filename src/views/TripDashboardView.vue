@@ -426,17 +426,18 @@
 
         <div class="trip-dashboard__col-map">
           <div class="trip-dashboard__map-card">
-            <div class="trip-dashboard__map-header">
+            <div class="trip-dashboard__map-header" ref="mapHeaderRef">
               <div class="trip-dashboard__map-search">
                 <i class="fi fi-rr-search"></i>
                 <input
                   id="map-search-input"
                   type="text"
+                  v-model="mapSearchQuery"
+                  @focus="showQuickSuggestions = true"
                   placeholder="Rechercher un lieu"
                   class="trip-dashboard__map-search-input"
-                />
-                <button
-                  v-if="hasMapSearchResults"
+                />                <button
+                  v-if="hasMapSearchResults || mapSearchQuery"
                   @click="clearMapSearch"
                   class="trip-dashboard__map-search-clear"
                   title="Effacer la recherche"
@@ -444,6 +445,7 @@
                   <i class="fi fi-rr-cross-small"></i>
                 </button>
               </div>
+
               <button
                 v-if="!isInvitationPending"
                 class="trip-dashboard__btn trip-dashboard__btn--secondary trip-dashboard__btn--small"
@@ -452,8 +454,17 @@
                 <i class="fi fi-rr-settings"></i>
                 Options Trajet
               </button>
-            </div>
-            <div class="trip-dashboard__map-wrapper" id="trip-map"></div>
+
+              <div v-if="showQuickSuggestions && !mapSearchQuery" class="trip-dashboard__map-quick-suggestions">
+                <div class="trip-dashboard__map-quick-title">Suggestions à proximité</div>
+                <div class="trip-dashboard__map-quick-grid">
+                  <button v-for="s in quickSuggestions" :key="s.label" @click="applyQuickSearch(s.label)" class="trip-dashboard__map-quick-item">
+                    <i :class="s.icon"></i>
+                    <span>{{ s.label }}</span>
+                  </button>
+                </div>
+              </div>
+            </div>            <div class="trip-dashboard__map-wrapper" id="trip-map"></div>
           </div>
         </div>
       </div>
@@ -1255,7 +1266,7 @@
 </template>
 
 <script setup lang="ts">
-import {ref, onMounted, nextTick, computed, watch, shallowRef} from "vue";
+import {ref, onMounted, onUnmounted, nextTick, computed, watch, shallowRef} from "vue";
 import {useRoute, useRouter} from "vue-router";
 import api from "../services/api";
 import {getMe} from "../services/authService";
@@ -1318,6 +1329,15 @@ function focusStopOnMap(stop: any) {
 
 const route = useRoute();
 const vueRouter = useRouter();
+
+const mapHeaderRef = ref<HTMLElement | null>(null);
+
+const handleClickOutside = (event: MouseEvent) => {
+  if (mapHeaderRef.value && !mapHeaderRef.value.contains(event.target as Node)) {
+    showQuickSuggestions.value = false;
+  }
+};
+
 const loading = ref(true);
 const error = ref("");
 const trip = ref<Trip | null>(null);
@@ -2138,10 +2158,50 @@ const initMap = async () => {
 const temporaryMarkers = ref<any[]>([]);
 const hasMapSearchResults = computed(() => temporaryMarkers.value.length > 0);
 const sharedPoiInfoWindow = shallowRef<google.maps.InfoWindow | null>(null);
+const mapSearchQuery = ref('');
+const showQuickSuggestions = ref(false);
+
+const quickSuggestions = [
+  { label: 'Hôtels', icon: 'fi fi-rr-bed' },
+  { label: 'Restaurants', icon: 'fi fi-rr-restaurant' },
+  { label: 'Bars', icon: 'fi fi-rr-glass-cheers' },
+  { label: 'Musées', icon: 'fi fi-rr-bank' },
+  { label: 'Parcs', icon: 'fi fi-rr-tree' },
+  { label: 'Essence', icon: 'fi fi-rr-gas-pump' }
+];
+
+const applyQuickSearch = (query: string) => {
+  mapSearchQuery.value = query;
+  showQuickSuggestions.value = false;
+
+  if (!tripMap.value) return;
+
+  const service = new google.maps.places.PlacesService(tripMap.value);
+  const request = {
+    query: query,
+    bounds: tripMap.value.getBounds() as google.maps.LatLngBounds
+  };
+
+  service.textSearch(request, async (results, status) => {
+    if (status === google.maps.places.PlacesServiceStatus.OK && results) {
+      clearTemporaryMarkers();
+      const bounds = new google.maps.LatLngBounds();
+
+      // Limiter à 30
+      const limitedResults = results.slice(0, 30);
+      for (const place of limitedResults) {
+        if (!place.geometry || !place.geometry.location) continue;
+        await createPoiMarker(place);
+        if (place.geometry.viewport) bounds.union(place.geometry.viewport);
+        else bounds.extend(place.geometry.location);
+      }
+      tripMap.value!.fitBounds(bounds);
+    }
+  });
+};
 
 const clearMapSearch = () => {
-  const input = document.getElementById('map-search-input') as HTMLInputElement;
-  if (input) input.value = '';
+  mapSearchQuery.value = '';
   clearTemporaryMarkers();
   fitBounds();
 };
@@ -2160,12 +2220,11 @@ const handlePoiClick = (poi: any) => {
   service.getDetails({
     placeId: poi.placeId,
     fields: ['name', 'formatted_address', 'geometry', 'rating', 'types', 'place_id', 'user_ratings_total', 'photos', 'url']
-  }, (place, status) => {
+  }, async (place, status) => {
     if (status === google.maps.places.PlacesServiceStatus.OK && place) {
       clearTemporaryMarkers();
-      createPoiMarker(place).then(marker => {
-        if (marker) openPoiInfoWindow(place, marker);
-      });
+      const marker = await createPoiMarker(place);
+      if (marker) openPoiInfoWindow(place, marker);
     }
   });
 };
@@ -2173,10 +2232,7 @@ const handlePoiClick = (poi: any) => {
 const createPoiMarker = async (place: google.maps.places.PlaceResult) => {
   if (!place.geometry || !place.geometry.location || !tripMap.value) return;
 
-  const {
-    AdvancedMarkerElement,
-    PinElement
-  } = await google.maps.importLibrary("marker") as google.maps.MarkerLibrary;
+  const { AdvancedMarkerElement, PinElement } = await google.maps.importLibrary("marker") as google.maps.MarkerLibrary;
 
   const pin = new PinElement({
     background: '#ef4444',
@@ -2192,7 +2248,8 @@ const createPoiMarker = async (place: google.maps.places.PlaceResult) => {
     content: pin.element
   });
 
-  temporaryMarkers.value.push(marker);
+  // Réassignation pour forcer la réactivité de hasMapSearchResults
+  temporaryMarkers.value = [...temporaryMarkers.value, marker];
 
   marker.addListener('click', () => {
     if (!place.photos || !place.url) {
@@ -2831,12 +2888,17 @@ watch(trip, async (newTrip) => {
 }, {immediate: true});
 
 onMounted(async () => {
+  document.addEventListener('click', handleClickOutside);
   try {
     currentUser.value = await getMe();
   } catch (e) {
     console.error("Failed to load user", e);
   }
   await fetchTripDetails();
+});
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside);
 });
 </script>
 

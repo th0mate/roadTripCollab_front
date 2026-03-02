@@ -123,10 +123,10 @@
                 </div>
                 <div
                   class="trip-dashboard__budget-item trip-dashboard__budget-item--remaining"
-                  :class="{ 'trip-dashboard__budget-item--negative': remainingBudget < 0 }"
+                  :class="{ 'trip-dashboard__budget-item--negative': remainingBudget.toFixed(2) < 0 }"
                 >
                   <div class="trip-dashboard__budget-label">Reste</div>
-                  <div class="trip-dashboard__budget-value">{{ remainingBudget }} €</div>
+                  <div class="trip-dashboard__budget-value">{{ remainingBudget.toFixed(2) }} €</div>
                 </div>
               </div>
 
@@ -1279,6 +1279,8 @@ import type {User} from "../types/user";
 
 import {googleMapsService} from "../services/googleMapsService";
 import {useTripMap} from "../composables/useTripMap";
+import { calculateDistance, estimateTravelTime } from "../helpers/distance";
+import { osrmService } from "../services/osrmService";
 
 const {
   initMap: initTripMap,
@@ -1948,39 +1950,33 @@ const calculateItineraryByDay = async () => {
     });
     if (validActivities.length < 2) continue;
 
+    const routePromises = [];
     for (let i = 0; i < validActivities.length - 1; i++) {
       const start = validActivities[i];
       const next = validActivities[i + 1];
+      routePromises.push(osrmService.getRoute(
+        { lat: parseFloat(start.latitude), lng: parseFloat(start.longitude) },
+        { lat: parseFloat(next.latitude), lng: parseFloat(next.longitude) }
+      ));
+    }
 
-      console.log(`Calcul trajet: ${start.displayTitle || start.title} -> ${next.displayTitle || next.title}`);
-      const routeData = await googleMapsService.estimateTolls([
-        {lat: parseFloat(start.latitude), lng: parseFloat(start.longitude)},
-        {lat: parseFloat(next.latitude), lng: parseFloat(next.longitude)}
-      ]);
+    const routeResults = await Promise.all(routePromises);
 
+    routeResults.forEach((routeData, i) => {
       if (routeData) {
+        const start = validActivities[i];
         const distKm = routeData.distance / 1000;
-        const durationMin = parseInt(routeData.duration) / 60;
+        const durationMin = routeData.duration / 60;
 
         start.travelTimeToNext = Math.round(durationMin);
         start.distanceToNext = Math.round(distKm * 10) / 10;
         start.fuelCostNext = (distKm / 100) * routeSettings.value.carConsumption * routeSettings.value.fuelPrice;
 
-        if (routeData.tolls > 0) {
-          start.tollCostNext = routeData.tolls;
-        } else if (distKm > 20 && !routeSettings.value.avoidTolls) {
-          // Estimation de secours : on considère que 70% du trajet est sur autoroute payante pour les longs trajets
-          start.tollCostNext = distKm * 0.7 * (routeSettings.value.tollRate || 0.12);
-          console.log(`Estimation péage secours: ${start.tollCostNext.toFixed(2)}€`);
-        } else {
-          start.tollCostNext = 0;
-        }
-
-        start.polylineNext = routeData.polyline;
-
-        console.log(`Résultat: ${distKm.toFixed(1)}km, Péage: ${start.tollCostNext.toFixed(2)}€`);
+        const tollDistKm = routeData.tollDistance / 1000;
+        start.tollCostNext = tollDistKm * (routeSettings.value.tollRate || 0.12);
+        start.polylineNext = routeData.geometry;
       }
-    }
+    });
   }
 
   days.forEach(day => {
@@ -2210,7 +2206,6 @@ const applyQuickSearch = (query: string) => {
       clearTemporaryMarkers();
       const bounds = new google.maps.LatLngBounds();
 
-      // Limiter à 30
       const limitedResults = results.slice(0, 30);
       for (const place of limitedResults) {
         if (!place.geometry || !place.geometry.location) continue;
@@ -2274,7 +2269,6 @@ const createPoiMarker = async (place: google.maps.places.PlaceResult) => {
     content: pin.element
   });
 
-  // Réassignation pour forcer la réactivité de hasMapSearchResults
   temporaryMarkers.value = [...temporaryMarkers.value, marker];
 
   marker.addListener('click', () => {
@@ -2360,9 +2354,6 @@ const addPoiToTrip = async (place: google.maps.places.PlaceResult) => {
   isEditingStop.value = false;
   editingStopId.value = null;
 
-  // Priorité : 1. Jour sur lequel on vient de centrer la carte
-  //            2. Jour actuellement affiché dans l'itinéraire
-  //            3. Date de début du voyage
   const defaultDate = focusedDayDate.value || itineraryByDay.value[currentDayIndex.value]?.date || trip.value.startDate.split('T')[0];
 
   newStop.value = {

@@ -5,6 +5,13 @@
     <link rel="icon" href="/favicon.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RoadTripCollab</title>
+    <script src="https://maps.googleapis.com/maps/api/js?key=%VITE_GOOGLE_MAPS_API_KEY%&libraries=places,geometry&callback=initGoogleMaps" async defer></script>
+    <script>
+      window.initGoogleMaps = () => {
+        window.googleMapsLoaded = true;
+        console.log("🚀 Google Maps chargé via index.html");
+      };
+    </script>
   </head>
   <body>
     <div id="app"></div>

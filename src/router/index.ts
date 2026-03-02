@@ -7,6 +7,7 @@ import ProfileView from '../views/ProfileView.vue'
 import VerifyEmailView from '../views/VerifyEmailView.vue'
 import ResetPasswordView from '../views/ResetPasswordView.vue'
 import VerifyChangeEmailView from '../views/VerifyChangeEmailView.vue'
+import { isAdminUser } from '@/services/authService'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -70,19 +71,50 @@ const router = createRouter({
       component: () => import('../views/TripDashboardView.vue'),
       meta: { requiresAuth: true },
     },
+    // Routes admin
+    {
+      path: '/admin',
+      redirect: '/admin/dashboard',
+    },
+    {
+      path: '/admin/dashboard',
+      name: 'admin-dashboard',
+      component: () => import('../views/admin/AdminDashboardView.vue'),
+      meta: { requiresAuth: true, requiresAdmin: true },
+    },
+    {
+      path: '/admin/users',
+      name: 'admin-users',
+      component: () => import('../views/admin/AdminUsersView.vue'),
+      meta: { requiresAuth: true, requiresAdmin: true },
+    },
+    {
+      path: '/admin/trips',
+      name: 'admin-trips',
+      component: () => import('../views/admin/AdminTripsView.vue'),
+      meta: { requiresAuth: true, requiresAdmin: true },
+    },
+    {
+      path: '/admin/stops',
+      name: 'admin-stops',
+      component: () => import('../views/admin/AdminStopsView.vue'),
+      meta: { requiresAuth: true, requiresAdmin: true },
+    },
   ],
 })
 
 router.beforeEach((to, from, next) => {
-  const isAuthenticated = !!localStorage.getItem('authToken');
+  const isAuthenticated = !!localStorage.getItem('authToken')
 
   if (to.meta.requiresAuth && !isAuthenticated) {
-    next({ name: 'login' });
+    next({ name: 'login' })
+  } else if (to.meta.requiresAdmin && !isAdminUser()) {
+    next({ name: 'home' })
   } else if ((to.name === 'login' || to.name === 'register') && isAuthenticated) {
-    next({ name: 'home' });
+    next({ name: 'home' })
   } else {
-    next();
+    next()
   }
-});
+})
 
 export default router

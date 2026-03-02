@@ -2,6 +2,7 @@ import apiClient from './api'
 import type { User } from '@/types/user'
 
 const TOKEN_KEY = 'authToken'
+const IS_ADMIN_KEY = 'isAdmin'
 
 export const login = async (credentials: Pick<User, 'email' | 'password'>): Promise<any> => {
   const response = await apiClient.post('/auth/login', credentials)
@@ -26,7 +27,9 @@ export const logout = async (): Promise<any> => {
 
 export const getMe = async (): Promise<User> => {
   const response = await apiClient.get('/auth/me')
-  return response.data.data.user
+  const user: User = response.data.data.user
+  localStorage.setItem(IS_ADMIN_KEY, String(user.isAdmin ?? false))
+  return user
 }
 
 export const updateMe = async (userData: Partial<User>): Promise<User> => {
@@ -65,9 +68,14 @@ export const setToken = (token: string): void => {
 
 export const removeToken = (): void => {
   localStorage.removeItem(TOKEN_KEY)
+  localStorage.removeItem(IS_ADMIN_KEY)
 }
 
 export const isAuthenticated = (): boolean => {
   const token = getToken()
   return !!token
+}
+
+export const isAdminUser = (): boolean => {
+  return localStorage.getItem(IS_ADMIN_KEY) === 'true'
 }

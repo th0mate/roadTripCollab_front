@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { RouterLink, RouterView, useRouter, useRoute } from 'vue-router'
-import { isAuthenticated as checkAuthStatus, logout as authLogout, getMe } from '@/services/authService'
+import { isAuthenticated as checkAuthStatus, logout as authLogout, getMe, isAdminUser } from '@/services/authService'
 import type { User } from '@/types/user'
 
 const isMobileMenuOpen = ref(false)
@@ -10,6 +10,7 @@ const user = ref<User | null>(null)
 const router = useRouter()
 const route = useRoute()
 const isAuthenticated = ref(false)
+const isAdmin = ref(false)
 const profileDropdownRef = ref<HTMLElement | null>(null)
 
 const apiBaseUrl = import.meta.env.VITE_API_URL || ''
@@ -44,12 +45,15 @@ const checkAuth = async () => {
   if (isAuthenticated.value) {
     try {
       user.value = await getMe()
+      isAdmin.value = isAdminUser()
     } catch (error) {
       console.error('Failed to get user data:', error)
       user.value = null
+      isAdmin.value = false
     }
   } else {
     user.value = null
+    isAdmin.value = false
   }
 }
 
@@ -116,6 +120,7 @@ watch(
       <RouterLink to="/" class="rtc-navbar__link">Accueil</RouterLink>
       <RouterLink v-if="isAuthenticated" to="/create-trip" class="rtc-navbar__link">Créer un voyage</RouterLink>
       <RouterLink v-if="isAuthenticated" to="/my-trips" class="rtc-navbar__link">Mes voyages</RouterLink>
+      <RouterLink v-if="isAuthenticated && isAdmin" to="/admin/dashboard" class="rtc-navbar__link">Administration</RouterLink>
       <span class="rtc-navbar__link">Fonctionnalités</span>
       <span class="rtc-navbar__link">FAQ</span>
       <RouterLink v-if="!isAuthenticated" to="/login" class="rtc-navbar__link">Connexion</RouterLink>
@@ -212,6 +217,12 @@ watch(
           <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z" fill="currentColor"/>
         </svg>
         Mes voyages
+      </RouterLink>
+      <RouterLink v-if="isAuthenticated && isAdmin" to="/admin/dashboard" class="rtc-mobile-menu__link" @click="closeMobileMenu">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Administration
       </RouterLink>
       <span class="rtc-mobile-menu__link" @click="closeMobileMenu">
         <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">

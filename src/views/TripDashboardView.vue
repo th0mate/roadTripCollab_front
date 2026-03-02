@@ -267,7 +267,7 @@
                     </div>
                     <button
                       class="trip-dashboard__day-center-btn"
-                      @click="centerMapOnDay(day)"
+                      @click="focusDayOnMap(day)"
                       title="Centrer la carte sur cette journée"
                     >
                       <i class="fi fi-rr-map"></i>
@@ -1465,7 +1465,7 @@ async function updateTravelTimeForNewStop() {
     const nextDay = daysData.value.find(d => d.date === nextDayStr);
 
     if (nextDay && nextDay.activities) {
-      const firstReal = nextDay.activities.find(a => !a.isMorningDeparture && a.arrivalDate && a.arrivalDate.length >= 13);
+      const firstReal = nextDay.activities.find((a: any) => !a.isMorningDeparture && a.arrivalDate && a.arrivalDate.length >= 13);
       if (firstReal) {
         const coordsDeparture = `${newStop.value.longitude},${newStop.value.latitude};${firstReal.longitude},${firstReal.latitude}`;
         try {
@@ -1858,15 +1858,15 @@ const calculateItineraryByDay = async () => {
 
   await Promise.all(days.map(async (day) => {
     if (day.activities.length < 2) return;
-    const coords = day.activities.filter(a => a.latitude !== null).map(a => `${a.longitude},${a.latitude}`).join(';');
+    const coords = day.activities.filter((a: any) => a.latitude !== null).map((a: any) => `${a.longitude},${a.latitude}`).join(';');
     if (!coords || coords.split(';').length < 2) return;
 
     const data = await osrmService.getTable(coords);
     if (data && data.durations && data.distances) {
       for (let i = 0; i < day.activities.length - 1; i++) {
-        const duration = data.durations[i][i + 1];
-        const distance = data.distances[i][i + 1];
-        if (duration !== null && distance !== null) {
+        const duration = data.durations[i]?.[i + 1];
+        const distance = data.distances[i]?.[i + 1];
+        if (duration != null && distance != null) {
           const distKm = distance / 1000;
           day.activities[i].travelTimeToNext = Math.round(duration / 60);
           day.activities[i].distanceToNext = Math.round(distKm * 10) / 10;
@@ -1888,7 +1888,7 @@ const calculateItineraryByDay = async () => {
     }
 
     let lastDeparture: Date | null = null;
-    day.activities.forEach((current, i) => {
+    day.activities.forEach((current: any, i: number) => {
       if (current.isMorningDeparture) lastDeparture = parseDateFloating(current.departureDate);
       if (lastDeparture && i > 0 && current.arrivalDate && current.arrivalDate.length >= 13) {
         const prev = day.activities[i - 1];
@@ -1971,7 +1971,7 @@ const initMap = () => {
 
   let initialView: [number, number] = [46.603354, 1.888334];
   if (trip.value.stops.length > 0) {
-    const first = trip.value.stops[0];
+    const first = trip.value.stops[0]!;
     initialView = [parseFloat(first.latitude as any), parseFloat(first.longitude as any)];
   }
 
@@ -2073,7 +2073,7 @@ const updateMapMarkers = async () => {
   });
 
   Object.keys(stopsByDay).sort().forEach(dayKey => {
-    const dayStops = stopsByDay[dayKey];
+    const dayStops = stopsByDay[dayKey] ?? [];
     const activities = dayStops.filter((s) => s.type !== "city");
     if (activities.length > 0) dedupedStops.push(...activities);
     else dedupedStops.push(...dayStops);
@@ -2091,8 +2091,8 @@ const updateMapMarkers = async () => {
 
   if (dedupedStops.length > 1) {
     for (let i = 0; i < dedupedStops.length - 1; i++) {
-      const start = dedupedStops[i];
-      const end = dedupedStops[i + 1];
+      const start = dedupedStops[i]!;
+      const end = dedupedStops[i + 1]!;
 
       if (start.latitude && start.longitude && end.latitude && end.longitude) {
         const isSameDay = (start.arrivalDate || '').substring(0, 10) === (end.arrivalDate || '').substring(0, 10);
@@ -2119,15 +2119,12 @@ const updateMapMarkers = async () => {
 const processNextSegment = () => {
   if (segmentQueue.length === 0) {
     isProcessingQueue = false;
-    if (markers.length > 0) {
-      const group = L.featureGroup([...markers, ...routeLayers]);
-      map!.fitBounds(group.getBounds(), {padding: [50, 50]});
-    }
+    fitBounds();
     return;
   }
   isProcessingQueue = true;
   const segment = segmentQueue.shift();
-  const tempLayer = L.polyline([segment.start, segment.end], segment.style).addTo(map!);
+  const tempLayer = L.polyline([segment.start, segment.end], segment.style).addTo(tripMap.value!);
   routeLayers.push(tempLayer);
   router.route(
     [{latLng: segment.start}, {latLng: segment.end}],
@@ -2135,10 +2132,10 @@ const processNextSegment = () => {
       if (!err && routes && routes.length > 0) {
         const bestRoute = routes[0];
         if (bestRoute.coordinates && bestRoute.coordinates.length > 0) {
-          map!.removeLayer(tempLayer);
+          tripMap.value!.removeLayer(tempLayer);
           const idx = routeLayers.indexOf(tempLayer);
           if (idx > -1) routeLayers.splice(idx, 1);
-          const realLayer = L.polyline(bestRoute.coordinates, segment.style).addTo(map!);
+          const realLayer = L.polyline(bestRoute.coordinates, segment.style).addTo(tripMap.value!);
           routeLayers.push(realLayer);
           const dist = bestRoute.summary.totalDistance;
           const distKm = dist / 1000;

@@ -21,8 +21,8 @@ export function useTripMap() {
 
   const clearMap = () => {
     if (!map.value) return;
-    markers.value.forEach(m => map.value!.removeLayer(m));
-    routeLayers.value.forEach(l => map.value!.removeLayer(l));
+    markers.value.forEach(m => map.value!.removeLayer(m as unknown as L.Layer));
+    routeLayers.value.forEach(l => map.value!.removeLayer(l as unknown as L.Layer));
     markers.value = [];
     routeLayers.value = [];
   };
@@ -52,7 +52,7 @@ export function useTripMap() {
 
   const fitBounds = () => {
     if (!map.value || markers.value.length === 0) return;
-    const group = L.featureGroup([...markers.value, ...routeLayers.value]);
+    const group = L.featureGroup([...markers.value, ...routeLayers.value] as unknown as L.Layer[]);
     map.value.fitBounds(group.getBounds(), { padding: [50, 50] });
   };
 

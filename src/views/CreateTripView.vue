@@ -370,8 +370,8 @@ const previewUrl = ref<string | null>(null);
 const handleFileUpload = (event: Event) => {
   const target = event.target as HTMLInputElement;
   if (target.files && target.files.length > 0) {
-    selectedFile.value = target.files[0];
-    previewUrl.value = URL.createObjectURL(selectedFile.value);
+    selectedFile.value = target.files[0]!;
+    previewUrl.value = URL.createObjectURL(selectedFile.value!);
   }
 };
 
@@ -524,7 +524,7 @@ const selectCity = (index: number, result: City) => {
 
   const shortName = result.display_name.split(',')[0];
   day.city = result;
-  day.searchTerm = shortName;
+  day.searchTerm = shortName ?? '';
   activeSearchIndex.value = null;
   searchResults.value = [];
 };

@@ -107,8 +107,8 @@ const currentCoverImage = computed(() => (props.trip as any).coverImage);
 const handleFileUpload = (event: Event) => {
   const target = event.target as HTMLInputElement;
   if (target.files && target.files.length > 0) {
-    selectedFile.value = target.files[0];
-    previewUrl.value = URL.createObjectURL(selectedFile.value);
+    selectedFile.value = target.files[0]!;
+    previewUrl.value = URL.createObjectURL(selectedFile.value!);
   }
 };
 

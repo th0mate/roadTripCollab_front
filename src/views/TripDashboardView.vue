@@ -1227,19 +1227,12 @@ import api from "../services/api";
 import {getMe} from "../services/authService";
 import type {Trip, Stop} from "../types/trip";
 import type {User} from "../types/user";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
 
-import {osrmService} from "../services/osrmService";
+import {googleMapsService} from "../services/googleMapsService";
 import {useTripMap} from "../composables/useTripMap";
 
-import iconRetinaUrl from "leaflet/dist/images/marker-icon-2x.png";
-import iconUrl from "leaflet/dist/images/marker-icon.png";
-import shadowUrl from "leaflet/dist/images/marker-shadow.png";
-
-const { initMap: initTripMap, clearMap, addMarker, drawRoute, fitBounds, map: tripMap } = useTripMap();
-const markers_list = ref<L.Marker[]>([]);
-const routeLayers_list = ref<any[]>([]);
+const { initMap: initTripMap, clearMap, addMarker, drawEncodedRoute, fitBounds, map: tripMap } = useTripMap();
+const markers_list = ref<google.maps.Marker[]>([]);
 
 import AppModal from '../components/AppModal.vue';
 import TripEditModal from '../components/TripEditModal.vue';
@@ -1278,23 +1271,9 @@ function formatDuration(minutes: number) {
 
 function focusStopOnMap(stop: any) {
   if (!tripMap.value || !stop.latitude || !stop.longitude) return;
-  tripMap.value.flyTo([stop.latitude, stop.longitude], 15, {
-    animate: true,
-    duration: 0.8
-  });
+  tripMap.value.panTo({ lat: parseFloat(stop.latitude), lng: parseFloat(stop.longitude) });
+  tripMap.value.setZoom(15);
 }
-
-const DefaultIcon = L.icon({
-  iconUrl: iconUrl,
-  iconRetinaUrl: iconRetinaUrl,
-  shadowUrl: shadowUrl,
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  tooltipAnchor: [16, -28],
-  shadowSize: [41, 41],
-});
-L.Marker.prototype.options.icon = DefaultIcon;
 
 const route = useRoute();
 const vueRouter = useRouter();
@@ -1424,14 +1403,15 @@ async function updateTravelTimeForNewStop() {
     const activities = currentDayActivities.value.filter(a => !a.isEveningReturn);
     if (activities.length > 0) {
       const last = activities[activities.length - 1];
-      const coordsArrival = `${last.longitude},${last.latitude};${newStop.value.longitude},${newStop.value.latitude}`;
 
       try {
-        const resp = await fetch(`https://router.project-osrm.org/route/v1/driving/${coordsArrival}?overview=false`);
-        const data = await resp.json();
+        const routeData = await googleMapsService.estimateTolls([
+          { lat: parseFloat(last.latitude), lng: parseFloat(last.longitude) },
+          { lat: parseFloat(newStop.value.latitude), lng: parseFloat(newStop.value.longitude) }
+        ]);
 
-        if (data.routes && data.routes[0]) {
-          const travelMin = Math.round(data.routes[0].duration / 60);
+        if (routeData) {
+          const travelMin = Math.round(parseInt(routeData.duration) / 60);
           let baseTime: Date | null = null;
           if (last.departureDate && last.departureDate.length >= 13) {
             baseTime = parseDateFloating(last.departureDate);
@@ -1467,12 +1447,14 @@ async function updateTravelTimeForNewStop() {
     if (nextDay && nextDay.activities) {
       const firstReal = nextDay.activities.find(a => !a.isMorningDeparture && a.arrivalDate && a.arrivalDate.length >= 13);
       if (firstReal) {
-        const coordsDeparture = `${newStop.value.longitude},${newStop.value.latitude};${firstReal.longitude},${firstReal.latitude}`;
         try {
-          const resp = await fetch(`https://router.project-osrm.org/route/v1/driving/${coordsDeparture}?overview=false`);
-          const data = await resp.json();
-          if (data.routes && data.routes[0]) {
-            const travelMin = Math.round(data.routes[0].duration / 60);
+          const routeData = await googleMapsService.estimateTolls([
+            { lat: parseFloat(newStop.value.latitude), lng: parseFloat(newStop.value.longitude) },
+            { lat: parseFloat(firstReal.latitude), lng: parseFloat(firstReal.longitude) }
+          ]);
+
+          if (routeData) {
+            const travelMin = Math.round(parseInt(routeData.duration) / 60);
             const arrivalTimeNextDay = parseDateFloating(firstReal.arrivalDate);
             const departureTime = new Date(arrivalTimeNextDay.getTime() - travelMin * 60000);
 
@@ -1772,8 +1754,8 @@ const selectedPlaceType = ref("tourist_attraction");
 const isLoadingNearby = ref(false);
 const showManualSearch = ref(false);
 const showMorePOI = ref(false);
-let modalMap: L.Map | null = null;
-let nearbyMarkers: L.Marker[] = [];
+let modalMap: google.maps.Map | null = null;
+let nearbyMarkers: google.maps.Marker[] = [];
 const currentDayCity = ref<Stop | null>(null);
 
 const fetchTripDetails = async () => {
@@ -1816,6 +1798,9 @@ const itineraryByDay = computed(() => daysData.value);
 
 const calculateItineraryByDay = async () => {
   if (!trip.value) return;
+
+  estimatedFuelCost.value = 0;
+  estimatedTollCost.value = 0;
   const start = new Date(trip.value.startDate);
   const end = new Date(trip.value.endDate);
   const days: any[] = [];
@@ -1856,28 +1841,37 @@ const calculateItineraryByDay = async () => {
     days.push({date: currentDateStr, city, activities: dayItinerary});
   }
 
-  await Promise.all(days.map(async (day) => {
-    if (day.activities.length < 2) return;
-    const coords = day.activities.filter(a => a.latitude !== null).map(a => `${a.longitude},${a.latitude}`).join(';');
-    if (!coords || coords.split(';').length < 2) return;
+  for (const day of days) {
+    const validActivities = day.activities.filter(a => a.latitude !== null && a.longitude !== null);
+    if (validActivities.length < 2) continue;
 
-    const data = await osrmService.getTable(coords);
-    if (data && data.durations && data.distances) {
-      for (let i = 0; i < day.activities.length - 1; i++) {
-        const duration = data.durations[i][i + 1];
-        const distance = data.distances[i][i + 1];
-        if (duration !== null && distance !== null) {
-          const distKm = distance / 1000;
-          day.activities[i].travelTimeToNext = Math.round(duration / 60);
-          day.activities[i].distanceToNext = Math.round(distKm * 10) / 10;
-          day.activities[i].fuelCostNext = (distKm / 100) * routeSettings.value.carConsumption * routeSettings.value.fuelPrice;
-          day.activities[i].tollCostNext = distKm * routeSettings.value.tollRate * 0.4;
-        }
+    for (let i = 0; i < validActivities.length - 1; i++) {
+      const start = validActivities[i];
+      const next = validActivities[i + 1];
+
+      console.log(`Calcul trajet: ${start.displayTitle || start.title} -> ${next.displayTitle || next.title}`);
+      const routeData = await googleMapsService.estimateTolls([
+        { lat: parseFloat(start.latitude), lng: parseFloat(start.longitude) },
+        { lat: parseFloat(next.latitude), lng: parseFloat(next.longitude) }
+      ]);
+
+      if (routeData) {
+        const distKm = routeData.distance / 1000;
+        const durationMin = parseInt(routeData.duration) / 60;
+
+        start.travelTimeToNext = Math.round(durationMin);
+        start.distanceToNext = Math.round(distKm * 10) / 10;
+        start.fuelCostNext = (distKm / 100) * routeSettings.value.carConsumption * routeSettings.value.fuelPrice;
+        start.tollCostNext = routeData.tolls;
+        start.polylineNext = routeData.polyline;
+
+        console.log(`Résultat: ${distKm.toFixed(1)}km, Péage: ${routeData.tolls}€`);
       }
     }
-  }));
+  }
 
   days.forEach(day => {
+
     const morningDep = day.activities.find((a: any) => a.isMorningDeparture);
     const firstReal = day.activities.find((a: any) => !a.isMorningDeparture && a.arrivalDate && a.arrivalDate.length >= 13);
     if (morningDep && firstReal && morningDep.travelTimeToNext !== undefined && !tripSettings[day.date]?.startTime) {
@@ -1908,6 +1902,13 @@ const calculateItineraryByDay = async () => {
       if (current.departureDate?.length >= 13 && !current.isEveningReturn) lastDeparture = parseDateFloating(current.departureDate);
       else if (current.arrivalDate?.length >= 13 && !current.isEveningReturn) lastDeparture = new Date(parseDateFloating(current.arrivalDate).getTime() + 60 * 60000);
       else if (current.estimatedArrival && !current.isEveningReturn) lastDeparture = new Date(new Date(current.estimatedArrival).getTime() + 60 * 60000);
+    });
+  });
+
+  days.forEach(day => {
+    day.activities.forEach((current: any) => {
+      if (current.fuelCostNext) estimatedFuelCost.value += current.fuelCostNext;
+      if (current.tollCostNext) estimatedTollCost.value += current.tollCostNext;
     });
   });
 
@@ -1951,35 +1952,57 @@ const getStatusIcon = (status: string): string => {
 
 const focusDayOnMap = (day: any) => {
   if (!tripMap.value) return;
-  const allStops: any[] = [];
-  day.activities.forEach((a: any) => {
-    if (a.latitude && a.longitude) allStops.push(a);
-  });
-  if (day.city) allStops.push(day.city);
-  if (allStops.length === 0) return;
+  const bounds = new google.maps.LatLngBounds();
+  let hasPoints = false;
 
-  if (allStops.length === 1) {
-    tripMap.value.setView([allStops[0].latitude, allStops[0].longitude], 14, {animate: true});
-  } else {
-    const bounds = L.latLngBounds(allStops.map((s) => [s.latitude, s.longitude]));
-    tripMap.value.fitBounds(bounds, {padding: [50, 50], animate: true, maxZoom: 15});
+  day.activities.forEach((a: any) => {
+    if (a.latitude && a.longitude) {
+      bounds.extend({ lat: parseFloat(a.latitude), lng: parseFloat(a.longitude) });
+      hasPoints = true;
+    }
+  });
+
+  if (day.city && day.city.latitude && day.city.longitude) {
+    bounds.extend({ lat: parseFloat(day.city.latitude), lng: parseFloat(day.city.longitude) });
+    hasPoints = true;
+  }
+
+  if (hasPoints) {
+    tripMap.value.fitBounds(bounds);
   }
 };
 
-const initMap = () => {
+const initMap = async () => {
   if (!trip.value || !trip.value.stops) return;
 
-  let initialView: [number, number] = [46.603354, 1.888334];
+
+  const checkGoogle = () => {
+    return new Promise<void>((resolve) => {
+      if (window.google && window.google.maps) resolve();
+      else {
+        const interval = setInterval(() => {
+          if (window.google && window.google.maps) {
+            clearInterval(interval);
+            resolve();
+          }
+        }, 100);
+      }
+    });
+  };
+
+  await checkGoogle();
+
+  let initialView = { lat: 46.603354, lng: 1.888334 };
   if (trip.value.stops.length > 0) {
     const first = trip.value.stops[0];
-    initialView = [parseFloat(first.latitude as any), parseFloat(first.longitude as any)];
+    initialView = { lat: parseFloat(first.latitude as any), lng: parseFloat(first.longitude as any) };
   }
 
-  initTripMap("trip-map", initialView);
+  await initTripMap("trip-map", initialView);
   updateMapMarkers();
 };
 
-const createCustomIcon = (index: number, type: string) => {
+const getMarkerColor = (type: string) => {
   const colors: Record<string, string> = {
     city: "#1e4d3d",
     accommodation: "#8b5cf6",
@@ -1987,194 +2010,69 @@ const createCustomIcon = (index: number, type: string) => {
     activity: "#ec4899",
     poi: "#3b82f6",
   };
-  const bgColor = colors[type] || "#1e4d3d";
-
-  return L.divIcon({
-    className: "custom-marker",
-    html: `
-      <div style="
-        width: 36px;
-        height: 36px;
-        background: linear-gradient(135deg, ${bgColor} 0%, ${adjustColor(bgColor, 30)} 100%);
-        border-radius: 50% 50% 50% 0;
-        transform: rotate(-45deg);
-        border: 3px solid white;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      ">
-        <span style="
-          transform: rotate(45deg);
-          color: white;
-          font-weight: 700;
-          font-size: 14px;
-          text-shadow: 0 1px 2px rgba(0,0,0,0.3);
-        ">${index + 1}</span>
-      </div>
-    `,
-    iconSize: [36, 36],
-    iconAnchor: [18, 36],
-    popupAnchor: [0, -36],
-  });
+  return colors[type] || "#1e4d3d";
 };
-
-const adjustColor = (hex: string, percent: number) => {
-  const num = parseInt(hex.replace("#", ""), 16);
-  const amt = Math.round(2.55 * percent);
-  const R = (num >> 16) + amt;
-  const G = ((num >> 8) & 0x00ff) + amt;
-  const B = (num & 0x0000ff) + amt;
-  return (
-    "#" +
-    (
-      0x1000000 +
-      (R < 255 ? (R < 1 ? 0 : R) : 255) * 0x10000 +
-      (G < 255 ? (G < 1 ? 0 : G) : 255) * 0x100 +
-      (B < 255 ? (B < 1 ? 0 : B) : 255)
-    )
-      .toString(16)
-      .slice(1)
-  );
-};
-
-let segmentQueue: any[] = [];
-let isProcessingQueue = false;
-let routeLayers: L.Layer[] = [];
-let router: any = null;
 
 const updateMapMarkers = async () => {
   if (!tripMap.value || !trip.value) return;
 
   clearMap();
 
-  const dedupedStops: Stop[] = [];
-  const stopsByDay: Record<string, Stop[]> = {};
+  const rawStops = [...trip.value.stops].filter(s => s.type !== 'city');
+
+  rawStops.sort((a, b) => {
+    const dateA = a.arrivalDate || '';
+    const dateB = b.arrivalDate || '';
+    return dateA.localeCompare(dateB);
+  });
 
   const tripSettings = trip.value.settings || {};
-  const firstDayStr = extractDateLocal(trip.value.startDate);
+  const sortedStops = [];
+
   if (tripSettings.startLocation?.latitude) {
-    stopsByDay[firstDayStr] = [{
-      id: `start-trip-${firstDayStr}`,
-      title: tripSettings.startLocation.title || 'Départ du voyage',
-      type: 'poi',
-      isMorningDeparture: true,
+    sortedStops.push({
+      id: 'start-trip-point',
+      title: tripSettings.startLocation.title || 'Départ',
       latitude: tripSettings.startLocation.latitude,
       longitude: tripSettings.startLocation.longitude,
-      arrivalDate: `${firstDayStr}T09:00:00`,
-      departureDate: `${firstDayStr}T09:00:00`,
-    } as any];
-  }
-  
-  trip.value.stops.forEach((s) => {
-    const day = (s.arrivalDate || "").substring(0, 10);
-    if (!stopsByDay[day]) stopsByDay[day] = [];
-    stopsByDay[day].push(s);
-  });
-
-  Object.keys(stopsByDay).sort().forEach(dayKey => {
-    const dayStops = stopsByDay[dayKey];
-    const activities = dayStops.filter((s) => s.type !== "city");
-    if (activities.length > 0) dedupedStops.push(...activities);
-    else dedupedStops.push(...dayStops);
-  });
-
-  dedupedStops.forEach((stop: any, index: number) => {
-    if (isNaN(parseFloat(stop.latitude)) || isNaN(parseFloat(stop.longitude))) return;
-
-    addMarker(parseFloat(stop.latitude), parseFloat(stop.longitude), {
-      title: stop.title,
-      icon: createCustomIcon(index, stop.isMorningDeparture ? 'city' : stop.type),
-      popupHtml: `<div style="text-align:center;"><b style="font-size:14px;">${stop.displayTitle || stop.title}</b><br><span style="color:#666;font-size:12px;">${stop.isMorningDeparture ? 'Point de départ' : formatStopType(stop.type)}</span></div>`
+      type: 'poi',
+      isMorningDeparture: true
     });
-  });
+  }
 
-  if (dedupedStops.length > 1) {
-    for (let i = 0; i < dedupedStops.length - 1; i++) {
-      const start = dedupedStops[i];
-      const end = dedupedStops[i + 1];
+  sortedStops.push(...rawStops);
 
-      if (start.latitude && start.longitude && end.latitude && end.longitude) {
-        const isSameDay = (start.arrivalDate || '').substring(0, 10) === (end.arrivalDate || '').substring(0, 10);
+  for (let index = 0; index < sortedStops.length; index++) {
+    const stop = sortedStops[index];
+    if (!stop.latitude || !stop.longitude) continue;
 
-        drawRoute(
-          [parseFloat(start.latitude as any), parseFloat(start.longitude as any)],
-          [parseFloat(end.latitude as any), parseFloat(end.longitude as any)],
-          {
-            color: isSameDay ? "#ec4899" : "#1e4d3d",
-            weight: isSameDay ? 4 : 5,
-            opacity: 0.85,
-            dashArray: isSameDay ? "8, 12" : undefined,
-            lineCap: "round",
-            lineJoin: "round"
-          }
-        );
+    await addMarker(parseFloat(stop.latitude as any), parseFloat(stop.longitude as any), {
+      title: stop.title,
+      label: (index + 1).toString(),
+      color: getMarkerColor(stop.type),
+      popupHtml: `<div style="text-align:center; padding: 5px;">
+        <b style="font-size:14px; color: #1e293b;">${stop.title}</b><br>
+        <span style="color:#64748b;font-size:12px;">Étape ${index + 1}</span>
+      </div>`
+    });
+  }
+
+  itineraryByDay.value.forEach(day => {
+    for (let i = 0; i < day.activities.length - 1; i++) {
+      const current = day.activities[i];
+      const next = day.activities[i + 1];
+
+      if (current.polylineNext && current.distanceToNext > 0) {
+        const isTransition = current.isMorningDeparture || next.isEveningReturn;
+
+        drawEncodedRoute(current.polylineNext, {
+          color: isTransition ? '#ec4899' : '#1e4d3d'
+        });
       }
     }
-  }
+  });
 
   fitBounds();
-};
-
-const processNextSegment = () => {
-  if (segmentQueue.length === 0) {
-    isProcessingQueue = false;
-    if (markers.length > 0) {
-      const group = L.featureGroup([...markers, ...routeLayers]);
-      map!.fitBounds(group.getBounds(), {padding: [50, 50]});
-    }
-    return;
-  }
-  isProcessingQueue = true;
-  const segment = segmentQueue.shift();
-  const tempLayer = L.polyline([segment.start, segment.end], segment.style).addTo(map!);
-  routeLayers.push(tempLayer);
-  router.route(
-    [{latLng: segment.start}, {latLng: segment.end}],
-    (err: any, routes: any[]) => {
-      if (!err && routes && routes.length > 0) {
-        const bestRoute = routes[0];
-        if (bestRoute.coordinates && bestRoute.coordinates.length > 0) {
-          map!.removeLayer(tempLayer);
-          const idx = routeLayers.indexOf(tempLayer);
-          if (idx > -1) routeLayers.splice(idx, 1);
-          const realLayer = L.polyline(bestRoute.coordinates, segment.style).addTo(map!);
-          routeLayers.push(realLayer);
-          const dist = bestRoute.summary.totalDistance;
-          const distKm = dist / 1000;
-          estimatedFuelCost.value +=
-            (distKm / 100) * routeSettings.value.carConsumption * routeSettings.value.fuelPrice;
-          if (!routeSettings.value.avoidTolls && bestRoute.instructions) {
-            let segmentTollDist = 0;
-            bestRoute.instructions.forEach((instr: any) => {
-              const text = (instr.text || "").toLowerCase();
-              const isToll =
-                instr.road &&
-                (text.includes("péage") ||
-                  text.includes("toll") ||
-                  instr.type === "Toll" ||
-                  instr.toll);
-              const isAutoroute =
-                /a\s?\d{1,3}/.test(text) || (instr.road && /A\d+/.test(instr.road));
-              if (isToll || (isAutoroute && !text.includes("gratuit")))
-                segmentTollDist += instr.distance;
-            });
-            estimatedTollCost.value += (segmentTollDist / 1000) * routeSettings.value.tollRate;
-          }
-        }
-      } else {
-        const distMeters = segment.start.distanceTo(segment.end);
-        const distKm = (distMeters / 1000) * 1.3;
-        estimatedFuelCost.value +=
-          (distKm / 100) * routeSettings.value.carConsumption * routeSettings.value.fuelPrice;
-        if (!routeSettings.value.avoidTolls)
-          estimatedTollCost.value += distKm * 0.6 * routeSettings.value.tollRate;
-      }
-      setTimeout(() => processNextSegment(), 1000);
-    },
-    null,
-    {},
-  );
 };
 
 const openRouteSettings = () => {
@@ -2424,120 +2322,54 @@ const fetchNearbyPlaces = async (
 };
 
 /**
- * Sélectionne un lieu depuis la map nearby
+ * Sélectionne un lieu depuis la recherche Google et l'ajoute directement au voyage
  */
-const selectNearbyPlace = async (place: any) => {
+const selectAndAddPlace = async (place: any) => {
+  if (!trip.value) return;
+
   newStop.value.title = place.displayName;
+  newStop.value.address = place.formattedAddress;
   newStop.value.latitude = place.location.latitude;
   newStop.value.longitude = place.location.longitude;
-  await updateTravelTimeForNewStop();
+  newStop.value.type = 'activity';
+
+  if (place.types.includes('lodging')) newStop.value.type = 'accommodation';
+  if (place.types.includes('restaurant') || place.types.includes('food')) newStop.value.type = 'restaurant';
+
+  await addStop();
+  alert(`${place.displayName} ajouté à votre étape !`);
 };
 
 /**
- * Initialise la carte Leaflet dans la modal
+ * Initialise la carte Google dans la modal
  */
 const initModalMap = () => {
   if (!currentDayCity.value) return;
 
-  if (modalMap) {
-    modalMap.remove();
-    modalMap = null;
-  }
-
   const mapContainer = document.getElementById("modal-map");
   if (!mapContainer) return;
 
-  modalMap = L.map("modal-map").setView(
-    [currentDayCity.value.latitude!, currentDayCity.value.longitude!],
-    13,
-  );
-
-  L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
-    attribution:
-      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
-    subdomains: "abcd",
-    maxZoom: 19,
-  }).addTo(modalMap);
-
-  const cityIcon = L.divIcon({
-    className: "custom-marker",
-    html: `
-      <div style="
-        width: 40px;
-        height: 40px;
-        background: linear-gradient(135deg, #1e4d3d 0%, #2d7a5f 100%);
-        border-radius: 50% 50% 50% 0;
-        transform: rotate(-45deg);
-        border: 3px solid white;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      ">
-        <i class="fi fi-rr-building" style="
-          transform: rotate(45deg);
-          color: white;
-          font-size: 18px;
-        "></i>
-      </div>
-    `,
-    iconSize: [40, 40],
-    iconAnchor: [20, 40],
-    popupAnchor: [0, -40],
+  modalMap = new google.maps.Map(mapContainer, {
+    center: { lat: parseFloat(currentDayCity.value.latitude as any), lng: parseFloat(currentDayCity.value.longitude as any) },
+    zoom: 13,
+    mapId: 'DEMO_MAP_ID',
+    mapTypeControl: false,
+    fullscreenControl: false,
+    streetViewControl: false,
   });
 
-  L.marker([currentDayCity.value.latitude!, currentDayCity.value.longitude!], {icon: cityIcon})
-    .addTo(modalMap)
-    .bindPopup(`<b>${currentDayCity.value.title}</b><br><small>Ville de référence</small>`)
-    .openPopup();
-};
-
-/**
- * Crée un marker custom pour un lieu nearby selon son type
- */
-const createNearbyMarkerIcon = (types: string[]) => {
-  const typeConfig: Record<string, { color: string; icon: string }> = {
-    restaurant: {color: "#f97316", icon: "fi-rr-restaurant"},
-    cafe: {color: "#fbbf24", icon: "fi-rr-coffee"},
-    museum: {color: "#8b5cf6", icon: "fi-rr-bank"},
-    tourist_attraction: {color: "#3b82f6", icon: "fi-rr-marker"},
-    park: {color: "#10b981", icon: "fi-rr-tree"},
-    bar: {color: "#ef4444", icon: "fi-rr-glass-cheers"},
-  };
-
-  let config = {color: "#ec4899", icon: "fi-rr-marker"};
-  for (const type of types) {
-    if (typeConfig[type]) {
-      config = typeConfig[type];
-      break;
+  new google.maps.Marker({
+    position: { lat: parseFloat(currentDayCity.value.latitude as any), lng: parseFloat(currentDayCity.value.longitude as any) },
+    map: modalMap,
+    title: currentDayCity.value.title,
+    icon: {
+      path: google.maps.SymbolPath.CIRCLE,
+      fillColor: '#1e4d3d',
+      fillOpacity: 1,
+      strokeWeight: 2,
+      strokeColor: '#FFFFFF',
+      scale: 12
     }
-  }
-
-  return L.divIcon({
-    className: "custom-marker",
-    html: `
-      <div style="
-        width: 36px;
-        height: 36px;
-        background: linear-gradient(135deg, ${config.color} 0%, ${adjustColor(config.color, 30)} 100%);
-        border-radius: 50% 50% 50% 0;
-        transform: rotate(-45deg);
-        border: 3px solid white;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      ">
-        <i class="${config.icon}" style="
-          transform: rotate(45deg);
-          color: white;
-          font-size: 14px;
-        "></i>
-      </div>
-    `,
-    iconSize: [36, 36],
-    iconAnchor: [18, 36],
-    popupAnchor: [0, -36],
   });
 };
 
@@ -2547,27 +2379,51 @@ const createNearbyMarkerIcon = (types: string[]) => {
 const displayNearbyMarkers = () => {
   if (!modalMap) return;
 
-  nearbyMarkers.forEach((marker) => marker.remove());
+  nearbyMarkers.forEach((marker) => marker.setMap(null));
   nearbyMarkers = [];
 
   nearbyPlaces.value.forEach((place) => {
-    const marker = L.marker([place.location.latitude, place.location.longitude], {
-      icon: createNearbyMarkerIcon(place.types || []),
-    }).addTo(modalMap!);
+    const marker = new google.maps.Marker({
+      position: { lat: place.location.latitude, lng: place.location.longitude },
+      map: modalMap!,
+      title: place.displayName,
+      icon: {
+        path: google.maps.SymbolPath.CIRCLE,
+        fillColor: '#ec4899',
+        fillOpacity: 1,
+        strokeWeight: 2,
+        strokeColor: '#FFFFFF',
+        scale: 10
+      }
+    });
 
-    const popupContent = `
-      <div style="text-align: center; min-width: 200px;">
-        <strong style="font-size: 15px;">${place.displayName}</strong><br>
-        <small style="color: #6b7280;">${place.formattedAddress || ""}</small><br>
-        ${place.rating ? `<span style="color: #f59e0b;">⭐ ${place.rating}/5</span><br>` : ""}
-        <button onclick="window.selectNearbyPlaceFromMap('${place.placeId}')"
-                style="margin-top: 10px; padding: 8px 16px; background: #2563eb; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-          Sélectionner ce lieu
-        </button>
-      </div>
-    `;
+    const infoWindow = new google.maps.InfoWindow({
+      content: `
+        <div style="text-align: center; min-width: 200px; padding: 10px;">
+          <strong style="font-size: 15px; color: #1e293b;">${place.displayName}</strong><br>
+          <small style="color: #64748b; display: block; margin: 4px 0;">${place.formattedAddress || ""}</small>
+          ${place.rating ? `<span style="color: #f59e0b; font-weight: bold;">⭐ ${place.rating}/5</span><br>` : ""}
+          <button id="btn-select-${place.placeId}"
+                  style="margin-top: 12px; padding: 8px 16px; background: #4F46E5; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.2s;">
+            Ajouter au voyage
+          </button>
+        </div>
+      `
+    });
 
-    marker.bindPopup(popupContent);
+    marker.addListener('click', () => {
+      infoWindow.open(modalMap, marker);
+      google.maps.event.addListenerOnce(infoWindow, 'domready', () => {
+        const btn = document.getElementById(`btn-select-${place.placeId}`);
+        if (btn) {
+          btn.onclick = () => {
+            selectAndAddPlace(place);
+            infoWindow.close();
+          };
+        }
+      });
+    });
+
     nearbyMarkers.push(marker);
   });
 };
@@ -2575,7 +2431,7 @@ const displayNearbyMarkers = () => {
 (window as any).selectNearbyPlaceFromMap = async (placeId: string) => {
   const place = nearbyPlaces.value.find((p) => p.placeId === placeId);
   if (place) {
-    await selectNearbyPlace(place);
+    await selectAndAddPlace(place);
   }
 };
 

@@ -36,6 +36,7 @@ export interface Stop {
   id: number;
   title: string;
   description?: string;
+  address?: string;
   type: 'poi' | 'accommodation' | 'restaurant' | 'activity' | 'city';
   latitude: number;
   longitude: number;

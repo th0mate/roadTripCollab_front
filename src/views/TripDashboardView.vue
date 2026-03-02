@@ -1857,32 +1857,37 @@ const calculateItineraryByDay = async () => {
         if (cached) {
           try {
             const parsed = JSON.parse(cached);
-            if (Date.now() - parsed.timestamp < 7 * 24 * 60 * 60 * 1000) {
-              if (parsed.durations) {
-                for (let i = 0; i < day.activities.length - 1; i++) {
-                  const duration = parsed.durations[i]?.[i + 1];
-                  if (duration !== null && duration !== undefined) {
-                    day.activities[i].travelTimeToNext = Math.round(duration / 60);
-                  }
+            if (Date.now() - parsed.timestamp < 7 * 24 * 60 * 60 * 1000 && parsed.durations && parsed.distances) {
+              for (let i = 0; i < day.activities.length - 1; i++) {
+                const duration = parsed.durations[i]?.[i + 1];
+                const distance = parsed.distances[i]?.[i + 1];
+                if (duration !== null && duration !== undefined) {
+                  day.activities[i].travelTimeToNext = Math.round(duration / 60);
+                }
+                if (distance !== null && distance !== undefined) {
+                  const distKm = distance / 1000;
+                  day.activities[i].distanceToNext = Math.round(distKm * 10) / 10;
+                  day.activities[i].fuelCostNext = (distKm / 100) * routeSettings.value.carConsumption * routeSettings.value.fuelPrice;
+                  day.activities[i].tollCostNext = distKm * routeSettings.value.tollRate * 0.4;
                 }
               }
-              return; // Cache hit, on skip l'appel API
+              return;
             }
           } catch (e) {
             console.error("Erreur parsing cache OSRM:", e);
           }
         }
 
-        // Appel API si pas de cache
         try {
           const resp = await fetch(`https://router.project-osrm.org/table/v1/driving/${coords}?annotations=duration,distance`);
           const data = await resp.json();
           if (data.durations && data.distances) {
+            localStorage.setItem(cacheKey, JSON.stringify({
+              durations: data.durations,
+              distances: data.distances,
+              timestamp: Date.now()
+            }));
             for (let i = 0; i < day.activities.length - 1; i++) {
-              localStorage.setItem(cacheKey, JSON.stringify({
-                durations: data.durations,
-                timestamp: Date.now()
-              }));
               const duration = data.durations[i][i + 1];
               const distance = data.distances[i][i + 1];
               if (duration !== null && distance !== null) {

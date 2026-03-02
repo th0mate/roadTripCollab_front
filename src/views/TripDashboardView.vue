@@ -436,7 +436,8 @@
                   @focus="showQuickSuggestions = true"
                   placeholder="Rechercher un lieu"
                   class="trip-dashboard__map-search-input"
-                />                <button
+                />
+                <button
                   v-if="hasMapSearchResults || mapSearchQuery"
                   @click="clearMapSearch"
                   class="trip-dashboard__map-search-clear"
@@ -455,16 +456,19 @@
                 Options Trajet
               </button>
 
-              <div v-if="showQuickSuggestions && !mapSearchQuery" class="trip-dashboard__map-quick-suggestions">
+              <div v-if="showQuickSuggestions && !mapSearchQuery"
+                   class="trip-dashboard__map-quick-suggestions">
                 <div class="trip-dashboard__map-quick-title">Suggestions à proximité</div>
                 <div class="trip-dashboard__map-quick-grid">
-                  <button v-for="s in quickSuggestions" :key="s.label" @click="applyQuickSearch(s.label)" class="trip-dashboard__map-quick-item">
+                  <button v-for="s in quickSuggestions" :key="s.label"
+                          @click="applyQuickSearch(s.label)" class="trip-dashboard__map-quick-item">
                     <i :class="s.icon"></i>
                     <span>{{ s.label }}</span>
                   </button>
                 </div>
               </div>
-            </div>            <div class="trip-dashboard__map-wrapper" id="trip-map"></div>
+            </div>
+            <div class="trip-dashboard__map-wrapper" id="trip-map"></div>
           </div>
         </div>
       </div>
@@ -1919,7 +1923,7 @@ const calculateItineraryByDay = async () => {
     }));
 
     if (eveningAcc) {
-      if (extractDateLocal(eveningAcc.arrivalDate) < currentDateStr || dayItinerary.findIndex(a => a.id === eveningAcc.id) !== -1) {
+      if (extractDateLocal(eveningAcc.arrivalDate!) < currentDateStr) {
         dayItinerary.push({
           ...eveningAcc,
           id: `end-${eveningAcc.id}-${currentDateStr}`,
@@ -2059,6 +2063,25 @@ const getStatusIcon = (status: string): string => {
   return iconMap[status] || "fi fi-rr-circle";
 };
 
+const focusedDayDate = ref<string | null>(null);
+
+const centerMapOnDay = (day: any) => {
+  if (!tripMap.value) return;
+  focusedDayDate.value = day.date;
+
+  const target = day.city || day.activities.find((a: any) => a.latitude && a.longitude);
+
+  if (target && target.latitude && target.longitude) {
+    tripMap.value.setCenter({
+      lat: parseFloat(target.latitude),
+      lng: parseFloat(target.longitude)
+    });
+    tripMap.value.setZoom(13);
+  } else {
+    focusDayOnMap(day);
+  }
+};
+
 const focusDayOnMap = (day: any) => {
   if (!tripMap.value) return;
   const bounds = new google.maps.LatLngBounds();
@@ -2162,12 +2185,12 @@ const mapSearchQuery = ref('');
 const showQuickSuggestions = ref(false);
 
 const quickSuggestions = [
-  { label: 'Hôtels', icon: 'fi fi-rr-bed' },
-  { label: 'Restaurants', icon: 'fi fi-rr-restaurant' },
-  { label: 'Bars', icon: 'fi fi-rr-glass-cheers' },
-  { label: 'Musées', icon: 'fi fi-rr-bank' },
-  { label: 'Parcs', icon: 'fi fi-rr-tree' },
-  { label: 'Essence', icon: 'fi fi-rr-gas-pump' }
+  {label: 'Hôtels', icon: 'fi fi-rr-bed'},
+  {label: 'Restaurants', icon: 'fi fi-rr-restaurant'},
+  {label: 'Bars', icon: 'fi fi-rr-glass-cheers'},
+  {label: 'Musées', icon: 'fi fi-rr-bank'},
+  {label: 'Parcs', icon: 'fi fi-rr-tree'},
+  {label: 'Essence', icon: 'fi fi-rr-gas-pump'}
 ];
 
 const applyQuickSearch = (query: string) => {
@@ -2232,7 +2255,10 @@ const handlePoiClick = (poi: any) => {
 const createPoiMarker = async (place: google.maps.places.PlaceResult) => {
   if (!place.geometry || !place.geometry.location || !tripMap.value) return;
 
-  const { AdvancedMarkerElement, PinElement } = await google.maps.importLibrary("marker") as google.maps.MarkerLibrary;
+  const {
+    AdvancedMarkerElement,
+    PinElement
+  } = await google.maps.importLibrary("marker") as google.maps.MarkerLibrary;
 
   const pin = new PinElement({
     background: '#ef4444',
@@ -2334,7 +2360,10 @@ const addPoiToTrip = async (place: google.maps.places.PlaceResult) => {
   isEditingStop.value = false;
   editingStopId.value = null;
 
-  const defaultDate = itineraryByDay.value[currentDayIndex.value]?.date || trip.value.startDate.split('T')[0];
+  // Priorité : 1. Jour sur lequel on vient de centrer la carte
+  //            2. Jour actuellement affiché dans l'itinéraire
+  //            3. Date de début du voyage
+  const defaultDate = focusedDayDate.value || itineraryByDay.value[currentDayIndex.value]?.date || trip.value.startDate.split('T')[0];
 
   newStop.value = {
     title: place.name,

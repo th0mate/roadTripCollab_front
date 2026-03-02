@@ -2558,41 +2558,21 @@ const openAddActivityModal = async (
   isEditingStop.value = false;
   editingStopId.value = null;
   currentDayActivities.value = day?.activities || [];
-  isManualArrival.value = false;
-  isManualDeparture.value = false;
 
-  newStop.value = {
-    title: "",
-    latitude: null,
-    longitude: null,
-    type: "activity",
-    price: 0,
-    paidBy: currentUser.value?.id || null,
-    arrivalDate: date,
-    departureDate: date,
-    arrivalTime: '',
-    departureTime: ''
-  };
-
-  nearbyPlaces.value = [];
-  showManualSearch.value = false;
-  showMorePOI.value = false;
-  selectedPlaceType.value = "tourist_attraction";
   currentDayCity.value = day?.city || null;
+  focusedDayDate.value = date;
 
-  showStopModal.value = true;
-
-  if (currentDayCity.value && currentDayCity.value.latitude && currentDayCity.value.longitude) {
-    await nextTick();
-    initModalMap();
-    await fetchNearbyPlaces(
-      currentDayCity.value.latitude,
-      currentDayCity.value.longitude,
-      selectedPlaceType.value,
-      4,
-    );
-    displayNearbyMarkers();
+  if (day) {
+    centerMapOnDay(day);
   }
+
+  showQuickSuggestions.value = true;
+  setTimeout(() => {
+    const mapSearchInput = document.getElementById('map-search-input');
+    if (mapSearchInput) {
+      mapSearchInput.focus();
+    }
+  }, 100);
 };
 
 const addStop = async () => {

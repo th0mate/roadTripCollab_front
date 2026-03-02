@@ -2423,12 +2423,6 @@ const updateMapMarkers = async () => {
   }
 
   sortedStops.push(...rawStops);
-  Object.keys(stopsByDay).sort().forEach(dayKey => {
-    const dayStops = stopsByDay[dayKey] ?? [];
-    const activities = dayStops.filter((s) => s.type !== "city");
-    if (activities.length > 0) dedupedStops.push(...activities);
-    else dedupedStops.push(...dayStops);
-  });
 
   for (let index = 0; index < sortedStops.length; index++) {
     const stop = sortedStops[index];

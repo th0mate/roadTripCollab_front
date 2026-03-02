@@ -69,9 +69,9 @@ class GoogleMapsService {
         origin: { location: { latLng: origin } },
         destination: { location: { latLng: destination } },
         travelMode: 'DRIVE',
-        routingPreference: 'TRAFFIC_AWARE',
-        departureTime: departureTime,
-        extraComputations: ['TOLLS'],
+        //routingPreference: 'TRAFFIC_AWARE',
+        //departureTime: departureTime,
+        //extraComputations: ['TOLLS'],
         routeModifiers: {
           avoidTolls: false,
           avoidHighways: false,
@@ -88,7 +88,7 @@ class GoogleMapsService {
           headers: {
             'Content-Type': 'application/json',
             'X-Goog-Api-Key': this.API_KEY,
-            'X-Goog-FieldMask': 'routes.duration,routes.distanceMeters,routes.polyline.encodedPolyline,routes.travelAdvisory.tollInfo'
+            'X-Goog-FieldMask': 'routes.duration,routes.distanceMeters,routes.polyline.encodedPolyline'
           }
         }
       );

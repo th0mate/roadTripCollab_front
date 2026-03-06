@@ -485,8 +485,8 @@ export default defineComponent({
           fieldErrors.currentPassword = 'Le mot de passe actuel est requis pour changer de mot de passe.'
           isValid = false
         }
-        if (passwordForm.value.newPassword.length < 6) {
-          fieldErrors.newPassword = 'Le nouveau mot de passe doit contenir au moins 6 caractères.'
+        if (passwordForm.value.newPassword.length < 8) {
+          fieldErrors.newPassword = 'Le nouveau mot de passe doit contenir au moins 8 caractères.'
           isValid = false
         }
         if (passwordForm.value.newPassword !== passwordForm.value.confirmPassword) {
@@ -500,8 +500,20 @@ export default defineComponent({
 
     const saveChanges = async () => {
       if (!editableUser.value) return
+      if (!validateForm()) return
       try {
-        const response = await updateMe(editableUser.value)
+        const payload: Partial<User> & { currentPassword?: string } = {
+          fullName: editableUser.value.fullName,
+          email: editableUser.value.email,
+        }
+        if (newProfilePicture.value) {
+          payload.profilePicture = newProfilePicture.value
+        }
+        if (passwordForm.value.newPassword) {
+          payload.password = passwordForm.value.newPassword
+          payload.currentPassword = passwordForm.value.currentPassword
+        }
+        await updateMe(payload)
         user.value = await getMe()
 
         if (editableUser.value.email !== user.value.email) {

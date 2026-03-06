@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { RouterLink, RouterView, useRouter, useRoute } from 'vue-router'
-import { isAuthenticated as checkAuthStatus, logout as authLogout, getMe, isAdminUser } from '@/services/authService'
+import { isAuthenticated as checkAuthStatus, logout as authLogout, getMe, isAdminUser, removeToken } from '@/services/authService'
 import type { User } from '@/types/user'
 
 const isMobileMenuOpen = ref(false)
@@ -50,6 +50,8 @@ const checkAuth = async () => {
       console.error('Failed to get user data:', error)
       user.value = null
       isAdmin.value = false
+      isAuthenticated.value = false
+      removeToken()
     }
   } else {
     user.value = null

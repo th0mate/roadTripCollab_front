@@ -16,8 +16,7 @@ const handleLogin = async () => {
   errorMessage.value = '';
   
   try {
-    const response = await login({ email: email.value, password: password.value });
-    localStorage.setItem('authToken', response.data.token);
+    await login({ email: email.value, password: password.value });
     await router.push('/');
   } catch (error: any) {
     errorMessage.value = 'Échec de la connexion. Vérifiez vos identifiants.';

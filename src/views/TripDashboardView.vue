@@ -1062,7 +1062,7 @@ const quickSuggestions = [
               @click="showParticipantsModal = true"
               class="w-8 h-8 rounded-full border-2 border-white dark:border-[#161618] bg-zinc-100 dark:bg-zinc-800 overflow-hidden cursor-pointer hover:-translate-y-0.5 transition-all shadow-sm"
               :title="p.fullName">
-              <img v-if="p.profilePicture" :src="getAvatarUrl(p.profilePicture)" class="w-full h-full object-cover" />
+              <img v-if="p.avatar" :src="getAvatarUrl(p.avatar)" class="w-full h-full object-cover" />
               <div v-else class="w-full h-full flex items-center justify-center text-[10px] font-black text-zinc-500 dark:text-zinc-400">{{ getInitials(p.fullName) }}</div>
             </button>
             <button @click="showInviteModal = true"

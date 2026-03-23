@@ -144,7 +144,7 @@ onMounted(fetchTrips);
             <div v-for="invite in invitations" :key="invite.id" class="p-6 bg-primary-400/5 dark:bg-primary-400/5 rounded-[2rem] border-2 border-dashed border-primary-400/20 flex flex-col sm:flex-row items-center justify-between gap-6">
               <div class="flex items-center gap-4">
                 <div class="w-14 h-14 rounded-2xl bg-primary-400 flex items-center justify-center text-zinc-900 text-xl font-black shadow-lg shadow-primary-400/20 overflow-hidden">
-                  <img v-if="invite.trip?.creator?.profilePicture" :src="getAvatarUrl(invite.trip.creator.profilePicture)" class="w-full h-full object-cover" />
+                  <img v-if="invite.trip?.creator?.avatar" :src="getAvatarUrl(invite.trip.creator.avatar)" class="w-full h-full object-cover" />
                   <span v-else>{{ invite.trip?.creator?.fullName?.[0]?.toUpperCase() }}</span>
                 </div>
                 <div>
@@ -223,7 +223,7 @@ onMounted(fetchTrips);
                     <div v-for="(p, idx) in (trip.participants || []).slice(0, 3)" :key="p.id" 
                       class="w-9 h-9 rounded-full border-2 border-white dark:border-[#1C1C1E] bg-gradient-to-br from-zinc-100 to-zinc-200 dark:from-zinc-800 dark:to-zinc-900 flex items-center justify-center text-[10px] font-black text-zinc-500 dark:text-zinc-400 shadow-sm overflow-hidden group-hover:scale-110 transition-all" 
                       :style="{ transitionDelay: `${idx*100}ms`, zIndex: 10 - idx }">
-                      <img v-if="p.profilePicture" :src="getAvatarUrl(p.profilePicture)" class="w-full h-full object-cover" />
+                      <img v-if="p.avatar" :src="getAvatarUrl(p.avatar)" class="w-full h-full object-cover" />
                       <span v-else>{{ getInitials(p.fullName) }}</span>
                     </div>
                     <div v-if="trip.participants?.length > 3" class="w-9 h-9 rounded-full border-2 border-white dark:border-[#1C1C1E] bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-[10px] font-black text-zinc-400 shadow-sm z-0">

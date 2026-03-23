@@ -34,6 +34,9 @@
               <router-link to="/create-trip" class="nav-link" active-class="active">
                 Nouveau
               </router-link>
+              <router-link v-if="isAdmin" to="/admin/dashboard" class="nav-link" active-class="active">
+                Administration
+              </router-link>
             </template>
 
             <div class="w-px h-6 bg-zinc-200 dark:bg-zinc-800 mx-3"></div>
@@ -83,6 +86,7 @@
 <script setup lang="ts">
 import { useThemeStore } from '../stores/theme'
 import { useAuthStore } from '../stores/auth'
+import { isAdminUser } from '../services/authService'
 import { useRouter, useRoute } from 'vue-router'
 import { computed } from 'vue'
 
@@ -92,6 +96,7 @@ const router = useRouter()
 const route = useRoute()
 
 const isDashboard = computed(() => route.name === 'trip-dashboard')
+const isAdmin = computed(() => isAdminUser())
 
 const handleLogout = () => {
   authStore.logout()

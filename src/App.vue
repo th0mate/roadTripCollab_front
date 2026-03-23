@@ -1,6 +1,6 @@
 <template>
   <div class="min-h-screen flex flex-col selection:bg-primary-400/30 selection:text-primary-400">
-    <Navbar />
+    <Navbar v-if="!isAdminRoute" />
     <main class="flex-grow">
       <router-view v-slot="{ Component }">
         <transition name="fade" mode="out-in">
@@ -8,7 +8,7 @@
         </transition>
       </router-view>
     </main>
-    <Footer v-if="showFooter" />
+    <Footer v-if="showFooter && !isAdminRoute" />
   </div>
 </template>
 
@@ -23,6 +23,8 @@ import { useRoute } from 'vue-router'
 const authStore = useAuthStore()
 const themeStore = useThemeStore()
 const route = useRoute()
+
+const isAdminRoute = computed(() => !!route.meta.requiresAdmin)
 
 const showFooter = computed(() => {
   return !['login', 'register', 'forgot-password', 'reset-password', 'create-trip', 'trip-dashboard'].includes(route.name as string)

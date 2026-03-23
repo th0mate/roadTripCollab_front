@@ -1065,10 +1065,16 @@ const quickSuggestions = [
             </button>
           </div>
         </div>
-        <button @click="router.push(`/trips/${tripId}/settings`)"
-          class="px-3 py-1.5 rounded-xl bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-[10px] font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-400 hover:text-primary-400 transition-all cursor-pointer flex items-center gap-1.5">
-          <i class="fi fi-rr-settings-sliders"></i>Paramètres
-        </button>
+        <div class="flex items-center gap-2">
+          <button v-if="trip.status === 'active'" @click="router.push(`/trips/${tripId}/live`)"
+            class="px-3 py-1.5 rounded-xl bg-primary-400 text-zinc-950 text-[10px] font-black uppercase tracking-widest hover:bg-primary-500 transition-all cursor-pointer flex items-center gap-1.5 shadow-[0_0_12px_rgba(159,224,0,0.3)] animate-pulse-slow">
+            <span class="w-1.5 h-1.5 rounded-full bg-zinc-950 animate-pulse"></span>Mode Live
+          </button>
+          <button @click="router.push(`/trips/${tripId}/settings`)"
+            class="px-3 py-1.5 rounded-xl bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-[10px] font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-400 hover:text-primary-400 transition-all cursor-pointer flex items-center gap-1.5">
+            <i class="fi fi-rr-settings-sliders"></i>Paramètres
+          </button>
+        </div>
       </div>
 
       <div v-if="isInvitationPending" class="shrink-0 px-6 py-3 bg-amber-500/10 border-b border-amber-500/30 flex items-center justify-between">

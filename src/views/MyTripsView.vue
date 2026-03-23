@@ -174,6 +174,7 @@ onMounted(fetchTrips);
             v-for="trip in filteredTrips" :key="trip.id"
             @click="router.push(`/trips/${trip.id}`)"
             class="trip-card group relative bg-white dark:bg-[#1C1C1E] rounded-[2rem] border border-zinc-200/50 dark:border-zinc-800/50 overflow-hidden transition-all duration-500 hover:-translate-y-3 cursor-pointer shadow-sm hover:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.1)] dark:hover:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.5)]"
+            :class="trip.status === 'active' ? 'ring-2 ring-primary-400/30 ring-offset-2 ring-offset-zinc-50 dark:ring-offset-[#0c0c0e]' : ''"
           >
             <div class="h-64 relative overflow-hidden">
               <img :src="trip.coverImage ? `${backendUrl}/uploads/${trip.coverImage}` : placeholders[trip.id % 4]" class="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" />
@@ -233,9 +234,16 @@ onMounted(fetchTrips);
                   <span class="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Team</span>
                 </div>
 
-                <div class="flex items-center gap-2 text-primary-400 font-black text-xs uppercase tracking-widest group-hover:translate-x-2 transition-all">
-                  <span>Expédition</span>
-                  <i class="fi fi-rr-arrow-small-right text-xl leading-none"></i>
+                <div class="flex items-center gap-2">
+                  <button v-if="trip.status === 'active'" @click.stop="router.push(`/trips/${trip.id}/live`)"
+                    class="flex items-center gap-1.5 px-3 py-1.5 bg-primary-400 text-zinc-950 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-primary-500 transition-all shadow-[0_0_12px_rgba(159,224,0,0.25)] active:scale-95">
+                    <span class="w-1.5 h-1.5 rounded-full bg-zinc-950 animate-pulse"></span>
+                    En Route
+                  </button>
+                  <div class="flex items-center gap-2 text-primary-400 font-black text-xs uppercase tracking-widest group-hover:translate-x-2 transition-all">
+                    <span>Voir</span>
+                    <i class="fi fi-rr-arrow-small-right text-xl leading-none"></i>
+                  </div>
                 </div>
               </div>
             </div>

@@ -90,7 +90,7 @@ const authStore = useAuthStore()
 const router = useRouter()
 const route = useRoute()
 
-const isDashboard = computed(() => route.name === 'trip-dashboard')
+const isDashboard = computed(() => route.name === 'trip-dashboard' || route.name === 'trip-live')
 const isAdmin = computed(() => isAdminUser())
 
 const handleLogout = () => {

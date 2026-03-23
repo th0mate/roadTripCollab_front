@@ -32,8 +32,26 @@ export const getMe = async (): Promise<User> => {
   return user
 }
 
-export const updateMe = async (userData: Partial<User>): Promise<User> => {
-  const response = await apiClient.put('/auth/me', userData)
+export const updateMe = async (userData: any): Promise<User> => {
+  let payload: any = userData
+  let headers = {}
+
+  // Si on a un File pour l'avatar, on utilise FormData
+  if (userData.avatar instanceof File) {
+    const formData = new FormData()
+    Object.keys(userData).forEach((key) => {
+      if (userData[key] !== undefined && userData[key] !== null) {
+        formData.append(key, userData[key])
+      }
+    })
+    payload = formData
+    headers = { 'Content-Type': 'multipart/form-data' }
+  } else if (userData.removeAvatar) {
+    // Si on veut supprimer l'avatar, on peut aussi utiliser FormData ou JSON
+    // Le backend attend 'removeAvatar' = 'true'
+  }
+
+  const response = await apiClient.put('/auth/me', payload, { headers })
   return response.data.data.user
 }
 

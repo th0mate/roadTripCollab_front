@@ -4,28 +4,47 @@ import { useRouter, RouterLink } from 'vue-router';
 import { register as apiRegister } from '../services/authService';
 import { useAuthStore } from '../stores/auth';
 
-const username = ref('');
+const fullName = ref('');
 const email = ref('');
 const password = ref('');
 const router = useRouter();
 const authStore = useAuthStore();
 const errorMessage = ref('');
+const successMessage = ref('');
 const isLoading = ref(false);
 
 const handleRegister = async () => {
   if (isLoading.value) return;
   isLoading.value = true;
   errorMessage.value = '';
+  successMessage.value = '';
   try {
     const response = await apiRegister({ 
-      username: username.value, 
+      fullName: fullName.value,
       email: email.value, 
       password: password.value 
     });
-    authStore.login(response.data.token);
-    await router.push('/my-trips');
+
+    // Si le backend renvoie un token, on connecte (mais ici c'est verification email)
+    if (response.data && response.data.token) {
+      authStore.login(response.data.token);
+      await router.push('/my-trips');
+    } else {
+      // Cas de la vérification par email
+      successMessage.value = response.message || "Compte créé ! Veuillez vérifier vos emails.";
+      // On vide le formulaire
+      fullName.value = '';
+      email.value = '';
+      password.value = '';
+    }
   } catch (error: any) {
-    errorMessage.value = "Erreur lors de l'inscription. L'email ou le pseudo est peut-être déjà utilisé.";
+    if (error.response && error.response.data && error.response.data.errors) {
+      errorMessage.value = error.response.data.errors.map((e: any) => e.message).join(', ');
+    } else if (error.response && error.response.data && error.response.data.message) {
+      errorMessage.value = error.response.data.message;
+    } else {
+      errorMessage.value = "Erreur lors de l'inscription. L'email est peut-être déjà utilisé.";
+    }
     console.error(error);
   } finally {
     isLoading.value = false;
@@ -87,17 +106,17 @@ const handleRegister = async () => {
           <p class="text-zinc-500 dark:text-zinc-400">Rejoignez l'aventure et commencez à planifier.</p>
         </div>
 
-        <form @submit.prevent="handleRegister" class="space-y-5">
+        <form v-if="!successMessage" @submit.prevent="handleRegister" class="space-y-5">
           <div>
-            <label for="username" class="form-label !ml-0 !mb-2">Nom d'utilisateur</label>
+            <label for="fullName" class="form-label !ml-0 !mb-2">Nom complet</label>
             <div class="group relative">
               <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-zinc-400 group-focus-within:text-primary-400 transition-colors">
                 <i class="fi fi-rr-user leading-none"></i>
               </span>
               <input
-                type="text" id="username" v-model="username"
+                type="text" id="fullName" v-model="fullName"
                 class="block w-full bg-white dark:bg-[#1C1C1E] border border-zinc-200 dark:border-zinc-800 rounded-2xl pl-11 pr-4 py-3.5 text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:ring-4 focus:ring-primary-400/10 focus:border-primary-400 transition-all outline-none"
-                placeholder="aventurier_du_dimanche"
+                placeholder="Ex: Jean Dupont"
                 required :disabled="isLoading"
               />
             </div>
@@ -147,6 +166,24 @@ const handleRegister = async () => {
             </span>
           </button>
         </form>
+
+        <!-- Message de succès -->
+        <div v-else class="space-y-6">
+          <div class="flex flex-col items-center gap-4 p-8 rounded-3xl bg-emerald-50 dark:bg-emerald-500/5 border border-emerald-100 dark:border-emerald-500/10 text-center">
+            <div class="w-16 h-16 bg-emerald-500/20 text-emerald-500 rounded-full flex items-center justify-center text-3xl mb-2">
+              <i class="fi fi-rr-envelope-check leading-none"></i>
+            </div>
+            <h3 class="text-xl font-bold text-zinc-900 dark:text-white">Vérifiez vos emails</h3>
+            <p class="text-zinc-500 dark:text-zinc-400 text-sm leading-relaxed">
+              {{ successMessage }}
+            </p>
+          </div>
+
+          <RouterLink to="/login" class="btn-primary w-full flex items-center justify-center gap-2 !py-4 !rounded-2xl !text-base group">
+            Aller à la connexion
+            <i class="fi fi-rr-arrow-small-right text-xl leading-none group-hover:translate-x-1 transition-transform"></i>
+          </RouterLink>
+        </div>
 
         <div class="mt-8 pt-6 border-t border-zinc-100 dark:border-zinc-800 text-center">
           <p class="text-zinc-500 dark:text-zinc-400 text-sm">

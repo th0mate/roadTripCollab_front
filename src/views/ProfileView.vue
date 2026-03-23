@@ -18,7 +18,8 @@ const fileInputRef = ref<HTMLInputElement | null>(null)
 const editFileInputRef = ref<HTMLInputElement | null>(null)
 const newProfilePicture = ref<string | null>(null)
 const newProfilePictureFile = ref<File | null>(null)
-const apiBaseUrl = import.meta.env.VITE_API_URL || ''
+const removeAvatarFlag = ref(false)
+const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3333'
 
 const userInitials = computed(() => {
   if (!user.value?.fullName) return '?'
@@ -27,13 +28,14 @@ const userInitials = computed(() => {
   return parts[0]?.substring(0, 2).toUpperCase() || '?'
 })
 const displayProfilePicture = computed(() => {
-  if (!user.value?.profilePicture) return null
-  return user.value.profilePicture.startsWith('http') ? user.value.profilePicture : `${apiBaseUrl}${user.value.profilePicture}`
+  if (!user.value?.avatar) return null
+  return user.value.avatar.startsWith('http') ? user.value.avatar : `${apiBaseUrl}${user.value.avatar}`
 })
 const previewProfilePicture = computed(() => {
   if (newProfilePicture.value) return newProfilePicture.value
-  if (!editableUser.value?.profilePicture) return null
-  return editableUser.value.profilePicture.startsWith('http') ? editableUser.value.profilePicture : `${apiBaseUrl}${editableUser.value.profilePicture}`
+  if (removeAvatarFlag.value) return null
+  if (!editableUser.value?.avatar) return null
+  return editableUser.value.avatar.startsWith('http') ? editableUser.value.avatar : `${apiBaseUrl}${editableUser.value.avatar}`
 })
 
 const clearFieldError = (field: string) => { fieldErrors[field] = null; formError.value = null }
@@ -47,37 +49,54 @@ const fetchUser = async () => {
 const handleFileChange = async (event: Event) => {
   const input = event.target as HTMLInputElement
   if (!input.files?.[0]) return
-  if (input.files[0].size > 5 * 1024 * 1024) { error.value = 'Max 5 Mo.'; return }
-  const reader = new FileReader()
-  reader.onload = async (e) => {
-    try { user.value = await updateMe({ profilePicture: e.target?.result as string }) }
-    catch (err: any) { error.value = err.response?.data?.message || 'Erreur.' }
+  const file = input.files[0]
+  if (file.size > 5 * 1024 * 1024) { error.value = 'Max 5 Mo.'; return }
+  
+  try { 
+    user.value = await updateMe({ avatar: file }) 
+  } catch (err: any) { 
+    error.value = err.response?.data?.message || 'Erreur lors de l\'upload.' 
   }
-  reader.readAsDataURL(input.files[0])
   input.value = ''
 }
 
 const handleEditFileChange = (event: Event) => {
   const input = event.target as HTMLInputElement
   if (!input.files?.[0]) return
-  if (input.files[0].size > 5 * 1024 * 1024) { formError.value = 'Max 5 Mo.'; return }
-  newProfilePictureFile.value = input.files[0]
+  const file = input.files[0]
+  if (file.size > 5 * 1024 * 1024) { formError.value = 'Max 5 Mo.'; return }
+  
+  newProfilePictureFile.value = file
+  removeAvatarFlag.value = false
   const reader = new FileReader()
   reader.onload = (e) => { newProfilePicture.value = e.target?.result as string }
-  reader.readAsDataURL(input.files[0])
+  reader.readAsDataURL(file)
   input.value = ''
 }
 
-const removeProfilePicture = () => { newProfilePicture.value = null; newProfilePictureFile.value = null; editableUser.value.profilePicture = undefined }
+const removeProfilePicture = () => { 
+  newProfilePicture.value = null
+  newProfilePictureFile.value = null
+  removeAvatarFlag.value = true
+}
 
 const startEditing = () => {
   editableUser.value = { ...user.value }
   passwordForm.value = { currentPassword: '', newPassword: '', confirmPassword: '' }
-  newProfilePicture.value = null; newProfilePictureFile.value = null
-  clearAllErrors(); isEditing.value = true
+  newProfilePicture.value = null
+  newProfilePictureFile.value = null
+  removeAvatarFlag.value = false
+  clearAllErrors()
+  isEditing.value = true
 }
 
-const cancelEditing = () => { isEditing.value = false; newProfilePicture.value = null; newProfilePictureFile.value = null; clearAllErrors() }
+const cancelEditing = () => { 
+  isEditing.value = false
+  newProfilePicture.value = null
+  newProfilePictureFile.value = null
+  removeAvatarFlag.value = false
+  clearAllErrors() 
+}
 
 const validateForm = (): boolean => {
   let ok = true; clearAllErrors()
@@ -86,7 +105,7 @@ const validateForm = (): boolean => {
   else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(editableUser.value.email)) { fieldErrors.email = 'Email invalide.'; ok = false }
   if (passwordForm.value.newPassword) {
     if (!passwordForm.value.currentPassword) { fieldErrors.currentPassword = 'Requis pour changer le mot de passe.'; ok = false }
-    if (passwordForm.value.newPassword.length < 6) { fieldErrors.newPassword = 'Min. 6 caractères.'; ok = false }
+    if (passwordForm.value.newPassword.length < 8) { fieldErrors.newPassword = 'Min. 8 caractères.'; ok = false }
     if (passwordForm.value.newPassword !== passwordForm.value.confirmPassword) { fieldErrors.confirmPassword = 'Les mots de passe ne correspondent pas.'; ok = false }
   }
   return ok
@@ -95,13 +114,28 @@ const validateForm = (): boolean => {
 const saveChanges = async () => {
   if (!validateForm() || !editableUser.value) return
   try {
-    const dataToUpdate: any = { fullName: editableUser.value.fullName, email: editableUser.value.email }
-    if (newProfilePicture.value) dataToUpdate.profilePicture = newProfilePicture.value
-    if (passwordForm.value.newPassword) { dataToUpdate.currentPassword = passwordForm.value.currentPassword; dataToUpdate.newPassword = passwordForm.value.newPassword }
+    const dataToUpdate: any = { 
+      fullName: editableUser.value.fullName, 
+      email: editableUser.value.email 
+    }
+    
+    if (newProfilePictureFile.value) {
+      dataToUpdate.avatar = newProfilePictureFile.value
+    } else if (removeAvatarFlag.value) {
+      dataToUpdate.removeAvatar = 'true'
+    }
+    
+    if (passwordForm.value.newPassword) { 
+      dataToUpdate.currentPassword = passwordForm.value.currentPassword
+      dataToUpdate.password = passwordForm.value.newPassword 
+    }
+    
     await updateMe(dataToUpdate)
     user.value = await getMe()
     isEditing.value = false
-  } catch (err: any) { formError.value = err.response?.data?.message || 'Erreur lors de la sauvegarde.' }
+  } catch (err: any) { 
+    formError.value = err.response?.data?.message || 'Erreur lors de la sauvegarde.' 
+  }
 }
 
 const confirmDeleteAccount = async () => {

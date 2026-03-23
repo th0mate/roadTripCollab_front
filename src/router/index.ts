@@ -10,6 +10,7 @@ import ProfileView from '../views/ProfileView.vue'
 import MyTripsView from '../views/MyTripsView.vue'
 import CreateTripView from '../views/CreateTripView.vue'
 import TripDashboardView from '../views/TripDashboardView.vue'
+import TripLiveView from '../views/TripLiveView.vue'
 import AdminDashboardView from '../views/admin/AdminDashboardView.vue'
 import AdminUsersView from '../views/admin/AdminUsersView.vue'
 import AdminTripsView from '../views/admin/AdminTripsView.vue'
@@ -88,6 +89,12 @@ const router = createRouter({
       path: '/trips/:id',
       name: 'trip-dashboard',
       component: TripDashboardView,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/trips/:id/live',
+      name: 'trip-live',
+      component: TripLiveView,
       meta: { requiresAuth: true }
     },
     {

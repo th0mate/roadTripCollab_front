@@ -25,10 +25,7 @@
             v-if="modelValue"
             class="w-full sm:max-w-md bg-white dark:bg-[#111113] rounded-t-[2rem] sm:rounded-[2rem] border border-zinc-200/80 dark:border-white/8 shadow-[0_32px_80px_rgba(0,0,0,0.18)] dark:shadow-[0_32px_80px_rgba(0,0,0,0.7)] overflow-hidden"
           >
-            <!-- Bande accent colorée -->
             <div class="h-1 w-full" :class="accentBarClass"></div>
-
-            <!-- Header -->
             <div class="flex items-center justify-between px-6 py-5">
               <div class="flex items-center gap-3.5">
                 <div
@@ -50,12 +47,10 @@
               </button>
             </div>
 
-            <!-- Content slot (si utilisé) -->
             <div v-if="$slots.default" class="px-6 pb-4 overflow-y-auto max-h-[50vh] custom-scrollbar">
               <slot />
             </div>
 
-            <!-- Footer -->
             <div class="px-6 pb-6 pt-2 flex gap-3">
               <template v-if="type === 'confirmation' || type === 'danger'">
                 <button

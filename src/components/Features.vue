@@ -1,7 +1,6 @@
 <template>
   <section id="features" class="py-24 transition-colors duration-200 overflow-hidden relative">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-      <!-- Header -->
       <div class="text-center max-w-2xl mx-auto mb-20">
         <span class="section-label mb-3 inline-block">L'expérience ultime</span>
         <h2 class="text-4xl lg:text-5xl font-black text-zinc-900 dark:text-white mb-6">
@@ -12,7 +11,6 @@
         </p>
       </div>
 
-      <!-- Grid -->
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
         <div
           v-for="(feat, index) in features"
@@ -21,7 +19,6 @@
           class="feature-card group p-8 rounded-[2.5rem] bg-white dark:bg-[#1C1C1E] border border-zinc-200/50 dark:border-zinc-800/50 transition-all duration-500 hover:-translate-y-2 relative overflow-hidden cursor-pointer"
           :style="{ '--neon-color': feat.glowColor }"
         >
-          <!-- Subtle background glow on hover -->
           <div class="absolute -inset-1 opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-2xl z-0" :style="{ backgroundColor: feat.glowColor }"></div>
 
           <div class="relative z-10">

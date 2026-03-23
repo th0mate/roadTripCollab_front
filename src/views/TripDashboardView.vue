@@ -8,20 +8,16 @@ const toast = useToast();
 
 import { getMe } from '../services/authService';
 import { useTripMap } from '../composables/useTripMap';
-import { osrmService } from '../services/osrmService';
-import { googleMapsService } from '../services/googleMapsService';
 import TripEditModal from '../components/TripEditModal.vue';
 import TripPhotosModal from '../components/TripPhotosModal.vue';
 import TripAddStopModal from '../components/TripAddStopModal.vue';
 import AppModal from '../components/AppModal.vue';
 
-// --- ROUTING & API ---
 const route = useRoute();
 const router = useRouter();
 const tripId = route.params.id;
 const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:3333';
 
-// --- CORE STATE ---
 const trip = ref<any>(null);
 const loading = ref(true);
 const error = ref('');
@@ -30,7 +26,6 @@ const isSubmitting = ref(false);
 const daysData = ref<any[]>([]);
 const currentDayIndex = ref(0);
 
-// --- UI STATE & TOGGLES ---
 const showItineraryDrawer = ref(false);
 const showBudgetDrawer = ref(false);
 const showEditModal = ref(false);
@@ -60,7 +55,6 @@ const sharedPoiInfoWindow = ref<google.maps.InfoWindow | null>(null);
 let activeExplorationMarker: google.maps.Marker | null = null;
 let currentSearchSessionId = 0;
 
-// --- FILTERS & SETTINGS ---
 const routeFilters = ref({
   first: true,    // Orange
   main: true,     // Green
@@ -86,20 +80,17 @@ const newExpense = ref({
   date: new Date().toISOString().split('T')[0] 
 });
 
-// --- MAP COMPOSABLE ---
-const { 
+const {
   initMap: initTripMap, 
   clearAll: clearAllMap, 
   clearPolylines, 
   clearSearchMarkers: clearSearchMarkersBase, 
-  searchMarkers, 
-  addMarker, 
+  addMarker,
   drawEncodedRoute, 
   fitBounds, 
   map: tripMap 
 } = useTripMap();
 
-// --- HELPERS ---
 const extractDateLocal = (s?: string) => s ? s.substring(0, 10) : '';
 
 const extractTimeLocal = (s?: string) => { 
@@ -164,7 +155,6 @@ const getCityNameForDay = (day: any) => {
   return cityStop ? cityStop.title : '';
 };
 
-// --- COMPUTED ---
 const myParticipant = computed(() => trip.value?.participants?.find((p:any) => p.id === currentUser.value?.id));
 
 const isInvitationPending = computed(() => { 
@@ -185,7 +175,6 @@ const budgetStats = computed(() => {
   return { total, spent, remaining: total-spent, percentage: total>0?Math.min(100,(spent/total)*100):0, perUser };
 });
 
-// --- GOOGLE DIRECTIONS SERVICE (CACHED) ---
 const getGoogleRoute = (origin: any, destination: any): Promise<any> => {
   return new Promise((resolve) => {
     if (!(window as any).google || !(window as any).google.maps) {
@@ -243,7 +232,6 @@ const getGoogleRoute = (origin: any, destination: any): Promise<any> => {
   });
 };
 
-// --- DATA LOGIC ---
 const calculateItineraryByDay = async () => {
   if (!trip.value) return;
   estimatedFuelCost.value = 0; estimatedTollCost.value = 0;
@@ -284,7 +272,6 @@ const calculateItineraryByDay = async () => {
     days.push({ date:dateStr, activities:dayIt });
   }
 
-  // Calculate routes between activities
   for (const day of days) {
     const valid = day.activities.filter((a:any)=>!isNaN(parseFloat(a.latitude))&&!isNaN(parseFloat(a.longitude)));
     if (valid.length < 2) continue;
@@ -307,7 +294,6 @@ const calculateItineraryByDay = async () => {
     }
   }
 
-  // Inter-day routes
   for (let i = 0; i < days.length - 1; i++) {
     const currentDay = days[i], nextDay = days[i+1];
     const lastOfCurrent = [...currentDay.activities].reverse().find((a:any)=>!isNaN(parseFloat(a.latitude))&&!isNaN(parseFloat(a.longitude)));
@@ -332,7 +318,6 @@ const calculateItineraryByDay = async () => {
     }
   }
 
-  // Return route to start
   const lastDay = days[days.length - 1];
   const lastPoint = [...lastDay.activities].reverse().find((a:any)=>!isNaN(parseFloat(a.latitude))&&!isNaN(parseFloat(a.longitude)));
   if (lastPoint && !isNaN(parseFloat(startLoc.latitude)) && !isNaN(parseFloat(startLoc.longitude))) {
@@ -393,7 +378,6 @@ const fetchTripData = async () => {
   finally { loading.value = false; }
 };
 
-// --- MAP ACTIONS ---
 const refreshMap = (shouldFit = false) => {
   if (!tripMap.value || !trip.value) return;
   clearAll();
@@ -624,7 +608,6 @@ const initMap = async () => {
   refreshMap(true);
 };
 
-// --- USER ACTIONS ---
 const onSidebarAddClick = () => {
   if (!currentDay.value) return;
   selectedDateForAdd.value = currentDay.value.date;
@@ -932,8 +915,7 @@ const handleClickOutside = (e:MouseEvent) => {
   if(mapHeaderRef.value && !mapHeaderRef.value.contains(e.target as Node)) showQuickSuggestions.value=false; 
 };
 
-// --- WATCHERS ---
-watch(currentDayIndex, (idx) => { 
+watch(currentDayIndex, (idx) => {
   const day=daysData.value[idx]; 
   if(day) focusDayOnMap(day); 
 });
@@ -957,7 +939,6 @@ watch(tripMap, (m) => {
   }
 });
 
-// --- LIFECYCLE ---
 onMounted(async () => {
   try {
     currentUser.value = await getMe();
@@ -984,9 +965,7 @@ const quickSuggestions = [
 
 <template>
   <div class="flex flex-col flex-grow overflow-hidden pt-14">
-    <!-- SKELETON LOADING -->
     <div v-if="loading" class="flex flex-col flex-grow overflow-hidden bg-zinc-50 dark:bg-[#0c0c0e] animate-pulse">
-      <!-- Skeleton navbar secondaire -->
       <div class="shrink-0 flex items-center justify-between px-4 h-[52px] bg-white dark:bg-zinc-900/80 border-b border-zinc-200 dark:border-zinc-800/50">
         <div class="flex items-center gap-3">
           <div class="w-8 h-8 rounded-xl bg-zinc-200 dark:bg-zinc-800"></div>
@@ -998,11 +977,8 @@ const quickSuggestions = [
           <div class="h-8 w-8 rounded-xl bg-zinc-200 dark:bg-zinc-800"></div>
         </div>
       </div>
-      <!-- Skeleton contenu principal -->
       <div class="flex-grow flex overflow-hidden" style="height: calc(100vh - 104px);">
-        <!-- Skeleton colonne gauche -->
         <aside class="w-[340px] shrink-0 flex flex-col p-3 gap-3">
-          <!-- Card budget skeleton -->
           <div class="p-4 bg-white dark:bg-zinc-900 rounded-[1.5rem] border border-zinc-200 dark:border-white/5 space-y-3">
             <div class="flex items-center justify-between">
               <div class="space-y-1.5">
@@ -1020,7 +996,6 @@ const quickSuggestions = [
               <div class="h-8 rounded-xl bg-zinc-100 dark:bg-zinc-800"></div>
             </div>
           </div>
-          <!-- Card itinéraire skeleton -->
           <div class="flex-grow bg-white dark:bg-zinc-900 rounded-[1.5rem] border border-zinc-200 dark:border-white/5 overflow-hidden flex flex-col">
             <div class="px-4 py-3 border-b border-zinc-200 dark:border-zinc-800/50 flex items-center justify-between">
               <div class="h-2.5 w-20 rounded-full bg-zinc-200 dark:bg-zinc-800"></div>
@@ -1046,7 +1021,6 @@ const quickSuggestions = [
             </div>
           </div>
         </aside>
-        <!-- Skeleton carte -->
         <div class="flex-grow rounded-[2.5rem] my-3 mr-3 bg-zinc-200 dark:bg-zinc-800 overflow-hidden relative">
           <div class="absolute inset-0 bg-gradient-to-br from-zinc-300/50 to-zinc-200/20 dark:from-zinc-700/50 dark:to-zinc-800/20"></div>
           <div class="absolute top-6 left-6 w-80 h-12 rounded-2xl bg-white/80 dark:bg-zinc-900/80"></div>
@@ -1060,7 +1034,6 @@ const quickSuggestions = [
       </div>
     </div>
 
-    <!-- ERROR -->
     <div v-else-if="error" class="flex-grow flex items-center justify-center bg-zinc-50 dark:bg-[#0c0c0e]">
       <div class="text-center p-8">
         <i class="fi fi-rr-exclamation text-rose-400 text-4xl mb-4 block"></i>
@@ -1069,9 +1042,7 @@ const quickSuggestions = [
       </div>
     </div>
 
-    <!-- MAIN -->
     <div v-else-if="trip" class="flex flex-col bg-zinc-50 dark:bg-[#0c0c0e] text-zinc-900 dark:text-zinc-100 overflow-hidden flex-grow">
-      <!-- NAV SECONDAIRE -->
       <div class="h-12 shrink-0 bg-white dark:bg-[#161618] border-b border-zinc-200 dark:border-zinc-800/50 flex items-center justify-between px-6 z-40">
         <div class="flex items-center gap-4">
           <h2 class="text-sm font-black flex items-center gap-2">
@@ -1100,13 +1071,18 @@ const quickSuggestions = [
             </button>
           </div>
         </div>
-        <button @click="router.push(`/trips/${tripId}/settings`)"
-          class="px-3 py-1.5 rounded-xl bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-[10px] font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-400 hover:text-primary-400 transition-all cursor-pointer flex items-center gap-1.5">
-          <i class="fi fi-rr-settings-sliders"></i>Paramètres
-        </button>
+        <div class="flex items-center gap-2">
+          <button v-if="trip.status === 'active'" @click="router.push(`/trips/${tripId}/live`)"
+            class="px-3 py-1.5 rounded-xl bg-primary-400 text-zinc-950 text-[10px] font-black uppercase tracking-widest hover:bg-primary-500 transition-all cursor-pointer flex items-center gap-1.5 shadow-[0_0_12px_rgba(159,224,0,0.3)] animate-pulse-slow">
+            <span class="w-1.5 h-1.5 rounded-full bg-zinc-950 animate-pulse"></span>Mode Live
+          </button>
+          <button @click="router.push(`/trips/${tripId}/settings`)"
+            class="px-3 py-1.5 rounded-xl bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-[10px] font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-400 hover:text-primary-400 transition-all cursor-pointer flex items-center gap-1.5">
+            <i class="fi fi-rr-settings-sliders"></i>Paramètres
+          </button>
+        </div>
       </div>
 
-      <!-- BANNER INVITATION -->
       <div v-if="isInvitationPending" class="shrink-0 px-6 py-3 bg-amber-500/10 border-b border-amber-500/30 flex items-center justify-between">
         <span class="text-sm text-amber-600 dark:text-amber-400 font-bold flex items-center gap-2">
           <i class="fi fi-rr-envelope"></i>Vous avez été invité à rejoindre ce voyage.
@@ -1116,9 +1092,7 @@ const quickSuggestions = [
         </button>
       </div>
 
-      <!-- CONTENU PRINCIPAL -->
       <div class="flex-grow flex overflow-hidden" style="height: calc(100vh - 104px);">
-        <!-- COLONNE GAUCHE -->
         <aside class="w-[340px] shrink-0 flex flex-col bg-zinc-50 dark:bg-[#0c0c0e] overflow-hidden z-30 transition-all duration-300"
           :class="{'!w-0 opacity-0 pointer-events-none': showItineraryDrawer && showBudgetDrawer}">
           <section class="m-3 p-4 bg-white dark:bg-zinc-900 rounded-[1.5rem] border border-zinc-200 dark:border-white/5 relative overflow-hidden shrink-0">
@@ -1204,10 +1178,8 @@ const quickSuggestions = [
           </section>
         </aside>
 
-        <!-- DRAWER ITINÉRAIRE (inline, pousse la carte) -->
         <transition name="panel-slide">
           <div v-if="showItineraryDrawer" class="w-[380px] shrink-0 flex flex-col bg-white dark:bg-zinc-900 rounded-[1.5rem] border border-zinc-200 dark:border-white/5 m-3 ml-0 overflow-hidden">
-            <!-- Header -->
             <header class="px-4 py-3 border-b border-zinc-100 dark:border-zinc-800/60 flex items-center justify-between shrink-0">
               <div class="flex items-center gap-2.5">
                 <div class="w-7 h-7 rounded-lg bg-primary-400/10 flex items-center justify-center text-primary-500 dark:text-primary-400 shrink-0"><i class="fi fi-rr-map-marker text-xs"></i></div>
@@ -1218,10 +1190,8 @@ const quickSuggestions = [
               </div>
               <button @click="showItineraryDrawer = false" class="w-7 h-7 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 flex items-center justify-center text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 transition-all cursor-pointer shrink-0"><i class="fi fi-rr-cross text-xs"></i></button>
             </header>
-            <!-- Corps scrollable -->
             <div class="flex-grow overflow-y-auto custom-scrollbar">
               <div v-for="(day, idx) in daysData" :key="day.date">
-                <!-- Séparateur de jour -->
                 <div class="px-4 py-2 bg-zinc-50 dark:bg-zinc-900 border-b border-zinc-100 dark:border-zinc-800 sticky top-0 z-10">
                   <div class="flex items-center justify-between">
                     <div class="flex items-center gap-1.5">
@@ -1233,7 +1203,6 @@ const quickSuggestions = [
                     <button v-if="!isInvitationPending" @click="focusMapSearchForDay(day.date)" class="text-[9px] font-black text-primary-500 dark:text-primary-400 hover:underline cursor-pointer">+ Ajouter</button>
                   </div>
                 </div>
-                <!-- Activités du jour -->
                 <div class="px-3 py-2 space-y-1.5">
                   <div v-for="stop in day.activities" :key="stop.id">
                     <div @click="focusStopOnMap(stop)"
@@ -1254,7 +1223,6 @@ const quickSuggestions = [
                         <button v-if="!stop.isAccommodationHub && !stop.isReturnStep" @click.stop="openDeleteModal('stop', stop)" class="w-5 h-5 rounded flex items-center justify-center text-zinc-400 hover:text-rose-400 cursor-pointer"><i class="fi fi-rr-trash text-[9px]"></i></button>
                       </div>
                     </div>
-                    <!-- Trajet entre 2 étapes -->
                     <div v-if="stop.travelTimeToNext && day.activities.indexOf(stop) < day.activities.length - 1" class="flex items-center gap-1.5 pl-4 py-0.5">
                       <div class="w-px h-3 bg-zinc-200 dark:bg-zinc-800 ml-2.5"></div>
                       <i class="fi fi-rr-car-side text-[7px] text-zinc-300 dark:text-zinc-600"></i>
@@ -1269,7 +1237,6 @@ const quickSuggestions = [
           </div>
         </transition>
 
-        <!-- COLONNE DROITE : CARTE -->
         <main class="flex-grow relative bg-zinc-100 dark:bg-zinc-950 overflow-hidden rounded-[2.5rem] my-3 mr-3 border border-zinc-200 dark:border-zinc-800/50" :class="{'ml-0': showItineraryDrawer || showBudgetDrawer}">
           <div id="trip-map" class="w-full h-full"></div>
           
@@ -1315,10 +1282,8 @@ const quickSuggestions = [
           </div>
         </main>
 
-        <!-- DRAWER BUDGET (inline, pousse la carte) -->
         <transition name="panel-slide-right">
           <div v-if="showBudgetDrawer" class="w-[380px] shrink-0 flex flex-col bg-white dark:bg-zinc-900 rounded-[1.5rem] border border-zinc-200 dark:border-white/5 m-3 mr-0 overflow-hidden">
-            <!-- Header compact -->
             <header class="px-4 py-3 border-b border-zinc-100 dark:border-zinc-800/60 flex items-center justify-between shrink-0">
               <div class="flex items-center gap-2.5">
                 <div class="w-7 h-7 rounded-lg bg-primary-400/10 flex items-center justify-center text-primary-500 dark:text-primary-400 shrink-0"><i class="fi fi-rr-wallet text-xs"></i></div>
@@ -1329,7 +1294,6 @@ const quickSuggestions = [
               </div>
               <button @click="showBudgetDrawer = false" class="w-7 h-7 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 flex items-center justify-center text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 transition-all cursor-pointer shrink-0"><i class="fi fi-rr-cross text-xs"></i></button>
             </header>
-            <!-- Résumé budget -->
             <div class="px-4 py-3 border-b border-zinc-100 dark:border-zinc-800/40 shrink-0">
               <div class="flex items-center justify-between mb-2">
                 <div>
@@ -1354,13 +1318,11 @@ const quickSuggestions = [
                 <span class="text-[8px] font-black text-violet-500/80 flex items-center gap-1"><i class="fi fi-rr-road"></i>Péages ~{{ Math.round(estimatedTollCost) }}€</span>
               </div>
             </div>
-            <!-- Bouton ajout -->
             <div class="px-4 py-2.5 shrink-0 border-b border-zinc-100 dark:border-zinc-800/40">
               <button @click="showExpenseModal = true" class="w-full py-2 rounded-xl bg-primary-400 text-zinc-900 text-[10px] font-black uppercase tracking-widest hover:bg-primary-500 transition-all cursor-pointer flex items-center justify-center gap-1.5">
                 <i class="fi fi-rr-plus text-xs"></i>Ajouter une dépense
               </button>
             </div>
-            <!-- Liste des dépenses -->
             <div class="flex-grow overflow-y-auto custom-scrollbar">
               <div v-if="!trip.expenses?.length" class="py-12 text-center">
                 <i class="fi fi-rr-receipt text-2xl text-zinc-200 dark:text-zinc-800 mb-2 block"></i>
@@ -1389,14 +1351,9 @@ const quickSuggestions = [
         </transition>
       </div>
 
-
-      <!-- DRAWERS & MODALS -->
-
       <div v-if="showExpenseModal" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-zinc-950/60 backdrop-blur-md" @click.self="showExpenseModal = false">
         <div class="w-full max-w-md bg-white dark:bg-[#111113] rounded-[2rem] border border-zinc-200/80 dark:border-white/8 shadow-[0_32px_80px_rgba(0,0,0,0.18)] dark:shadow-[0_32px_80px_rgba(0,0,0,0.7)] overflow-hidden animate-slide-up">
-          <!-- Bande accent -->
           <div class="h-1 w-full bg-primary-400"></div>
-          <!-- Header -->
           <div class="px-6 py-5 flex items-center justify-between">
             <div class="flex items-center gap-3.5">
               <div class="w-10 h-10 rounded-2xl bg-primary-400/10 flex items-center justify-center text-primary-500 dark:text-primary-400 shrink-0"><i class="fi fi-rr-receipt text-base leading-none"></i></div>
@@ -1447,12 +1404,9 @@ const quickSuggestions = [
         </div>
       </div>
 
-      <!-- MODAL ÉDITION DÉPENSE -->
       <div v-if="showEditExpenseModal && editingExpense" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-zinc-950/60 backdrop-blur-md" @click.self="showEditExpenseModal = false">
         <div class="w-full max-w-md bg-white dark:bg-[#111113] rounded-[2rem] border border-zinc-200/80 dark:border-white/8 shadow-[0_32px_80px_rgba(0,0,0,0.18)] dark:shadow-[0_32px_80px_rgba(0,0,0,0.7)] overflow-hidden animate-slide-up">
-          <!-- Bande accent amber (édition) -->
           <div class="h-1 w-full bg-amber-400"></div>
-          <!-- Header -->
           <div class="px-6 py-5 flex items-center justify-between">
             <div class="flex items-center gap-3.5">
               <div class="w-10 h-10 rounded-2xl bg-amber-400/10 flex items-center justify-center text-amber-500 dark:text-amber-400 shrink-0"><i class="fi fi-rr-edit text-base leading-none"></i></div>

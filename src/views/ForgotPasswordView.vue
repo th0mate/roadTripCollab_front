@@ -22,9 +22,7 @@ const handleForgotPassword = async () => {
 
 <template>
   <div class="page-wrapper !pt-0 !pb-0 flex min-h-screen">
-    <!-- Left: Content/Branding -->
     <div class="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-zinc-900 items-center justify-center p-12">
-      <!-- Decorative background -->
       <div class="absolute inset-0 z-0 opacity-20">
         <div class="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-primary-400 rounded-full blur-[120px]"></div>
         <div class="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-amber-500 rounded-full blur-[120px]"></div>
@@ -59,9 +57,7 @@ const handleForgotPassword = async () => {
       </div>
     </div>
 
-    <!-- Right: Form -->
     <div class="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12 pt-32 lg:pt-0 relative">
-      <!-- Mobile logo -->
       <div class="absolute top-28 left-8 lg:hidden">
         <RouterLink to="/" class="flex items-center gap-2">
           <div class="w-8 h-8 bg-primary-400 rounded-lg flex items-center justify-center">

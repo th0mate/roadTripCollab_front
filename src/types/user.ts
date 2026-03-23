@@ -2,8 +2,8 @@ export interface User {
   id: number;
   fullName: string;
   email: string;
-  password?: string; // Le mot de passe est optionnel car on ne le reçoit pas toujours
-  profilePicture?: string; // URL ou chemin vers la photo de profil
+  password?: string;
+  avatar?: string | null;
   isVerified?: boolean;
   isAdmin?: boolean;
 }

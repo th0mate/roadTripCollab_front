@@ -81,7 +81,6 @@ onMounted(fetchTrips);
 <template>
   <div class="page-wrapper nav-safe-zone bg-zinc-50 dark:bg-[#0c0c0e]">
     
-    <!-- Hero Header with Stats -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 mb-12">
       <div class="relative overflow-hidden bg-zinc-900 rounded-[2rem] p-8 md:p-12 text-white border border-white/5 shadow-2xl">
         <div class="absolute top-0 right-0 w-96 h-96 bg-primary-400/10 rounded-full blur-[100px] pointer-events-none"></div>
@@ -117,7 +116,6 @@ onMounted(fetchTrips);
 
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-24">
       
-      <!-- Action Bar -->
       <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
         <div class="flex p-1.5 bg-white dark:bg-[#1C1C1E] rounded-2xl border border-zinc-200/50 dark:border-zinc-800/50 shadow-sm w-fit">
           <button @click="activeFilter = 'all'" :class="[activeFilter === 'all' ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300']" class="px-6 py-2 rounded-xl text-sm font-bold transition-all cursor-pointer">Tout</button>
@@ -131,13 +129,11 @@ onMounted(fetchTrips);
         </RouterLink>
       </div>
 
-      <!-- Content -->
       <div v-if="loading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         <div v-for="i in 3" :key="i" class="h-80 rounded-[2rem] bg-zinc-200 dark:bg-zinc-800 animate-pulse"></div>
       </div>
 
       <template v-else>
-        <!-- Invitations -->
         <div v-if="invitations.length > 0" class="mb-16 animate-fade-in">
           <div class="flex items-center gap-4 mb-8 px-2">
             <i class="fi fi-rr-bell-ring text-primary-400 animate-bounce"></i>
@@ -164,7 +160,6 @@ onMounted(fetchTrips);
           </div>
         </div>
 
-        <!-- Empty State -->
         <div v-if="filteredTrips.length === 0" class="flex flex-col items-center justify-center py-32 text-center">
           <div class="w-24 h-24 rounded-[2rem] bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-300 dark:text-zinc-700 mb-8 border border-zinc-200/50 dark:border-zinc-800/50 shadow-inner">
             <i class="fi fi-rr-map-marker text-4xl"></i>
@@ -174,12 +169,12 @@ onMounted(fetchTrips);
           <RouterLink to="/create-trip" class="btn-primary !px-10 !py-5">Démarrer une expédition</RouterLink>
         </div>
 
-        <!-- Trips Grid -->
         <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10">
           <div
             v-for="trip in filteredTrips" :key="trip.id"
             @click="router.push(`/trips/${trip.id}`)"
             class="trip-card group relative bg-white dark:bg-[#1C1C1E] rounded-[2rem] border border-zinc-200/50 dark:border-zinc-800/50 overflow-hidden transition-all duration-500 hover:-translate-y-3 cursor-pointer shadow-sm hover:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.1)] dark:hover:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.5)]"
+            :class="trip.status === 'active' ? 'ring-2 ring-primary-400/30 ring-offset-2 ring-offset-zinc-50 dark:ring-offset-[#0c0c0e]' : ''"
           >
             <div class="h-64 relative overflow-hidden">
               <img :src="trip.coverImage ? `${backendUrl}/uploads/${trip.coverImage}` : placeholders[trip.id % 4]" class="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" />
@@ -205,7 +200,6 @@ onMounted(fetchTrips);
             </div>
 
             <div class="p-8 space-y-6 border-t border-zinc-100 dark:border-white/5 bg-white dark:bg-[#1C1C1E]">
-              <!-- Budget Gauge -->
               <div v-if="trip.budget > 0" class="space-y-2">
                 <div class="flex justify-between items-end">
                   <span class="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Budget</span>
@@ -224,7 +218,6 @@ onMounted(fetchTrips);
               </div>
 
               <div class="flex items-center justify-between">
-                <!-- Participants -->
                 <div class="flex items-center gap-3">
                   <div class="flex -space-x-3">
                     <div v-for="(p, idx) in (trip.participants || []).slice(0, 3)" :key="p.id" 
@@ -241,9 +234,16 @@ onMounted(fetchTrips);
                   <span class="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Team</span>
                 </div>
 
-                <div class="flex items-center gap-2 text-primary-400 font-black text-xs uppercase tracking-widest group-hover:translate-x-2 transition-all">
-                  <span>Expédition</span>
-                  <i class="fi fi-rr-arrow-small-right text-xl leading-none"></i>
+                <div class="flex items-center gap-2">
+                  <button v-if="trip.status === 'active'" @click.stop="router.push(`/trips/${trip.id}/live`)"
+                    class="flex items-center gap-1.5 px-3 py-1.5 bg-primary-400 text-zinc-950 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-primary-500 transition-all shadow-[0_0_12px_rgba(159,224,0,0.25)] active:scale-95">
+                    <span class="w-1.5 h-1.5 rounded-full bg-zinc-950 animate-pulse"></span>
+                    En Route
+                  </button>
+                  <div class="flex items-center gap-2 text-primary-400 font-black text-xs uppercase tracking-widest group-hover:translate-x-2 transition-all">
+                    <span>Voir</span>
+                    <i class="fi fi-rr-arrow-small-right text-xl leading-none"></i>
+                  </div>
                 </div>
               </div>
             </div>

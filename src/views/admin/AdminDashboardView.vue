@@ -51,13 +51,11 @@ onMounted(async () => {
   <AdminLayout>
     <div class="animate-fade-in">
       
-      <!-- Header -->
       <div class="mb-10">
         <h1 class="text-3xl font-extrabold text-slate-900 dark:text-white mb-2">Dashboard</h1>
         <p class="text-slate-600 dark:text-slate-400">Vue d'ensemble de la plateforme RoadTripCollab</p>
       </div>
 
-      <!-- Loading State -->
       <div v-if="loading" class="flex flex-col items-center justify-center py-20">
         <div class="w-12 h-12 border-4 border-primary-100 border-t-primary-500 rounded-full animate-spin mb-4"></div>
         <p class="text-slate-500">Chargement des données...</p>
@@ -65,7 +63,6 @@ onMounted(async () => {
 
       <template v-else>
         
-        <!-- Stats Grid -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
           
           <div class="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 flex items-center gap-4">
@@ -114,10 +111,7 @@ onMounted(async () => {
 
         </div>
 
-        <!-- Tables Layout -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          
-          <!-- Recent Trips -->
           <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden flex flex-col">
             <div class="px-6 py-5 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/50">
               <h2 class="font-bold text-slate-900 dark:text-white">Derniers voyages créés</h2>
@@ -157,7 +151,6 @@ onMounted(async () => {
             </div>
           </div>
 
-          <!-- Recent Users -->
           <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden flex flex-col">
             <div class="px-6 py-5 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/50">
               <h2 class="font-bold text-slate-900 dark:text-white">Nouveaux inscrits</h2>

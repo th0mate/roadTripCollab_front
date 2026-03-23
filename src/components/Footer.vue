@@ -2,7 +2,6 @@
   <div class="px-4 sm:px-6 lg:px-8 pb-10 transition-colors duration-200">
     <footer class="max-w-7xl mx-auto bg-white dark:bg-[#1C1C1E] rounded-[2.5rem] border border-zinc-200/60 dark:border-zinc-800/50 shadow-sm p-8 sm:p-12 transition-colors duration-200">
       <div class="grid grid-cols-1 md:grid-cols-4 gap-8 lg:gap-12">
-        <!-- Brand -->
         <div class="col-span-1 md:col-span-1 flex flex-col items-start">
           <div class="flex items-center gap-3 mb-4">
             <div class="w-10 h-10 bg-primary-400 dark:bg-primary-400 rounded-xl flex items-center justify-center shadow-md shadow-primary-500/20">
@@ -15,7 +14,6 @@
           </p>
         </div>
 
-        <!-- Produit -->
         <div>
           <h4 class="text-xs font-bold text-zinc-900 dark:text-white uppercase tracking-widest mb-6 border-l-2 border-primary-500 pl-3">Produit</h4>
           <ul class="space-y-3 pl-3">
@@ -24,7 +22,6 @@
           </ul>
         </div>
 
-        <!-- Compagnie -->
         <div>
           <h4 class="text-xs font-bold text-zinc-900 dark:text-white uppercase tracking-widest mb-6 border-l-2 border-violet-500 pl-3">Compagnie</h4>
           <ul class="space-y-3 pl-3">
@@ -34,7 +31,6 @@
           </ul>
         </div>
 
-        <!-- Juridique -->
         <div>
           <h4 class="text-xs font-bold text-zinc-900 dark:text-white uppercase tracking-widest mb-6 border-l-2 border-amber-500 pl-3">Juridique</h4>
           <ul class="space-y-3 pl-3">

@@ -3,7 +3,6 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-20">
       <div class="flex flex-col lg:flex-row gap-12">
         
-        <!-- Sidebar Navigation -->
         <aside class="lg:w-64 shrink-0">
           <div class="sticky top-32 space-y-1">
             <p class="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 mb-4 px-4">Navigation</p>
@@ -14,7 +13,6 @@
           </div>
         </aside>
 
-        <!-- Main Content -->
         <main class="flex-grow max-w-3xl">
           <header class="mb-12">
             <h1 class="text-4xl lg:text-5xl font-black text-zinc-900 dark:text-white mb-4 tracking-tight">Mentions <span class="text-primary-400">Légales</span></h1>
@@ -22,7 +20,6 @@
           </header>
 
           <div class="space-y-16">
-            <!-- Section 1 -->
             <section id="edition">
               <div class="flex items-center gap-3 mb-6">
                 <div class="w-10 h-10 rounded-xl bg-primary-400/10 flex items-center justify-center text-primary-400">
@@ -45,7 +42,6 @@
               </div>
             </section>
 
-            <!-- Section 2 -->
             <section id="contact">
               <div class="flex items-center gap-3 mb-6">
                 <div class="w-10 h-10 rounded-xl bg-violet-500/10 flex items-center justify-center text-violet-500">
@@ -67,7 +63,6 @@
               </div>
             </section>
 
-            <!-- Section 3 -->
             <section id="hosting">
               <div class="flex items-center gap-3 mb-6">
                 <div class="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-500">
@@ -85,7 +80,6 @@
               </div>
             </section>
 
-            <!-- Section 4 -->
             <section id="copyright">
               <div class="flex items-center gap-3 mb-6">
                 <div class="w-10 h-10 rounded-xl bg-rose-500/10 flex items-center justify-center text-rose-500">

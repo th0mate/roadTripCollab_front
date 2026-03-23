@@ -115,7 +115,6 @@ const onCancel = () => {
   <AdminLayout>
     <div class="animate-fade-in">
       
-      <!-- Header & Tabs -->
       <div class="mb-8">
         <h1 class="text-3xl font-extrabold text-slate-900 dark:text-white mb-2">Étapes & Photos</h1>
         <p class="text-slate-600 dark:text-slate-400 mb-6">Modérez le contenu publié par les utilisateurs sur leurs parcours.</p>
@@ -138,10 +137,7 @@ const onCancel = () => {
         </div>
       </div>
 
-      <!-- Tab Content: STOPS -->
       <div v-if="activeTab === 'stops'" class="space-y-6 animate-fade-in">
-        
-        <!-- Toolbar -->
         <div class="flex flex-col sm:flex-row items-center gap-4 bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
           <div class="relative w-full sm:w-80">
             <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
@@ -162,7 +158,6 @@ const onCancel = () => {
           </button>
         </div>
 
-        <!-- Table -->
         <div v-if="stopsLoading && !stopsData" class="flex justify-center py-12">
           <div class="w-10 h-10 border-4 border-primary-100 border-t-primary-500 rounded-full animate-spin"></div>
         </div>
@@ -215,7 +210,6 @@ const onCancel = () => {
             </table>
           </div>
           
-          <!-- Pagination -->
           <div v-if="stopsData?.meta && stopsData.meta.lastPage > 1" class="px-6 py-4 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/50">
             <button @click="goToStopsPage(stopsPage - 1)" :disabled="stopsPage === 1" class="w-10 h-10 rounded-xl bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 flex items-center justify-center text-slate-600 disabled:opacity-50 hover:bg-slate-50 transition-colors"><i class="fi fi-rr-angle-left"></i></button>
             <span class="text-sm font-semibold text-slate-600 dark:text-slate-400">Page {{ stopsPage }} sur {{ stopsData.meta.lastPage }}</span>
@@ -224,7 +218,6 @@ const onCancel = () => {
         </div>
       </div>
 
-      <!-- Tab Content: PHOTOS -->
       <div v-if="activeTab === 'photos'" class="animate-fade-in">
         
         <div v-if="photosLoading && !photosData" class="flex justify-center py-12">
@@ -257,7 +250,6 @@ const onCancel = () => {
             </div>
           </div>
 
-          <!-- Pagination -->
           <div v-if="photosData.meta.lastPage > 1" class="flex justify-center mt-10 gap-4">
             <button @click="goToPhotosPage(photosPage - 1)" :disabled="photosPage === 1" class="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-600 disabled:opacity-50 hover:bg-slate-50 transition-colors shadow-sm"><i class="fi fi-rr-angle-left"></i></button>
             <div class="flex items-center text-sm font-semibold text-slate-600 dark:text-slate-400">Page {{ photosPage }} / {{ photosData.meta.lastPage }}</div>
@@ -269,7 +261,6 @@ const onCancel = () => {
 
     </div>
 
-    <!-- Modal confirmation -->
     <AppModal
       v-model="confirmModal"
       type="danger"

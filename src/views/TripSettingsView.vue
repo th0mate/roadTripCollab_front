@@ -23,13 +23,20 @@ const form = ref({
   status: 'planning',
   carConsumption: 7.0,
   fuelPrice: 1.8,
-  tollRate: 0.12
+  tollRate: 0.12,
+  startLocation: null as any
 });
+
+const startLocationSearch = ref('');
+const startLocationResults = ref<any[]>([]);
+const showStartLocationResults = ref(false);
+let searchTimeout: ReturnType<typeof setTimeout> | null = null;
 
 const fetchTrip = async () => {
   try {
     const res = await api.get(`/trips/${tripId}`);
     trip.value = res.data;
+    const settings = trip.value.settings || {};
     form.value = {
       title: trip.value.title,
       description: trip.value.description || '',
@@ -39,8 +46,12 @@ const fetchTrip = async () => {
       status: trip.value.status,
       carConsumption: trip.value.carConsumption || 7.0,
       fuelPrice: trip.value.fuelPrice || 1.8,
-      tollRate: trip.value.tollRate || 0.12
+      tollRate: trip.value.tollRate || 0.12,
+      startLocation: settings.startLocation || null
     };
+    if (form.value.startLocation) {
+      startLocationSearch.value = form.value.startLocation.title;
+    }
   } catch (e) {
     router.push('/my-trips');
   } finally {
@@ -58,6 +69,34 @@ const handleFileUpload = (event: Event) => {
   }
 };
 
+const searchStartLocation = () => {
+  if (startLocationSearch.value.length < 3) { 
+    startLocationResults.value = []; 
+    showStartLocationResults.value = false; 
+    if (startLocationSearch.value.length === 0) form.value.startLocation = null;
+    return; 
+  }
+  if (searchTimeout) clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(async () => {
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(startLocationSearch.value)}`);
+      startLocationResults.value = await res.json();
+      showStartLocationResults.value = true;
+    } catch (e) { console.error(e); }
+  }, 500);
+};
+
+const selectStartLocation = (result: any) => {
+  form.value.startLocation = {
+    title: result.display_name.split(',')[0],
+    address: result.display_name,
+    latitude: parseFloat(result.lat),
+    longitude: parseFloat(result.lon)
+  };
+  startLocationSearch.value = result.display_name.split(',')[0];
+  showStartLocationResults.value = false;
+};
+
 const saveSettings = async () => {
   isSubmitting.value = true;
   try {
@@ -71,6 +110,10 @@ const saveSettings = async () => {
     fd.append('carConsumption', form.value.carConsumption.toString());
     fd.append('fuelPrice', form.value.fuelPrice.toString());
     fd.append('tollRate', form.value.tollRate.toString());
+    
+    const settings = trip.value.settings || {};
+    settings.startLocation = form.value.startLocation;
+    fd.append('settings', JSON.stringify(settings));
     
     if (selectedFile.value) {
       fd.append('cover_image', selectedFile.value);
@@ -118,7 +161,6 @@ const scrollTo = (id: string) => {
 
 <template>
   <div class="page-wrapper nav-safe-zone bg-zinc-50 dark:bg-[#0c0c0e]">
-    <!-- Background Blur Elements -->
     <div class="fixed top-0 left-1/4 w-96 h-96 bg-primary-400/5 rounded-full blur-[120px] pointer-events-none"></div>
     <div class="fixed bottom-0 right-1/4 w-96 h-96 bg-blue-500/5 rounded-full blur-[120px] pointer-events-none"></div>
 
@@ -131,10 +173,8 @@ const scrollTo = (id: string) => {
 
       <div v-else class="flex flex-col lg:flex-row gap-16 animate-fade-in">
         
-        <!-- Sticky Sidebar -->
         <aside class="lg:w-72 shrink-0">
           <div class="sticky top-32 space-y-8">
-            <!-- Back & Title -->
             <div class="space-y-4 px-4">
               <button @click="router.push(`/trips/${tripId}`)" 
                 class="inline-flex items-center gap-2 text-zinc-500 hover:text-primary-400 font-bold transition-colors group cursor-pointer">
@@ -144,7 +184,6 @@ const scrollTo = (id: string) => {
               <h1 class="text-3xl font-black text-zinc-900 dark:text-white leading-tight">Configuration</h1>
             </div>
 
-            <!-- Nav Links -->
             <nav class="space-y-1">
               <button 
                 v-for="section in sections" :key="section.id"
@@ -157,7 +196,6 @@ const scrollTo = (id: string) => {
               </button>
             </nav>
 
-            <!-- Save Action -->
             <div class="pt-6 px-4">
               <button @click="saveSettings" :disabled="isSubmitting" class="btn-primary w-full !py-4 shadow-2xl">
                 <span v-if="isSubmitting" class="spinner w-4 h-4 border-zinc-950 border-t-transparent"></span>
@@ -167,7 +205,6 @@ const scrollTo = (id: string) => {
           </div>
         </aside>
 
-        <!-- Main Content area -->
         <main class="flex-grow max-w-3xl space-y-24">
           
           <header class="hidden lg:block">
@@ -180,7 +217,6 @@ const scrollTo = (id: string) => {
             </p>
           </header>
 
-          <!-- Section: Général -->
           <section id="general" class="scroll-mt-32">
             <div class="flex items-center gap-4 mb-8 px-2">
               <div class="w-12 h-12 rounded-2xl bg-primary-400/10 flex items-center justify-center text-primary-400">
@@ -193,7 +229,6 @@ const scrollTo = (id: string) => {
             </div>
 
             <div class="paper-card p-8 lg:p-10 space-y-10">
-              <!-- Cover Image Picker -->
               <div class="space-y-4">
                 <label class="form-label !mb-0 ml-0 uppercase tracking-widest text-[10px]">Image de couverture</label>
                 <div class="relative h-64 rounded-[2rem] overflow-hidden bg-zinc-100 dark:bg-zinc-800 group border-4 border-white dark:border-zinc-800 shadow-inner transition-all hover:shadow-2xl">
@@ -212,7 +247,6 @@ const scrollTo = (id: string) => {
                 </div>
               </div>
 
-              <!-- Main Fields -->
               <div class="space-y-8">
                 <div class="space-y-2">
                   <label class="form-label ml-0 uppercase tracking-widest text-[10px]">Nom du voyage</label>
@@ -222,6 +256,22 @@ const scrollTo = (id: string) => {
                 <div class="space-y-2">
                   <label class="form-label ml-0 uppercase tracking-widest text-[10px]">Description</label>
                   <textarea v-model="form.description" rows="4" class="input-field !rounded-2xl border-none focus:bg-zinc-50 dark:focus:bg-zinc-800/50 px-6 py-4 resize-none" placeholder="Racontez ce qui rend ce voyage unique..."></textarea>
+                </div>
+
+                <div class="space-y-2 relative">
+                  <label class="form-label ml-0 uppercase tracking-widest text-[10px]">Point de départ</label>
+                  <div class="relative group">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-6 text-zinc-400 group-focus-within:text-primary-400 transition-colors">
+                      <i class="fi fi-rr-marker leading-none text-sm"></i>
+                    </span>
+                    <input v-model="startLocationSearch" @input="searchStartLocation" class="input-field !rounded-2xl border-none focus:bg-zinc-50 dark:focus:bg-zinc-800/50 pl-14 pr-6 py-4" placeholder="D'où partez-vous ?" />
+                  </div>
+                  
+                  <div v-if="showStartLocationResults && startLocationResults.length > 0" class="absolute z-50 w-full mt-2 bg-white dark:bg-[#1C1C1E] rounded-2xl shadow-2xl border border-zinc-100 dark:border-zinc-800 overflow-hidden animate-fade-in">
+                    <div v-for="result in startLocationResults" :key="result.place_id" @click="selectStartLocation(result)" class="px-5 py-4 hover:bg-zinc-50 dark:hover:bg-zinc-800 cursor-pointer text-sm font-medium border-b border-zinc-50 dark:border-zinc-800 last:border-0 truncate">
+                      {{ result.display_name }}
+                    </div>
+                  </div>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -257,7 +307,6 @@ const scrollTo = (id: string) => {
             </div>
           </section>
 
-          <!-- Section: Véhicule -->
           <section id="vehicle" class="scroll-mt-32">
             <div class="flex items-center gap-4 mb-8 px-2">
               <div class="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-500">
@@ -293,7 +342,6 @@ const scrollTo = (id: string) => {
             </div>
           </section>
 
-          <!-- Section: Danger -->
           <section id="danger" class="scroll-mt-32">
             <div class="flex items-center gap-4 mb-8 px-2">
               <div class="w-12 h-12 rounded-2xl bg-rose-500/10 flex items-center justify-center text-rose-500">

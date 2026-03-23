@@ -9,7 +9,11 @@ const isLoading = ref(false);
 const apiError = ref('');
 const today = new Date().toISOString().split('T')[0];
 
-const trip = ref({ title: '', description: '', startDate: '', endDate: '', budget: 0 });
+const trip = ref({ title: '', description: '', startDate: '', endDate: '', budget: 0, startLocation: null as any });
+const startLocationSearch = ref('');
+const startLocationResults = ref<City[]>([]);
+const showStartLocationResults = ref(false);
+
 const selectedFile = ref<File | null>(null);
 const previewUrl = ref<string | null>(null);
 const newParticipantEmail = ref('');
@@ -199,6 +203,10 @@ const createTrip = async () => {
     if (trip.value.budget) formData.append('budget', trip.value.budget.toString());
     formData.append('status', 'planning');
     if (selectedFile.value) formData.append('cover_image', selectedFile.value);
+    
+    if (trip.value.startLocation) {
+      formData.append('settings', JSON.stringify({ startLocation: trip.value.startLocation }));
+    }
 
     const tripResponse = await api.post('/trips', formData);
     const tripId = tripResponse.data.id;
@@ -240,20 +248,45 @@ const addParticipant = async () => {
   } catch (error: any) { participantError.value = "Inconnu"; }
 };
 const removeParticipant = (index: number) => participants.value.splice(index, 1);
+
+const searchStartLocation = () => {
+  if (startLocationSearch.value.length < 3) { 
+    startLocationResults.value = []; 
+    showStartLocationResults.value = false; 
+    if (startLocationSearch.value.length === 0) trip.value.startLocation = null;
+    return; 
+  }
+  if (searchTimeout) clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(async () => {
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(startLocationSearch.value)}`);
+      startLocationResults.value = await res.json();
+      showStartLocationResults.value = true;
+    } catch (e) { console.error(e); }
+  }, 500);
+};
+
+const selectStartLocation = (result: City) => {
+  trip.value.startLocation = {
+    title: result.display_name.split(',')[0],
+    address: result.display_name,
+    latitude: parseFloat(result.lat),
+    longitude: parseFloat(result.lon)
+  };
+  startLocationSearch.value = result.display_name.split(',')[0];
+  showStartLocationResults.value = false;
+};
 </script>
 
 <template>
   <div class="h-screen flex flex-col lg:flex-row bg-white dark:bg-[#0c0c0e] overflow-hidden">
     
-    <!-- LEFT -->
     <div class="flex-grow flex flex-col h-full relative z-20 bg-white dark:bg-[#0c0c0e]">
-      <!-- Safe Area for Navbar (Balanced height) -->
       <div class="h-24 lg:h-32 shrink-0"></div>
 
       <div class="flex-grow overflow-hidden flex flex-col px-6 sm:px-12 lg:px-20">
         <div class="max-w-2xl w-full flex flex-col h-full mx-auto lg:mx-0">
           
-          <!-- Editorial Header (Optimized) -->
           <div class="mb-6 shrink-0">
             <div class="flex items-center gap-4 mb-4">
               <div v-for="step in 3" :key="step" class="h-1 flex-1 rounded-full transition-all duration-700" :class="currentStep >= step ? 'bg-primary-400' : 'bg-zinc-100 dark:bg-zinc-800'"></div>
@@ -264,7 +297,6 @@ const removeParticipant = (index: number) => participants.value.splice(index, 1)
           </div>
 
           <div class="flex-grow overflow-y-auto pr-4 custom-scrollbar pb-6">
-            <!-- STEP 1: GENERAL -->
             <div v-if="currentStep === 1" class="space-y-5 animate-slide-up">
               <div>
                 <label class="text-xs font-semibold text-zinc-500 dark:text-zinc-400 mb-1.5 ml-1 block">Nom de votre expédition</label>
@@ -273,6 +305,21 @@ const removeParticipant = (index: number) => participants.value.splice(index, 1)
                   <input type="text" v-model="trip.title" class="block w-full bg-zinc-50 dark:bg-[#1C1C1E] border-2 border-zinc-200 dark:border-zinc-800 rounded-2xl pl-12 pr-6 py-3.5 text-zinc-900 dark:text-white placeholder:text-zinc-400/50 focus:ring-4 focus:ring-primary-400/10 focus:border-primary-400 transition-all outline-none font-bold" placeholder="Ex: Islande 2026" />
                 </div>
               </div>
+              
+              <div>
+                <label class="text-xs font-semibold text-zinc-500 dark:text-zinc-400 mb-1.5 ml-1 block">Point de départ</label>
+                <div class="group relative">
+                  <span class="absolute inset-y-0 left-0 flex items-center pl-5 text-zinc-400 group-focus-within:text-primary-400 transition-colors"><i class="fi fi-rr-marker leading-none text-sm"></i></span>
+                  <input type="text" v-model="startLocationSearch" @input="searchStartLocation" class="block w-full bg-zinc-50 dark:bg-[#1C1C1E] border-2 border-zinc-200 dark:border-zinc-800 rounded-2xl pl-12 pr-6 py-3.5 text-zinc-900 dark:text-white placeholder:text-zinc-400/50 focus:ring-4 focus:ring-primary-400/10 focus:border-primary-400 transition-all outline-none font-bold" placeholder="D'où partez-vous ?" />
+                  
+                  <div v-if="showStartLocationResults && startLocationResults.length > 0" class="absolute z-50 w-full mt-2 bg-white dark:bg-[#1C1C1E] rounded-2xl shadow-2xl border border-zinc-100 dark:border-zinc-800 overflow-hidden animate-fade-in">
+                    <div v-for="result in startLocationResults" :key="result.place_id" @click="selectStartLocation(result)" class="px-5 py-4 hover:bg-zinc-50 dark:hover:bg-zinc-800 cursor-pointer text-sm font-medium border-b border-zinc-50 dark:border-zinc-800 last:border-0 truncate">
+                      {{ result.display_name }}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <div>
                 <label class="text-xs font-semibold text-zinc-500 dark:text-zinc-400 mb-1.5 ml-1 block">Description</label>
                 <div class="group relative">
@@ -296,7 +343,6 @@ const removeParticipant = (index: number) => participants.value.splice(index, 1)
               </div>
             </div>
 
-            <!-- STEP 2: TEAM -->
             <div v-if="currentStep === 2" class="space-y-6 animate-slide-up">
               <div>
                 <label class="text-xs font-semibold text-zinc-500 dark:text-zinc-400 mb-1.5 ml-1 block">Ajouter un co-pilote</label>
@@ -317,12 +363,9 @@ const removeParticipant = (index: number) => participants.value.splice(index, 1)
               </div>
             </div>
 
-            <!-- STEP 3: ROUTE (Fixed Timeline) -->
             <div v-if="currentStep === 3" class="space-y-6 animate-slide-up pb-10">
               <div v-for="(day, index) in tripDays" :key="index" class="relative group pl-16 pb-10 last:pb-0">
-                <!-- Vertical Line -->
                 <div v-if="index < tripDays.length - 1" class="absolute left-[19px] top-6 bottom-0 w-0.5 bg-zinc-100 dark:bg-zinc-800"></div>
-                <!-- Numbered Dot -->
                 <div class="absolute left-0 top-0 w-10 h-10 rounded-2xl border-4 border-white dark:border-[#0c0c0e] transition-all duration-500 shadow-md flex items-center justify-center z-10" :class="day.city ? 'bg-primary-400 scale-110' : 'bg-zinc-100 dark:bg-zinc-800'">
                   <span class="text-[10px] font-black" :class="day.city ? 'text-zinc-900' : 'text-zinc-400'">{{ index + 1 }}</span>
                 </div>
@@ -372,7 +415,6 @@ const removeParticipant = (index: number) => participants.value.splice(index, 1)
       </div>
     </div>
 
-    <!-- RIGHT -->
     <div class="hidden lg:flex w-full lg:w-[45%] xl:w-[50%] bg-zinc-900 relative items-center justify-center p-20 pt-32 overflow-hidden shrink-0">
       <div class="absolute inset-0">
         <div class="absolute top-[-20%] left-[-20%] w-[80%] h-[80%] bg-primary-400/20 rounded-full blur-[150px] animate-pulse"></div>

@@ -116,34 +116,26 @@ onMounted(fetchUser)
   <div class="page-wrapper nav-safe-zone">
     <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
 
-      <!-- Page Header -->
       <div class="mb-8">
         <h1 class="text-2xl font-bold text-zinc-900 dark:text-white mb-1">Mon Profil</h1>
         <p class="text-sm text-zinc-500 dark:text-zinc-400">Gérez vos informations personnelles.</p>
       </div>
 
-      <!-- Global Error -->
       <div v-if="error && !isEditing" class="mb-6 flex items-center gap-2.5 p-3.5 rounded-xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 text-rose-600 dark:text-rose-400">
         <i class="fi fi-rr-exclamation text-sm leading-none"></i>
         <span class="text-sm">{{ error }}</span>
       </div>
 
-      <!-- Loading -->
       <div v-if="!user && !error" class="flex justify-center py-20">
         <div class="spinner w-8 h-8 text-primary-500 border-2"></div>
       </div>
 
       <div v-else-if="user" class="space-y-5">
 
-        <!-- Read-only view -->
         <template v-if="!isEditing">
-          <!-- Profile Card -->
           <div class="paper-card overflow-hidden">
-            <!-- Banner -->
             <div class="h-24 bg-gradient-to-r from-primary-400 to-primary-600"></div>
-            <!-- Body -->
             <div class="px-6 pb-6">
-              <!-- Avatar -->
               <div class="relative -mt-12 mb-4 w-fit">
                 <div class="w-20 h-20 rounded-2xl border-4 border-white dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-700 overflow-hidden group cursor-pointer shadow-sm" @click="fileInputRef?.click()">
                   <img v-if="displayProfilePicture" :src="displayProfilePicture" :alt="user.fullName" class="w-full h-full object-cover" />
@@ -155,7 +147,6 @@ onMounted(fetchUser)
                 <input ref="fileInputRef" type="file" accept="image/*" class="hidden" @change="handleFileChange" />
               </div>
 
-              <!-- Name & email + edit button -->
               <div class="flex items-start justify-between gap-4">
                 <div>
                   <h2 class="text-lg font-bold text-zinc-900 dark:text-white">{{ user.fullName }}</h2>
@@ -172,7 +163,6 @@ onMounted(fetchUser)
             </div>
           </div>
 
-          <!-- Danger Zone -->
           <div class="paper-card p-6 border-rose-200 dark:border-rose-500/30">
             <h3 class="font-semibold text-rose-600 dark:text-rose-400 flex items-center gap-2 mb-2 text-sm">
               <i class="fi fi-rr-triangle-warning leading-none"></i>
@@ -186,10 +176,8 @@ onMounted(fetchUser)
           </div>
         </template>
 
-        <!-- Edit form -->
         <template v-else>
           <form @submit.prevent="saveChanges" class="paper-card overflow-hidden">
-            <!-- Form Header -->
             <div class="px-6 py-4 border-b border-zinc-100 dark:border-zinc-700 flex items-center justify-between">
               <h2 class="font-semibold text-zinc-900 dark:text-white text-sm">Modifier le profil</h2>
               <button type="button" @click="cancelEditing" class="btn-ghost w-7 h-7 !px-0 rounded-lg">
@@ -198,13 +186,11 @@ onMounted(fetchUser)
             </div>
 
             <div class="p-6 space-y-6">
-              <!-- Form Error -->
               <div v-if="formError" class="flex items-center gap-2.5 p-3.5 rounded-xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 text-rose-600 dark:text-rose-400">
                 <i class="fi fi-rr-exclamation text-sm leading-none"></i>
                 <span class="text-sm">{{ formError }}</span>
               </div>
 
-              <!-- Avatar -->
               <div>
                 <p class="form-label">Photo de profil</p>
                 <div class="flex items-center gap-4">
@@ -227,7 +213,6 @@ onMounted(fetchUser)
                 </div>
               </div>
 
-              <!-- Nom + Email -->
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label for="fullName" class="form-label">Nom complet</label>
@@ -241,10 +226,8 @@ onMounted(fetchUser)
                 </div>
               </div>
 
-              <!-- Divider -->
               <div class="divider"></div>
 
-              <!-- Sécurité -->
               <div>
                 <p class="font-semibold text-zinc-900 dark:text-white text-sm mb-1">Changer de mot de passe</p>
                 <p class="text-xs text-zinc-400 mb-4">Laissez vide si vous ne souhaitez pas modifier votre mot de passe.</p>
@@ -270,7 +253,6 @@ onMounted(fetchUser)
               </div>
             </div>
 
-            <!-- Form Actions -->
             <div class="px-6 py-4 border-t border-zinc-100 dark:border-zinc-700 flex justify-end gap-3">
               <button type="button" @click="cancelEditing" class="btn-ghost text-sm">Annuler</button>
               <button type="submit" class="btn-primary text-sm">
@@ -282,7 +264,6 @@ onMounted(fetchUser)
         </template>
       </div>
 
-      <!-- Delete Modal -->
       <AppModal
         v-model="showDeleteModal"
         type="danger"

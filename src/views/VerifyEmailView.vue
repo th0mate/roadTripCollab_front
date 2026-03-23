@@ -25,13 +25,11 @@ onMounted(async () => {
   <div class="page-wrapper flex items-center justify-center px-4">
     <div class="w-full max-w-sm">
       <div class="paper-card p-8 text-center">
-        <!-- Loading -->
         <div v-if="loading" class="flex flex-col items-center gap-4 py-4">
           <div class="spinner w-10 h-10 text-primary-500 border-[3px]"></div>
           <p class="text-sm font-medium text-zinc-500">Vérification en cours…</p>
         </div>
 
-        <!-- Success -->
         <div v-else-if="success" class="flex flex-col items-center gap-4 py-4">
           <div class="w-16 h-16 bg-primary-50 dark:bg-primary-500/10 rounded-2xl flex items-center justify-center">
             <i class="fi fi-rr-check-circle text-primary-500 text-3xl leading-none"></i>
@@ -46,7 +44,6 @@ onMounted(async () => {
           </RouterLink>
         </div>
 
-        <!-- Error -->
         <div v-else class="flex flex-col items-center gap-4 py-4">
           <div class="w-16 h-16 bg-rose-50 dark:bg-rose-500/10 rounded-2xl flex items-center justify-center">
             <i class="fi fi-rr-cross-circle text-rose-500 text-3xl leading-none"></i>

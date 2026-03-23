@@ -3,7 +3,6 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="lg:grid lg:grid-cols-2 lg:gap-16 items-center">
 
-        <!-- Text side -->
         <div class="text-center lg:text-left mb-12 lg:mb-0">
           <span class="section-label mb-3 inline-block">Interface</span>
           <h2 class="text-3xl lg:text-4xl font-bold text-zinc-900 dark:text-white mb-8">
@@ -26,9 +25,7 @@
           </div>
         </div>
 
-        <!-- Mockup side -->
         <div class="relative">
-          <!-- Main App Mockup -->
           <div class="relative z-10 paper-card overflow-hidden shadow-xl lg:-rotate-2 hover:rotate-0 transition-transform duration-500">
             <div class="bg-zinc-100 dark:bg-zinc-700 px-3 py-2.5 flex gap-1.5 items-center border-b border-zinc-200 dark:border-zinc-700">
               <div class="w-2.5 h-2.5 rounded-full bg-rose-400"></div>
@@ -50,7 +47,6 @@
             </div>
           </div>
 
-          <!-- Floating Mobile Mockup -->
           <div class="absolute -bottom-8 -right-8 z-20 w-36 hidden md:block">
             <div class="bg-zinc-900 rounded-[2rem] border-4 border-zinc-800 shadow-2xl overflow-hidden aspect-[9/19]">
               <div class="bg-white dark:bg-zinc-900 h-full p-3 pt-6 space-y-2.5">

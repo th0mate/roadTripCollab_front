@@ -2,7 +2,6 @@
   <div class="transition-colors duration-500">
     <Hero />
 
-    <!-- Destinations Section -->
     <section class="py-24 relative">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
@@ -14,7 +13,6 @@
             </h2>
           </div>
 
-          <!-- Categories -->
           <div class="flex items-center gap-2 overflow-x-auto pb-2 no-scrollbar -mx-4 px-4 md:mx-0 md:px-0">
             <button
               v-for="(cat, idx) in categories" :key="idx"
@@ -31,7 +29,6 @@
           </div>
         </div>
 
-        <!-- Grid -->
         <div v-if="isLoading" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
           <div v-for="i in 3" :key="i" class="h-[420px] rounded-[2.5rem] bg-zinc-100 dark:bg-white/5 animate-pulse"></div>
         </div>
@@ -42,7 +39,6 @@
             @click="openTripModal(trip)"
             class="group cursor-pointer flex flex-col bg-white dark:bg-[#1C1C1E] rounded-[2.5rem] border border-zinc-200/50 dark:border-white/5 overflow-hidden transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_20px_50px_rgba(0,0,0,0.1)] dark:hover:shadow-[0_20px_50px_rgba(0,0,0,0.4)]"
           >
-            <!-- Image Area -->
             <div class="relative h-64 overflow-hidden shrink-0">
               <img
                 v-if="trip.coverImage"
@@ -53,7 +49,6 @@
               
               <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
               
-              <!-- Badges -->
               <div class="absolute top-5 left-5 flex gap-2">
                 <span class="px-3 py-1.5 bg-black/40 backdrop-blur-md rounded-xl text-[10px] font-black text-primary-400 uppercase tracking-wider border border-white/10">
                   {{ trip.budget ? trip.budget + ' €' : 'Libre' }}
@@ -71,7 +66,6 @@
               </div>
             </div>
 
-            <!-- Content Area -->
             <div class="p-6 flex flex-col gap-4">
               <p class="text-zinc-500 dark:text-zinc-400 text-sm line-clamp-2 leading-relaxed">
                 {{ trip.description || 'Découvrez cet itinéraire incroyable et organisez le vôtre.' }}
@@ -93,7 +87,6 @@
           </div>
         </div>
 
-        <!-- Load More -->
         <div v-if="hasMore" class="mt-20 text-center">
           <button
             @click="loadMore"
@@ -112,7 +105,6 @@
 
     <Features />
 
-    <!-- CTA Section -->
     <section class="py-24 relative overflow-hidden">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div class="bg-gradient-to-br from-[#1C1C1E] to-[#0c0c0e] rounded-[4rem] p-12 md:p-20 text-center shadow-3xl relative overflow-hidden border border-white/5">
@@ -136,7 +128,6 @@
       </div>
     </section>
 
-    <!-- Modal -->
     <TripDetailsModal v-if="selectedTrip" :isOpen="isModalOpen" :trip="selectedTrip" @close="isModalOpen = false" />
   </div>
 </template>

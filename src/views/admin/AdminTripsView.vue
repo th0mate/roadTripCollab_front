@@ -117,14 +117,12 @@ const onCancel = () => {
   <AdminLayout>
     <div class="animate-fade-in">
       
-      <!-- Header -->
       <div class="mb-8 flex flex-col lg:flex-row lg:items-end justify-between gap-4">
         <div>
           <h1 class="text-3xl font-extrabold text-slate-900 dark:text-white mb-2">Voyages</h1>
           <p class="text-slate-600 dark:text-slate-400">Gestion de tous les voyages de la plateforme.</p>
         </div>
         
-        <!-- Filters -->
         <div class="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
           <div class="relative flex-grow sm:w-64">
             <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
@@ -145,14 +143,12 @@ const onCancel = () => {
         </div>
       </div>
 
-      <!-- Loading State -->
       <div v-if="loading && !data" class="flex flex-col items-center justify-center py-20">
         <div class="w-12 h-12 border-4 border-primary-100 border-t-primary-500 rounded-full animate-spin mb-4"></div>
         <p class="text-slate-500">Chargement des voyages...</p>
       </div>
 
       <template v-else>
-        <!-- Table Card -->
         <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden relative">
           
           <div v-if="loading && data" class="absolute inset-0 bg-white/50 dark:bg-slate-900/50 backdrop-blur-[1px] z-10 flex items-center justify-center">
@@ -239,7 +235,6 @@ const onCancel = () => {
             </table>
           </div>
           
-          <!-- Pagination -->
           <div v-if="data?.meta && data.meta.lastPage > 1" class="px-6 py-4 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/50">
             <button 
               @click="goToPage(currentPage - 1)" 
@@ -264,7 +259,6 @@ const onCancel = () => {
       </template>
     </div>
 
-    <!-- Modal confirmation -->
     <AppModal
       v-model="confirmModal"
       type="danger"

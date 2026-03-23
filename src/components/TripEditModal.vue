@@ -35,7 +35,6 @@ const submitUpdate = () => { if (!isFormValid.value) return; emit('update', { ..
   <div class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-zinc-950/40 backdrop-blur-md animate-fade-in" @click.self="$emit('close')">
     <div class="w-full max-w-xl bg-white dark:bg-[#1C1C1E] rounded-[2.5rem] border border-zinc-200/50 dark:border-zinc-800/50 shadow-2xl overflow-hidden flex flex-col animate-slide-up">
       
-      <!-- Header -->
       <div class="px-8 py-6 border-b border-zinc-100 dark:border-zinc-800/50 flex items-center justify-between">
         <div class="flex items-center gap-4">
           <div class="w-10 h-10 rounded-xl bg-primary-400/10 flex items-center justify-center text-primary-400">
@@ -48,9 +47,7 @@ const submitUpdate = () => { if (!isFormValid.value) return; emit('update', { ..
         </button>
       </div>
 
-      <!-- Content -->
       <div class="p-8 overflow-y-auto custom-scrollbar flex-grow space-y-6">
-        <!-- Image Preview Section -->
         <div class="relative h-40 rounded-2xl overflow-hidden bg-zinc-100 dark:bg-zinc-800 group">
           <img v-if="previewUrl" :src="previewUrl" class="w-full h-full object-cover" />
           <img v-else-if="currentCoverImage" :src="`${backendUrl}/uploads/${currentCoverImage}`" class="w-full h-full object-cover" />
@@ -94,7 +91,6 @@ const submitUpdate = () => { if (!isFormValid.value) return; emit('update', { ..
         </div>
       </div>
 
-      <!-- Footer -->
       <div class="px-8 py-6 bg-zinc-50 dark:bg-white/[0.02] border-t border-zinc-100 dark:border-zinc-800/50 flex justify-end gap-3">
         <button @click="$emit('close')" class="px-6 py-3 text-sm font-bold text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer">Annuler</button>
         <button @click="submitUpdate" :disabled="isSubmitting || !isFormValid" class="btn-primary !px-8 shadow-xl shadow-primary-400/20">

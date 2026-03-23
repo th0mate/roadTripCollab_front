@@ -7,7 +7,6 @@
     ]">
       <div :class="[isDashboard ? 'px-4' : 'px-4 sm:px-6']">
         <div :class="[isDashboard ? 'h-14' : 'h-16 sm:h-20']" class="flex justify-between items-center transition-all duration-300">
-          <!-- Logo -->
           <router-link to="/" class="flex items-center gap-3 group cursor-pointer">
             <div :class="[isDashboard ? 'w-8 h-8 rounded-lg' : 'w-10 h-10 rounded-xl']" class="bg-primary-400 flex items-center justify-center shadow-md shadow-primary-500/20 group-hover:scale-105 transition-all">
               <i class="fi fi-rr-road text-white dark:text-zinc-900 text-[14px] leading-none"></i>
@@ -17,7 +16,6 @@
             </span>
           </router-link>
 
-          <!-- Desktop Navigation -->
           <div class="hidden md:flex items-center gap-1">
             <router-link to="/" class="nav-link" active-class="active">
               Accueil
@@ -41,12 +39,10 @@
 
             <div class="w-px h-6 bg-zinc-200 dark:bg-zinc-800 mx-3"></div>
             
-            <!-- Theme Toggle -->
             <button @click="themeStore.toggleTheme" class="p-2.5 rounded-2xl text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all active:scale-90 cursor-pointer" title="Changer le thème">
               <i :class="themeStore.isDark ? 'fi fi-rr-sun' : 'fi fi-rr-moon'" class="text-lg leading-none"></i>
             </button>
 
-            <!-- Auth Buttons -->
             <div class="flex items-center gap-2 ml-2">
               <template v-if="!authStore.isAuthenticated">
                 <router-link to="/login" class="px-5 py-2.5 text-sm font-bold text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer">
@@ -68,7 +64,6 @@
             </div>
           </div>
 
-          <!-- Mobile Toggle -->
           <div class="md:hidden flex items-center gap-2">
             <button @click="themeStore.toggleTheme" class="p-2.5 rounded-xl text-zinc-600 dark:text-zinc-400 active:scale-90 cursor-pointer">
                <i :class="themeStore.isDark ? 'fi fi-rr-sun' : 'fi fi-rr-moon'" class="text-lg"></i>

@@ -52,13 +52,11 @@ const duplicateTrip = async () => {
         >
           <div v-if="isOpen" class="w-full sm:max-w-xl bg-white dark:bg-zinc-800 rounded-t-3xl sm:rounded-2xl border border-zinc-200 dark:border-zinc-700 shadow-xl overflow-hidden flex flex-col max-h-[90vh]">
 
-            <!-- Cover -->
             <div class="relative h-48 sm:h-56 shrink-0 overflow-hidden bg-zinc-100 dark:bg-zinc-700">
               <img v-if="trip.coverImage" :src="`${backendUrl}/uploads/${trip.coverImage}`" class="w-full h-full object-cover" />
               <div v-else class="w-full h-full bg-gradient-to-br from-primary-400 to-primary-600"></div>
               <div class="absolute inset-0 bg-gradient-to-t from-zinc-900/80 via-zinc-900/20 to-transparent"></div>
 
-              <!-- Close button -->
               <button @click="close" class="absolute top-4 right-4 w-8 h-8 rounded-xl bg-white/20 dark:bg-zinc-900/40 hover:bg-white/30 backdrop-blur-sm flex items-center justify-center text-white transition-all cursor-pointer">
                 <i class="fi fi-rr-cross-small text-sm leading-none"></i>
               </button>
@@ -69,9 +67,7 @@ const duplicateTrip = async () => {
               </div>
             </div>
 
-            <!-- Content -->
             <div class="p-5 overflow-y-auto custom-scrollbar flex-grow space-y-5">
-              <!-- Stats -->
               <div class="grid grid-cols-2 gap-3">
                 <div class="bg-zinc-50 dark:bg-zinc-700/50 rounded-xl p-4 border border-zinc-100 dark:border-zinc-700">
                   <p class="section-label mb-1">Budget</p>
@@ -83,13 +79,11 @@ const duplicateTrip = async () => {
                 </div>
               </div>
 
-              <!-- Description -->
               <div v-if="trip.description">
                 <p class="section-label mb-2">À propos</p>
                 <p class="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">{{ trip.description }}</p>
               </div>
 
-              <!-- Itinerary -->
               <div v-if="sortedStops.length > 0">
                 <p class="section-label mb-3">Itinéraire</p>
                 <div class="space-y-2 border-l-2 border-zinc-100 dark:border-zinc-700 pl-5 ml-2">
@@ -106,7 +100,6 @@ const duplicateTrip = async () => {
               </div>
             </div>
 
-            <!-- Footer -->
             <div class="px-5 py-4 border-t border-zinc-100 dark:border-zinc-700 flex gap-3">
               <button @click="close" class="btn-ghost flex-1">Fermer</button>
               <button

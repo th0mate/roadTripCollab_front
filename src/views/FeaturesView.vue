@@ -1,6 +1,5 @@
 <template>
   <div class="page-wrapper nav-safe-zone">
-    <!-- Hero Section -->
     <section class="relative py-12 lg:py-20 overflow-hidden">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div class="text-center max-w-4xl mx-auto">
@@ -18,19 +17,16 @@
         </div>
       </div>
       
-      <!-- Animated Background Elements -->
       <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full pointer-events-none">
         <div class="absolute top-0 left-1/4 w-96 h-96 bg-primary-400/10 rounded-full blur-[120px] animate-pulse"></div>
         <div class="absolute bottom-0 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-[120px] animate-pulse" style="animation-delay: 2s"></div>
       </div>
     </section>
 
-    <!-- Detailed Features Grid -->
     <section id="details" class="py-24 bg-zinc-50 dark:bg-zinc-900/30 transition-colors duration-200">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-16 lg:gap-24">
           
-          <!-- Feature 1: Map -->
           <div class="flex flex-col justify-center order-2 md:order-1">
             <div class="w-14 h-14 rounded-2xl bg-blue-500/10 flex items-center justify-center text-[#00d2ff] mb-8 shadow-lg shadow-blue-500/5">
               <i class="fi fi-rr-map-marker text-2xl"></i>
@@ -62,7 +58,6 @@
             </div>
           </div>
 
-          <!-- Feature 2: Expenses -->
           <div>
             <div class="paper-card overflow-hidden shadow-2xl -rotate-2 hover:rotate-0 transition-transform duration-700">
               <div class="bg-zinc-800 p-2 aspect-video flex items-center justify-center text-zinc-600 font-black italic">
@@ -90,7 +85,6 @@
             </div>
           </div>
 
-          <!-- Feature 3: Photos & Social -->
           <div class="flex flex-col justify-center order-2 md:order-1">
             <div class="w-14 h-14 rounded-2xl bg-rose-500/10 flex items-center justify-center text-[#ff007c] mb-8 shadow-lg shadow-rose-500/5">
               <i class="fi fi-rr-camera text-2xl"></i>
@@ -120,7 +114,6 @@
       </div>
     </section>
 
-    <!-- Technical Specs -->
     <section class="py-24 relative">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="bg-zinc-900 rounded-[3rem] p-12 lg:p-20 text-white relative overflow-hidden">
@@ -159,7 +152,6 @@
       </div>
     </section>
 
-    <!-- Final CTA -->
     <section class="py-24 text-center">
       <h2 class="text-3xl lg:text-4xl font-black text-zinc-900 dark:text-white mb-8">Prêt pour le départ ?</h2>
       <router-link to="/register" class="btn-primary !py-5 !px-12 !text-lg shadow-2xl">

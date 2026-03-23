@@ -12,139 +12,86 @@ const toggleSidebar = () => {
 const closeSidebar = () => {
   isSidebarOpen.value = false
 }
+
+const navigation = [
+  { name: 'Dashboard', to: '/admin/dashboard', icon: 'fi-rr-apps' },
+  { name: 'Utilisateurs', to: '/admin/users', icon: 'fi-rr-users' },
+  { name: 'Voyages', to: '/admin/trips', icon: 'fi-rr-road' },
+  { name: 'Étapes & Photos', to: '/admin/stops', icon: 'fi-rr-map-marker' },
+]
 </script>
 
 <template>
-  <div class="admin-layout">
-    <!-- Overlay mobile -->
+  <div class="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-300 flex">
+    
+    <!-- Mobile Overlay -->
     <div
       v-if="isSidebarOpen"
-      class="admin-sidebar-overlay"
+      class="fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-sm lg:hidden"
       @click="closeSidebar"
-    />
+    ></div>
 
     <!-- Sidebar -->
-    <aside class="admin-sidebar" :class="{ 'admin-sidebar--open': isSidebarOpen }">
-      <div class="admin-sidebar__logo">
-        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:16px;height:16px;display:inline;margin-right:6px;vertical-align:middle;">
-          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        Administration
+    <aside
+      class="fixed top-0 left-0 bottom-0 z-50 w-72 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 shadow-2xl lg:shadow-none lg:static transform transition-transform duration-300 ease-in-out flex flex-col"
+      :class="isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'"
+    >
+      <!-- Logo -->
+      <div class="px-8 py-6 border-b border-slate-100 dark:border-slate-700 flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-primary-100 dark:bg-primary-900/30 text-primary-600 flex items-center justify-center">
+          <i class="fi fi-rr-shield-check text-xl"></i>
+        </div>
+        <span class="text-xl font-bold text-slate-900 dark:text-white">AdminRTC</span>
       </div>
 
-      <nav class="admin-sidebar__nav">
+      <!-- Nav Links -->
+      <nav class="flex-grow py-6 px-4 space-y-2 overflow-y-auto">
         <RouterLink
-          to="/admin/dashboard"
-          class="admin-sidebar__link"
+          v-for="item in navigation"
+          :key="item.name"
+          :to="item.to"
           @click="closeSidebar"
+          class="flex items-center gap-4 px-4 py-3.5 rounded-xl text-sm font-semibold transition-all group"
+          :class="route.path === item.to || route.path.startsWith(item.to + '/') ? 'bg-primary-50 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400' : 'text-slate-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-700'"
         >
-          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect x="3" y="3" width="7" height="7" rx="1" fill="currentColor"/>
-            <rect x="14" y="3" width="7" height="7" rx="1" fill="currentColor"/>
-            <rect x="3" y="14" width="7" height="7" rx="1" fill="currentColor"/>
-            <rect x="14" y="14" width="7" height="7" rx="1" fill="currentColor"/>
-          </svg>
-          Dashboard
-        </RouterLink>
-
-        <RouterLink
-          to="/admin/users"
-          class="admin-sidebar__link"
-          @click="closeSidebar"
-        >
-          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-          Utilisateurs
-        </RouterLink>
-
-        <RouterLink
-          to="/admin/trips"
-          class="admin-sidebar__link"
-          @click="closeSidebar"
-        >
-          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="currentColor"/>
-          </svg>
-          Voyages
-        </RouterLink>
-
-        <RouterLink
-          to="/admin/stops"
-          class="admin-sidebar__link"
-          @click="closeSidebar"
-        >
-          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M4 16l4.586-4.586a2 2 0 0 1 2.828 0L16 16m-2-2 1.586-1.586a2 2 0 0 1 2.828 0L20 14m-6-6h.01M6 20h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-          Étapes &amp; Photos
+          <i :class="`fi ${item.icon} text-lg ${route.path === item.to || route.path.startsWith(item.to + '/') ? 'text-primary-600 dark:text-primary-400' : 'text-slate-400 group-hover:text-primary-500'}`"></i>
+          {{ item.name }}
         </RouterLink>
       </nav>
 
-      <div class="admin-sidebar__footer">
-        <RouterLink to="/" class="admin-sidebar__back">
-          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:14px;height:14px;">
-            <path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
+      <!-- Footer -->
+      <div class="p-6 border-t border-slate-100 dark:border-slate-700">
+        <RouterLink to="/" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+          <i class="fi fi-rr-arrow-left"></i>
           Retour au site
         </RouterLink>
       </div>
     </aside>
 
-    <!-- Contenu principal -->
-    <div class="admin-main">
-      <!-- Bouton burger mobile -->
-      <button class="admin-burger" @click="toggleSidebar" aria-label="Menu administration">
-        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-        </svg>
-      </button>
+    <!-- Main Content -->
+    <main class="flex-grow min-w-0 flex flex-col h-screen overflow-hidden">
+      <!-- Mobile Header -->
+      <header class="lg:hidden flex items-center justify-between px-4 py-4 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-30">
+        <div class="flex items-center gap-2 text-primary-600 font-bold">
+          <i class="fi fi-rr-shield-check"></i> AdminRTC
+        </div>
+        <button @click="toggleSidebar" class="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
+          <i class="fi fi-rr-menu-burger"></i>
+        </button>
+      </header>
 
-      <div class="admin-content">
+      <!-- Page Content -->
+      <div class="flex-grow overflow-y-auto p-4 sm:p-6 lg:p-10 custom-scrollbar">
         <slot />
       </div>
-    </div>
+    </main>
+
   </div>
 </template>
 
 <style scoped>
-@import '@/assets/styles/adminView.css';
-
-.admin-sidebar-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 199;
-}
-
-.admin-burger {
-  display: none;
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  z-index: 201;
-  background: var(--rtc-primary);
-  color: #fff;
-  border: none;
-  border-radius: 50%;
-  width: 48px;
-  height: 48px;
-  cursor: pointer;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-}
-
-.admin-burger svg {
-  width: 22px;
-  height: 22px;
-}
-
-@media (max-width: 768px) {
-  .admin-burger {
-    display: flex;
-  }
-}
+.custom-scrollbar::-webkit-scrollbar { width: 6px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 10px; }
+.dark .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #475569; }
 </style>

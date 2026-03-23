@@ -1,19 +1,17 @@
 <!DOCTYPE html>
-<html lang="">
+<html lang="fr">
   <head>
-    <meta charset="UTF-8">
-    <link rel="icon" href="/favicon.png">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RoadTripCollab</title>
-    <script src="https://maps.googleapis.com/maps/api/js?key=%VITE_GOOGLE_MAPS_API_KEY%&libraries=places,geometry&callback=initGoogleMaps" async defer></script>
-    <script>
-      window.initGoogleMaps = () => {
-        window.googleMapsLoaded = true;
-        console.log("🚀 Google Maps chargé via index.html");
-      };
-    </script>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RoadTrip Collab Modern</title>
+    <!-- Flaticon UIcons -->
+    <link rel='stylesheet' href='https://cdn-uicons.flaticon.com/2.1.0/uicons-regular-rounded/css/uicons-regular-rounded.css'>
+    
+    <!-- Google Maps API -->
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAvdcTJAqVQwwRt7RDNo9gutbHQWTh9W8A&libraries=places,geometry" async defer></script>
   </head>
-  <body>
+  <body class="bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-300">
     <div id="app"></div>
     <script type="module" src="/src/main.ts"></script>
   </body>

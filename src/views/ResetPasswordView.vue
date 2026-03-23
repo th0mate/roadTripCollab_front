@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useRouter, useRoute, RouterLink } from 'vue-router';
-import { resetPassword } from '@/services/authService';
+import { resetPassword } from '../services/authService';
 
 const password = ref('');
 const confirmPassword = ref('');
@@ -10,207 +10,179 @@ const route = useRoute();
 const successMessage = ref('');
 const errorMessage = ref('');
 const isLoading = ref(false);
-
 const passwordError = ref('');
 const confirmPasswordError = ref('');
-
 const token = ref('');
 
 onMounted(() => {
   token.value = route.query.token as string;
-  if (!token.value) {
-    errorMessage.value = "Lien de réinitialisation invalide ou manquant.";
-  }
+  if (!token.value) errorMessage.value = "Lien de réinitialisation invalide ou expiré.";
 });
 
 const isPasswordValid = computed(() => {
-  if (!password.value) {
-    passwordError.value = '';
-    return false;
-  }
-  const minLength = 8;
-  const hasUpperCase = /[A-Z]/.test(password.value);
-  const hasLowerCase = /[a-z]/.test(password.value);
-  const hasDigit = /[0-9]/.test(password.value);
-  const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password.value);
-
-  if (password.value.length < minLength) {
-    passwordError.value = `Le mot de passe doit contenir au moins ${minLength} caractères.`;
-    return false;
-  }
-  if (!hasUpperCase) {
-    passwordError.value = 'Le mot de passe doit contenir au moins une majuscule.';
-    return false;
-  }
-  if (!hasLowerCase) {
-    passwordError.value = 'Le mot de passe doit contenir au moins une minuscule.';
-    return false;
-  }
-  if (!hasDigit) {
-    passwordError.value = 'Le mot de passe doit contenir au moins un chiffre.';
-    return false;
-  }
-  if (!hasSpecialChar) {
-    passwordError.value = 'Le mot de passe doit contenir au moins un caractère spécial (!@#$%^&*...).';
-    return false;
-  }
-  passwordError.value = '';
-  return true;
+  if (!password.value) { passwordError.value = ''; return false; }
+  if (password.value.length < 8) { passwordError.value = '8 caractères minimum.'; return false; }
+  if (!/[A-Z]/.test(password.value)) { passwordError.value = 'Une majuscule requise.'; return false; }
+  if (!/[0-9]/.test(password.value)) { passwordError.value = 'Un chiffre requis.'; return false; }
+  if (!/[!@#$%^&*(),.?":{}|<>]/.test(password.value)) { passwordError.value = 'Un caractère spécial requis.'; return false; }
+  passwordError.value = ''; return true;
 });
 
 const isConfirmPasswordValid = computed(() => {
-  if (!confirmPassword.value) {
-    confirmPasswordError.value = '';
-    return false;
-  }
-  if (confirmPassword.value !== password.value) {
-    confirmPasswordError.value = 'Les mots de passe ne correspondent pas.';
-    return false;
-  }
-  confirmPasswordError.value = '';
-  return true;
+  if (!confirmPassword.value) { confirmPasswordError.value = ''; return false; }
+  const ok = confirmPassword.value === password.value;
+  confirmPasswordError.value = ok ? '' : 'Les mots de passe ne correspondent pas.';
+  return ok;
 });
 
 const handleResetPassword = async () => {
-  if (isLoading.value) return;
-  
-  errorMessage.value = '';
-  successMessage.value = '';
-
-  if (!token.value) {
-     errorMessage.value = "Token manquant.";
-     return;
-  }
-
-  const passwordCheck = isPasswordValid.value;
-  const confirmCheck = isConfirmPasswordValid.value;
-
-  if (!passwordCheck || !confirmCheck) {
-    errorMessage.value = 'Veuillez corriger les erreurs dans le formulaire.';
-    return;
-  }
-
-  isLoading.value = true;
-
+  if (isLoading.value || !token.value) return;
+  if (!isPasswordValid.value || !isConfirmPasswordValid.value) { errorMessage.value = 'Vérifiez les champs.'; return; }
+  isLoading.value = true; errorMessage.value = '';
   try {
     await resetPassword({ token: token.value, password: password.value });
-    successMessage.value = 'Mot de passe réinitialisé avec succès ! Redirection...';
-    
-    setTimeout(() => {
-      router.push('/login');
-    }, 2000);
-
+    successMessage.value = "Mot de passe réinitialisé ! Redirection...";
+    setTimeout(() => router.push("/login"), 2000);
   } catch (error: any) {
-    errorMessage.value = error.response?.data?.message || 'Échec de la réinitialisation. Le lien a peut-être expiré.';
-    console.error(error);
-  } finally {
-    isLoading.value = false;
-  }
+    errorMessage.value = error.response?.data?.message || "Échec. Le lien a peut-être expiré.";
+  } finally { isLoading.value = false; }
 };
 </script>
 
 <template>
-  <div class="reset-password-view">
-    <div class="reset-password-view__background"></div>
-    
-    <div class="reset-password-view__container">
-      <div class="reset-password-view__card">
-        <div class="reset-password-view__header">
-          <div class="reset-password-view__icon">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z" fill="currentColor"/>
-            </svg>
+  <div class="page-wrapper !pt-0 !pb-0 flex min-h-screen">
+    <!-- Left: Content/Branding -->
+    <div class="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-zinc-900 items-center justify-center p-12">
+      <!-- Decorative background -->
+      <div class="absolute inset-0 z-0 opacity-20">
+        <div class="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-primary-400 rounded-full blur-[120px]"></div>
+        <div class="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-blue-600 rounded-full blur-[120px]"></div>
+      </div>
+      
+      <div class="relative z-10 max-w-lg text-center lg:text-left">
+        <RouterLink to="/" class="inline-flex items-center gap-3 mb-10 group">
+          <div class="w-12 h-12 bg-primary-400 rounded-2xl flex items-center justify-center shadow-lg shadow-primary-500/20 group-hover:scale-110 transition-transform duration-500">
+            <i class="fi fi-rr-road text-zinc-900 text-xl leading-none"></i>
           </div>
-          <h1 class="reset-password-view__title">Nouveau mot de passe</h1>
-          <p class="reset-password-view__subtitle">Définissez votre nouveau mot de passe sécurisé</p>
+          <span class="text-3xl font-black tracking-tight text-white">RoadTrip<span class="text-primary-400">Collab</span></span>
+        </RouterLink>
+        
+        <h2 class="text-5xl font-black text-white leading-tight mb-6">
+          Votre compte est <span class="text-primary-400">entre de bonnes</span> mains.
+        </h2>
+        <p class="text-xl text-zinc-400 leading-relaxed mb-8">
+          Choisissez un mot de passe robuste pour protéger vos futurs souvenirs de voyage.
+        </p>
+        
+        <div class="flex flex-col gap-4">
+           <div class="flex items-center gap-4 py-4 px-6 bg-white/5 backdrop-blur-md rounded-2xl border border-white/10">
+              <i class="fi fi-rr-shield-check text-primary-400 text-xl"></i>
+              <p class="text-white font-medium">Chiffrement de bout en bout</p>
+           </div>
+           <div class="flex items-center gap-4 py-4 px-6 bg-white/5 backdrop-blur-md rounded-2xl border border-white/10">
+              <i class="fi fi-rr-lock text-primary-400 text-xl"></i>
+              <p class="text-white font-medium">Protection contre les intrusions</p>
+           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: Form -->
+    <div class="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12 pt-32 lg:pt-0 relative overflow-y-auto">
+      <!-- Mobile logo -->
+      <div class="absolute top-28 left-8 lg:hidden">
+        <RouterLink to="/" class="flex items-center gap-2">
+          <div class="w-8 h-8 bg-primary-400 rounded-lg flex items-center justify-center">
+            <i class="fi fi-rr-road text-zinc-900 text-xs leading-none"></i>
+          </div>
+          <span class="font-bold text-zinc-900 dark:text-white">RoadTripCollab</span>
+        </RouterLink>
+      </div>
+
+      <div class="w-full max-w-md py-12 lg:py-0">
+        <div class="mb-10 text-center lg:text-left">
+          <div class="inline-flex w-14 h-14 bg-primary-50 dark:bg-primary-400/10 rounded-2xl items-center justify-center mb-6">
+            <i class="fi fi-rr-shield-check text-primary-400 text-2xl leading-none mt-0.5"></i>
+          </div>
+          <h1 class="text-3xl font-black text-zinc-900 dark:text-white mb-3">Sécurisez votre compte</h1>
+          <p class="text-zinc-500 dark:text-zinc-400">Définissez votre nouveau mot de passe ci-dessous.</p>
         </div>
 
-        <form v-if="token" @submit.prevent="handleResetPassword" class="reset-password-view__form">
-          <div class="reset-password-view__form-group" :class="{ 'reset-password-view__form-group--error': passwordError }">
-            <label for="password" class="reset-password-view__label">Nouveau mot de passe</label>
-            <div class="reset-password-view__input-wrapper">
-              <svg class="reset-password-view__input-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z" fill="currentColor"/>
-              </svg>
-              <input 
-                type="password" 
-                id="password" 
-                v-model="password" 
-                class="reset-password-view__input"
-                :class="{ 'reset-password-view__input--error': passwordError }"
-                placeholder="••••••••" 
-                required 
-                :disabled="isLoading"
+        <form v-if="token" @submit.prevent="handleResetPassword" class="space-y-6">
+          <div>
+            <label for="password" class="form-label !ml-0 !mb-2.5">Nouveau mot de passe</label>
+            <div class="group relative">
+              <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-zinc-400 group-focus-within:text-primary-400 transition-colors">
+                <i class="fi fi-rr-lock leading-none"></i>
+              </span>
+              <input
+                type="password" id="password" v-model="password"
+                class="block w-full bg-white dark:bg-[#1C1C1E] border border-zinc-200 dark:border-zinc-800 rounded-2xl pl-11 pr-4 py-4 text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:ring-4 focus:ring-primary-400/10 focus:border-primary-400 transition-all outline-none"
+                :class="{ 'border-rose-500/50 focus:border-rose-500 focus:ring-rose-500/10': passwordError }"
+                placeholder="••••••••••••"
+                required :disabled="isLoading"
               />
             </div>
-            <p v-if="passwordError" class="reset-password-view__field-error">
-              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" fill="currentColor"/>
-              </svg>
-              {{ passwordError }}
+            <p v-if="passwordError" class="mt-2 text-xs text-rose-500 font-medium flex items-center gap-1.5 px-1">
+              <i class="fi fi-rr-exclamation leading-none"></i> {{ passwordError }}
             </p>
           </div>
 
-          <div class="reset-password-view__form-group" :class="{ 'reset-password-view__form-group--error': confirmPasswordError }">
-            <label for="confirmPassword" class="reset-password-view__label">Confirmer le mot de passe</label>
-            <div class="reset-password-view__input-wrapper">
-              <svg class="reset-password-view__input-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" fill="currentColor"/>
-              </svg>
-              <input 
-                type="password" 
-                id="confirmPassword" 
-                v-model="confirmPassword" 
-                class="reset-password-view__input"
-                :class="{ 'reset-password-view__input--error': confirmPasswordError }"
-                placeholder="••••••••" 
-                required 
-                :disabled="isLoading"
+          <div>
+            <label for="confirmPassword" class="form-label !ml-0 !mb-2.5">Confirmer le mot de passe</label>
+            <div class="group relative">
+              <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-zinc-400 group-focus-within:text-primary-400 transition-colors">
+                <i class="fi fi-rr-check leading-none"></i>
+              </span>
+              <input
+                type="password" id="confirmPassword" v-model="confirmPassword"
+                class="block w-full bg-white dark:bg-[#1C1C1E] border border-zinc-200 dark:border-zinc-800 rounded-2xl pl-11 pr-4 py-4 text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:ring-4 focus:ring-primary-400/10 focus:border-primary-400 transition-all outline-none"
+                :class="{ 'border-rose-500/50 focus:border-rose-500 focus:ring-rose-500/10': confirmPasswordError }"
+                placeholder="••••••••••••"
+                required :disabled="isLoading"
               />
             </div>
-            <p v-if="confirmPasswordError" class="reset-password-view__field-error">
-              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" fill="currentColor"/>
-              </svg>
-              {{ confirmPasswordError }}
+            <p v-if="confirmPasswordError" class="mt-2 text-xs text-rose-500 font-medium flex items-center gap-1.5 px-1">
+              <i class="fi fi-rr-exclamation leading-none"></i> {{ confirmPasswordError }}
             </p>
           </div>
 
-          <button type="submit" class="reset-password-view__btn" :disabled="isLoading">
-            <span v-if="isLoading" class="reset-password-view__btn-spinner"></span>
-            <span v-else>Réinitialiser</span>
+          <div v-if="successMessage" class="flex items-start gap-3 p-4 rounded-2xl bg-primary-50 dark:bg-primary-400/10 border border-primary-100 dark:border-primary-400/20 text-primary-700 dark:text-primary-400 text-sm">
+            <i class="fi fi-rr-check-circle leading-none text-lg mt-0.5"></i>
+            <p class="font-medium leading-relaxed">{{ successMessage }}</p>
+          </div>
+
+          <div v-if="errorMessage" class="flex items-center gap-3 p-4 rounded-2xl bg-rose-50 dark:bg-rose-500/5 border border-rose-100 dark:border-rose-500/10 text-rose-600 dark:text-rose-400 text-sm">
+            <i class="fi fi-rr-exclamation-octagon leading-none text-lg"></i>
+            <p class="font-medium">{{ errorMessage }}</p>
+          </div>
+
+          <button type="submit" :disabled="isLoading" class="btn-primary w-full !py-4 !rounded-2xl !text-base group shadow-xl shadow-primary-500/20">
+            <span v-if="isLoading" class="spinner border-zinc-900/30 border-t-zinc-900"></span>
+            <span v-else class="flex items-center justify-center gap-2">
+              Enregistrer le mot de passe
+              <i class="fi fi-rr-shield-check text-lg leading-none"></i>
+            </span>
           </button>
-
-          <div v-if="successMessage" class="reset-password-view__success">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" fill="currentColor"/>
-            </svg>
-            <span>{{ successMessage }}</span>
-          </div>
-
-          <div v-if="errorMessage" class="reset-password-view__error">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" fill="currentColor"/>
-            </svg>
-            <span>{{ errorMessage }}</span>
-          </div>
         </form>
 
-        <div v-else class="reset-password-view__invalid">
-          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" fill="currentColor"/>
-          </svg>
-          <span>{{ errorMessage }}</span>
+        <div v-else class="text-center py-8">
+          <div class="flex flex-col items-center gap-4 p-8 rounded-3xl bg-rose-50 dark:bg-rose-500/5 border border-rose-100 dark:border-rose-500/10 text-rose-600 dark:text-rose-400">
+            <i class="fi fi-rr-shield-interrogation text-4xl leading-none"></i>
+            <p class="font-bold text-lg leading-snug">{{ errorMessage }}</p>
+            <RouterLink to="/forgot-password" class="btn-secondary !text-rose-600 !border-rose-200">Demander un nouveau lien</RouterLink>
+          </div>
         </div>
 
-        <div class="reset-password-view__footer">
-          <RouterLink to="/login" class="reset-password-view__link">Se connecter</RouterLink>
+        <div class="mt-10 pt-8 border-t border-zinc-100 dark:border-zinc-800 text-center">
+          <p class="text-zinc-500 dark:text-zinc-400 font-medium">
+            <RouterLink to="/login" class="inline-flex items-center gap-2 text-primary-400 hover:text-primary-500 transition-colors">
+              <i class="fi fi-rr-arrow-small-left text-xl leading-none"></i>
+              Retour à la connexion
+            </RouterLink>
+          </p>
         </div>
       </div>
     </div>
   </div>
 </template>
-
-<style>
-@import "@/assets/styles/resetPasswordView.css";
-</style>

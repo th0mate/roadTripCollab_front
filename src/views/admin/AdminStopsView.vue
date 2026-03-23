@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
-import AdminLayout from '@/components/admin/AdminLayout.vue'
-import AppModal from '@/components/AppModal.vue'
-import { getStops, deleteStop, getPhotos, deletePhoto, getAllTrips } from '@/services/adminService'
-import type { AdminStop, AdminPhoto, AdminTrip, PaginatedResponse } from '@/types/admin'
+import AdminLayout from '../../components/admin/AdminLayout.vue'
+import AppModal from '../../components/AppModal.vue'
+import { getStops, deleteStop, getPhotos, deletePhoto, getAllTrips } from '../../services/adminService'
+import type { AdminStop, AdminPhoto, AdminTrip, PaginatedResponse } from '../../types/admin'
 
 const activeTab = ref<'stops' | 'photos'>('stops')
 
@@ -113,194 +113,172 @@ const onCancel = () => {
 
 <template>
   <AdminLayout>
-    <div class="admin-page-header">
-      <h1>Étapes &amp; Photos</h1>
-      <p>Gestion des étapes et des photos de la plateforme</p>
-    </div>
-
-    <!-- Onglets -->
-    <div class="admin-tabs">
-      <button
-        class="admin-tab"
-        :class="{ 'admin-tab--active': activeTab === 'stops' }"
-        @click="switchTab('stops')"
-      >
-        Étapes
-      </button>
-      <button
-        class="admin-tab"
-        :class="{ 'admin-tab--active': activeTab === 'photos' }"
-        @click="switchTab('photos')"
-      >
-        Photos
-      </button>
-    </div>
-
-    <!-- Onglet Étapes -->
-    <template v-if="activeTab === 'stops'">
-      <!-- Filtre par voyage -->
-      <div class="admin-toolbar">
-        <div class="admin-search" style="flex: 0 0 auto; min-width: 280px;">
-          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="currentColor"/>
-          </svg>
-          <select v-model="tripFilter" style="padding-left: 32px; width: 100%; border: none; background: transparent; outline: none; font-size: 0.875rem; font-family: inherit; color: var(--rtc-text); cursor: pointer;">
-            <option value="">Tous les voyages</option>
-            <option v-for="trip in trips" :key="trip.id" :value="String(trip.id)">
-              {{ trip.title }}
-            </option>
-          </select>
+    <div class="animate-fade-in">
+      
+      <!-- Header & Tabs -->
+      <div class="mb-8">
+        <h1 class="text-3xl font-extrabold text-slate-900 dark:text-white mb-2">Étapes & Photos</h1>
+        <p class="text-slate-600 dark:text-slate-400 mb-6">Modérez le contenu publié par les utilisateurs sur leurs parcours.</p>
+        
+        <div class="flex items-center gap-2 p-1 bg-slate-200 dark:bg-slate-700/50 rounded-xl w-fit">
+          <button 
+            @click="switchTab('stops')" 
+            class="px-5 py-2 rounded-lg text-sm font-bold transition-all"
+            :class="activeTab === 'stops' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'"
+          >
+            <i class="fi fi-rr-map-marker mr-1.5"></i> Étapes
+          </button>
+          <button 
+            @click="switchTab('photos')" 
+            class="px-5 py-2 rounded-lg text-sm font-bold transition-all"
+            :class="activeTab === 'photos' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'"
+          >
+            <i class="fi fi-rr-camera mr-1.5"></i> Photos
+          </button>
         </div>
-
-        <span v-if="tripFilter" style="font-size: 0.8rem; color: var(--rtc-text-muted);">
-          {{ stopsData?.meta?.total ?? 0 }} étape(s) dans ce voyage
-        </span>
-
-        <button
-          v-if="tripFilter"
-          class="admin-btn admin-btn--secondary admin-btn--sm"
-          @click="tripFilter = ''"
-        >
-          Réinitialiser
-        </button>
       </div>
 
-      <div v-if="stopsLoading" class="admin-loading">Chargement des étapes…</div>
-      <template v-else>
-        <div class="admin-table-wrapper">
-          <table class="admin-table">
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Titre</th>
-                <th>Type</th>
-                <th>Adresse</th>
-                <th>Voyage</th>
-                <th>Créé le</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="stop in stopsData?.data" :key="stop.id">
-                <td style="color: var(--rtc-text-muted); font-size: 0.75rem;">{{ stop.id }}</td>
-                <td><strong>{{ stop.title }}</strong></td>
-                <td>
-                  <span class="admin-badge admin-badge--planning" style="text-transform: capitalize;">
-                    {{ stop.type }}
-                  </span>
-                </td>
-                <td style="font-size: 0.75rem; color: var(--rtc-text-muted); max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                  {{ stop.address ?? '—' }}
-                </td>
-                <td>
-                  <button
-                    v-if="stop.trip"
-                    class="admin-btn admin-btn--secondary admin-btn--sm"
-                    :class="{ 'admin-btn--primary': tripFilter === String(stop.tripId) }"
-                    @click="tripFilter = tripFilter === String(stop.tripId) ? '' : String(stop.tripId)"
-                    :title="tripFilter === String(stop.tripId) ? 'Voir tous les voyages' : `Filtrer par : ${stop.trip.title}`"
-                  >
-                    {{ stop.trip.title }}
-                  </button>
-                  <span v-else style="color: var(--rtc-text-muted); font-size: 0.75rem;">—</span>
-                </td>
-                <td style="font-size: 0.75rem; color: var(--rtc-text-muted);">{{ formatDate(stop.createdAt) }}</td>
-                <td>
-                  <div class="admin-actions">
-                    <button class="admin-btn admin-btn--sm admin-btn--danger" @click="handleDeleteStop(stop)">
-                      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <polyline points="3 6 5 6 21 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        <path d="M19 6l-1 14H6L5 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                      </svg>
-                      Supprimer
-                    </button>
-                  </div>
-                </td>
-              </tr>
-              <tr v-if="!stopsData?.data?.length">
-                <td colspan="7">
-                  <div class="admin-empty">
-                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M9 11l3 3L22 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                    Aucune étape trouvée
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+      <!-- Tab Content: STOPS -->
+      <div v-if="activeTab === 'stops'" class="space-y-6 animate-fade-in">
+        
+        <!-- Toolbar -->
+        <div class="flex flex-col sm:flex-row items-center gap-4 bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
+          <div class="relative w-full sm:w-80">
+            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
+              <i class="fi fi-rr-filter"></i>
+            </div>
+            <select v-model="tripFilter" class="block w-full pl-11 pr-4 py-2.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 transition-all outline-none appearance-none cursor-pointer">
+              <option value="">Tous les voyages</option>
+              <option v-for="trip in trips" :key="trip.id" :value="String(trip.id)">
+                {{ trip.title }}
+              </option>
+            </select>
+          </div>
+          <p v-if="tripFilter" class="text-sm text-slate-500 flex-grow">
+            {{ stopsData?.meta?.total ?? 0 }} étape(s) filtrée(s)
+          </p>
+          <button v-if="tripFilter" @click="tripFilter = ''" class="text-sm font-semibold text-red-600 hover:text-red-700 transition-colors w-full sm:w-auto text-center">
+            Réinitialiser
+          </button>
+        </div>
 
-          <div v-if="stopsData?.meta && stopsData.meta.lastPage > 1" class="admin-pagination">
-            <button class="admin-btn admin-btn--secondary admin-btn--sm" :disabled="stopsPage === 1" @click="goToStopsPage(stopsPage - 1)">←</button>
-            <span class="admin-pagination__info">Page {{ stopsPage }} / {{ stopsData.meta.lastPage }}</span>
-            <button class="admin-btn admin-btn--secondary admin-btn--sm" :disabled="stopsPage === stopsData.meta.lastPage" @click="goToStopsPage(stopsPage + 1)">→</button>
+        <!-- Table -->
+        <div v-if="stopsLoading && !stopsData" class="flex justify-center py-12">
+          <div class="w-10 h-10 border-4 border-primary-100 border-t-primary-500 rounded-full animate-spin"></div>
+        </div>
+        
+        <div v-else class="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden relative">
+          <div v-if="stopsLoading && stopsData" class="absolute inset-0 bg-white/50 dark:bg-slate-900/50 backdrop-blur-[1px] z-10 flex items-center justify-center">
+             <div class="w-8 h-8 border-4 border-primary-100 border-t-primary-500 rounded-full animate-spin"></div>
+          </div>
+          
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="text-xs uppercase text-slate-500 bg-slate-50 dark:bg-slate-900/30">
+                  <th class="px-6 py-4 font-semibold">Titre</th>
+                  <th class="px-6 py-4 font-semibold">Type</th>
+                  <th class="px-6 py-4 font-semibold">Voyage associé</th>
+                  <th class="px-6 py-4 font-semibold">Création</th>
+                  <th class="px-6 py-4 font-semibold text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
+                <tr v-for="stop in stopsData?.data" :key="stop.id" class="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+                  <td class="px-6 py-4">
+                    <p class="text-sm font-bold text-slate-900 dark:text-white">{{ stop.title }}</p>
+                    <p class="text-xs text-slate-500 truncate max-w-[200px]" :title="stop.address || ''">{{ stop.address || '—' }}</p>
+                  </td>
+                  <td class="px-6 py-4">
+                    <span class="px-2.5 py-1 text-xs font-bold rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 capitalize">
+                      {{ stop.type }}
+                    </span>
+                  </td>
+                  <td class="px-6 py-4">
+                    <button v-if="stop.trip" @click="tripFilter = tripFilter === String(stop.tripId) ? '' : String(stop.tripId)" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors" :class="tripFilter === String(stop.tripId) ? 'bg-primary-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'">
+                      {{ stop.trip.title }}
+                    </button>
+                    <span v-else class="text-slate-400 text-sm">—</span>
+                  </td>
+                  <td class="px-6 py-4 text-xs text-slate-600 dark:text-slate-400">{{ formatDate(stop.createdAt) }}</td>
+                  <td class="px-6 py-4 text-right">
+                    <button @click="handleDeleteStop(stop)" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-red-50 text-red-600 hover:bg-red-100 transition-colors flex items-center gap-1.5 ml-auto">
+                      <i class="fi fi-rr-trash"></i>
+                      <span class="hidden xl:inline">Supprimer</span>
+                    </button>
+                  </td>
+                </tr>
+                <tr v-if="!stopsData?.data?.length">
+                  <td colspan="5" class="px-6 py-12 text-center text-slate-500">Aucune étape trouvée.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          
+          <!-- Pagination -->
+          <div v-if="stopsData?.meta && stopsData.meta.lastPage > 1" class="px-6 py-4 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/50">
+            <button @click="goToStopsPage(stopsPage - 1)" :disabled="stopsPage === 1" class="w-10 h-10 rounded-xl bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 flex items-center justify-center text-slate-600 disabled:opacity-50 hover:bg-slate-50 transition-colors"><i class="fi fi-rr-angle-left"></i></button>
+            <span class="text-sm font-semibold text-slate-600 dark:text-slate-400">Page {{ stopsPage }} sur {{ stopsData.meta.lastPage }}</span>
+            <button @click="goToStopsPage(stopsPage + 1)" :disabled="stopsPage === stopsData.meta.lastPage" class="w-10 h-10 rounded-xl bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 flex items-center justify-center text-slate-600 disabled:opacity-50 hover:bg-slate-50 transition-colors"><i class="fi fi-rr-angle-right"></i></button>
           </div>
         </div>
-      </template>
-    </template>
+      </div>
 
-    <!-- Onglet Photos -->
-    <template v-if="activeTab === 'photos'">
-      <div v-if="photosLoading" class="admin-loading">Chargement des photos…</div>
-      <template v-else>
-        <div v-if="!photosData?.data?.length" class="admin-empty" style="background: #fff; border: 1px solid var(--rtc-border); border-radius: 12px; padding: 60px;">
-          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M4 16l4.586-4.586a2 2 0 0 1 2.828 0L16 16m-2-2l1.586-1.586a2 2 0 0 1 2.828 0L20 14m-6-6h.01M6 20h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-          Aucune photo trouvée
+      <!-- Tab Content: PHOTOS -->
+      <div v-if="activeTab === 'photos'" class="animate-fade-in">
+        
+        <div v-if="photosLoading && !photosData" class="flex justify-center py-12">
+          <div class="w-10 h-10 border-4 border-purple-100 border-t-purple-500 rounded-full animate-spin"></div>
+        </div>
+
+        <div v-else-if="!photosData?.data?.length" class="bg-white dark:bg-slate-800 rounded-3xl border border-dashed border-slate-300 dark:border-slate-700 p-12 text-center">
+          <div class="w-20 h-20 bg-slate-50 dark:bg-slate-900/50 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl text-slate-400"><i class="fi fi-rr-picture"></i></div>
+          <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-2">Aucune photo</h3>
+          <p class="text-slate-500 dark:text-slate-400">La galerie de la plateforme est vide pour le moment.</p>
         </div>
 
         <div v-else>
-          <div class="admin-photos-grid">
-            <div v-for="photo in photosData.data" :key="photo.id" class="admin-photo-card">
-              <img
-                :src="getPhotoUrl(photo.filePath)"
-                :alt="`Photo ${photo.id}`"
-                class="admin-photo-card__img"
-                loading="lazy"
-                @error="($event.target as HTMLImageElement).style.display = 'none'"
-              />
-              <div class="admin-photo-card__body">
-                <div class="admin-photo-card__meta">
-                  <strong>{{ photo.stop?.title ?? '—' }}</strong><br>
-                  par {{ photo.user?.fullName ?? '—' }}<br>
-                  {{ formatDate(photo.createdAt) }}
-                </div>
-                <button class="admin-btn admin-btn--sm admin-btn--danger" style="width: 100%;" @click="handleDeletePhoto(photo)">
-                  Supprimer
+          <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div v-for="photo in photosData.data" :key="photo.id" class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden group">
+              <div class="aspect-square relative overflow-hidden bg-slate-100 dark:bg-slate-900">
+                <img :src="getPhotoUrl(photo.filePath)" alt="Photo" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" loading="lazy" @error="($event.target as HTMLImageElement).style.display = 'none'" />
+                <div class="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <button @click="handleDeletePhoto(photo)" class="absolute top-3 right-3 w-8 h-8 rounded-lg bg-red-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-red-600 transition-all shadow-lg transform translate-y-2 group-hover:translate-y-0">
+                  <i class="fi fi-rr-trash"></i>
                 </button>
+              </div>
+              <div class="p-4">
+                <p class="text-sm font-bold text-slate-900 dark:text-white truncate mb-1" :title="photo.stop?.title">{{ photo.stop?.title ?? '—' }}</p>
+                <div class="flex items-center justify-between text-xs text-slate-500">
+                  <span class="truncate">Par {{ photo.user?.fullName?.split(' ')[0] ?? '?' }}</span>
+                  <span>{{ formatDate(photo.createdAt) }}</span>
+                </div>
               </div>
             </div>
           </div>
 
-          <div v-if="photosData.meta.lastPage > 1" class="admin-pagination" style="margin-top: 20px;">
-            <button class="admin-btn admin-btn--secondary admin-btn--sm" :disabled="photosPage === 1" @click="goToPhotosPage(photosPage - 1)">←</button>
-            <span class="admin-pagination__info">Page {{ photosPage }} / {{ photosData.meta.lastPage }}</span>
-            <button class="admin-btn admin-btn--secondary admin-btn--sm" :disabled="photosPage === photosData.meta.lastPage" @click="goToPhotosPage(photosPage + 1)">→</button>
+          <!-- Pagination -->
+          <div v-if="photosData.meta.lastPage > 1" class="flex justify-center mt-10 gap-4">
+            <button @click="goToPhotosPage(photosPage - 1)" :disabled="photosPage === 1" class="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-600 disabled:opacity-50 hover:bg-slate-50 transition-colors shadow-sm"><i class="fi fi-rr-angle-left"></i></button>
+            <div class="flex items-center text-sm font-semibold text-slate-600 dark:text-slate-400">Page {{ photosPage }} / {{ photosData.meta.lastPage }}</div>
+            <button @click="goToPhotosPage(photosPage + 1)" :disabled="photosPage === photosData.meta.lastPage" class="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-600 disabled:opacity-50 hover:bg-slate-50 transition-colors shadow-sm"><i class="fi fi-rr-angle-right"></i></button>
           </div>
         </div>
-      </template>
-    </template>
+
+      </div>
+
+    </div>
 
     <!-- Modal confirmation -->
     <AppModal
       v-model="confirmModal"
       type="danger"
-      title="Confirmation"
+      title="Confirmation de suppression"
       :message="confirmMessage"
-      confirm-text="Confirmer"
+      confirm-text="Oui, supprimer"
       cancel-text="Annuler"
       @confirm="onConfirm"
       @cancel="onCancel"
     />
   </AdminLayout>
 </template>
-
-<style scoped>
-@import '@/assets/styles/adminView.css';
-
-.admin-search select {
-  appearance: none;
-  -webkit-appearance: none;
-}
-</style>

@@ -1,95 +1,10 @@
-<template>
-  <div class="trip-dashboard__modal-overlay" @click.self="$emit('close')">
-    <div class="trip-dashboard__modal trip-dashboard__modal--large">
-      <h3 class="trip-dashboard__modal-title">
-        <i class="fi fi-rr-edit"></i>
-        Modifier le voyage
-      </h3>
-      <form @submit.prevent="submitUpdate">
-        <div class="trip-dashboard__form-group">
-          <label class="trip-dashboard__label">Titre</label>
-          <input v-model="form.title" required class="trip-dashboard__input" minlength="3" />
-        </div>
-
-        <div class="trip-dashboard__form-group">
-          <label class="trip-dashboard__label">Description</label>
-          <textarea v-model="form.description" class="trip-dashboard__textarea" rows="4"></textarea>
-        </div>
-
-        <div class="trip-dashboard__form-row">
-          <div class="trip-dashboard__form-group">
-            <label class="trip-dashboard__label">Date de début</label>
-            <input type="date" v-model="form.startDate" disabled class="trip-dashboard__input trip-dashboard__input--disabled" />
-          </div>
-          <div class="trip-dashboard__form-group">
-            <label class="trip-dashboard__label">Date de fin</label>
-            <input type="date" v-model="form.endDate" disabled class="trip-dashboard__input trip-dashboard__input--disabled" />
-          </div>
-        </div>
-
-        <div class="trip-dashboard__form-group">
-          <label class="trip-dashboard__label">Budget (€)</label>
-          <input type="number" v-model="form.budget" min="0" class="trip-dashboard__input" />
-        </div>
-
-        <div class="trip-dashboard__form-group">
-          <label class="trip-dashboard__label">Photo de couverture</label>
-          <div class="trip-edit-modal__cover-preview">
-            <img
-              v-if="previewUrl"
-              :src="previewUrl"
-              alt="Aperçu de la nouvelle couverture"
-              class="trip-edit-modal__img"
-            />
-            <img
-              v-else-if="currentCoverImage"
-              :src="`${backendUrl}/uploads/${currentCoverImage}`"
-              alt="Couverture actuelle"
-              class="trip-edit-modal__img"
-            />
-            <div v-else class="trip-edit-modal__placeholder">
-              <i class="fi fi-rr-picture"></i>
-              <span>Aucune image</span>
-            </div>
-          </div>
-          <div class="trip-edit-modal__file-actions">
-            <input type="file" @change="handleFileUpload" accept="image/*" class="trip-dashboard__input" />
-            <button v-if="previewUrl" @click="cancelNewImage" type="button" class="trip-dashboard__btn trip-dashboard__btn--secondary">
-              Annuler le changement
-            </button>
-          </div>
-          <p class="trip-dashboard__form-hint">
-            Laissez vide pour conserver l'image actuelle.
-          </p>
-        </div>
-
-        <div class="trip-dashboard__modal-actions">
-          <button type="button" class="trip-dashboard__btn trip-dashboard__btn--secondary" @click="$emit('close')">
-            Annuler
-          </button>
-          <button type="submit" class="trip-dashboard__btn trip-dashboard__btn--primary" :disabled="isSubmitting || !isFormValid">
-            <i v-if="isSubmitting" class="fi fi-rr-spinner trip-dashboard__spinner"></i>
-            <i v-else class="fi fi-rr-check"></i>
-            {{ isSubmitting ? 'Enregistrement...' : 'Enregistrer' }}
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import type { Trip } from '../types/trip';
 
-const props = defineProps<{
-  trip: Trip;
-  isSubmitting: boolean;
-}>();
-
+const props = defineProps<{ trip: Trip; isSubmitting: boolean; }>();
 const emit = defineEmits(['close', 'update']);
-
-const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3333';
+const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:3333';
 
 const form = ref({
   title: props.trip.title,
@@ -106,89 +21,94 @@ const currentCoverImage = computed(() => (props.trip as any).coverImage);
 
 const handleFileUpload = (event: Event) => {
   const target = event.target as HTMLInputElement;
-  if (target.files && target.files.length > 0) {
-    selectedFile.value = target.files[0]!;
-    previewUrl.value = URL.createObjectURL(selectedFile.value!);
+  if (target.files?.[0]) { 
+    selectedFile.value = target.files[0]; 
+    previewUrl.value = URL.createObjectURL(selectedFile.value); 
   }
 };
-
-const cancelNewImage = () => {
-  selectedFile.value = null;
-  previewUrl.value = null;
-};
-
-const isFormValid = computed(() => {
-  return form.value.title && form.value.title.length >= 3 && form.value.startDate && form.value.endDate && new Date(form.value.startDate) <= new Date(form.value.endDate);
-});
-
-const submitUpdate = () => {
-  if (!isFormValid.value) return;
-  emit('update', { ...form.value, coverImage: selectedFile.value });
-};
+const cancelNewImage = () => { selectedFile.value = null; previewUrl.value = null; };
+const isFormValid = computed(() => form.value.title && form.value.title.length >= 3);
+const submitUpdate = () => { if (!isFormValid.value) return; emit('update', { ...form.value, coverImage: selectedFile.value }); };
 </script>
 
+<template>
+  <div class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-zinc-950/40 backdrop-blur-md animate-fade-in" @click.self="$emit('close')">
+    <div class="w-full max-w-xl bg-white dark:bg-[#1C1C1E] rounded-[2.5rem] border border-zinc-200/50 dark:border-zinc-800/50 shadow-2xl overflow-hidden flex flex-col animate-slide-up">
+      
+      <!-- Header -->
+      <div class="px-8 py-6 border-b border-zinc-100 dark:border-zinc-800/50 flex items-center justify-between">
+        <div class="flex items-center gap-4">
+          <div class="w-10 h-10 rounded-xl bg-primary-400/10 flex items-center justify-center text-primary-400">
+            <i class="fi fi-rr-settings-sliders text-lg"></i>
+          </div>
+          <h3 class="text-xl font-black text-zinc-900 dark:text-white tracking-tight">Paramètres du voyage</h3>
+        </div>
+        <button @click="$emit('close')" class="w-8 h-8 rounded-lg flex items-center justify-center text-zinc-400 hover:text-rose-500 transition-all cursor-pointer">
+          <i class="fi fi-rr-cross-small text-xl"></i>
+        </button>
+      </div>
+
+      <!-- Content -->
+      <div class="p-8 overflow-y-auto custom-scrollbar flex-grow space-y-6">
+        <!-- Image Preview Section -->
+        <div class="relative h-40 rounded-2xl overflow-hidden bg-zinc-100 dark:bg-zinc-800 group">
+          <img v-if="previewUrl" :src="previewUrl" class="w-full h-full object-cover" />
+          <img v-else-if="currentCoverImage" :src="`${backendUrl}/uploads/${currentCoverImage}`" class="w-full h-full object-cover" />
+          <div v-else class="w-full h-full flex flex-col items-center justify-center text-zinc-400 opacity-50">
+            <i class="fi fi-rr-picture text-3xl mb-2"></i>
+            <span class="text-[10px] font-black uppercase">Aucune couverture</span>
+          </div>
+          <label class="absolute inset-0 bg-black/0 hover:bg-black/40 flex items-center justify-center transition-all cursor-pointer group-hover:opacity-100">
+            <div class="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-all">
+              <i class="fi fi-rr-camera"></i>
+            </div>
+            <input type="file" @change="handleFileUpload" accept="image/*" class="hidden" />
+          </label>
+        </div>
+
+        <div class="space-y-5">
+          <div class="group relative">
+            <label class="text-[10px] font-black uppercase text-zinc-400 mb-1.5 ml-1 block">Titre</label>
+            <input v-model="form.title" class="block w-full bg-zinc-100 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 focus:border-primary-400 focus:ring-2 focus:ring-primary-400/20 rounded-xl px-4 py-3 text-sm font-bold text-zinc-900 dark:text-zinc-100 outline-none transition-all" />
+          </div>
+
+          <div class="group relative">
+            <label class="text-[10px] font-black uppercase text-zinc-400 mb-1.5 ml-1 block">Description</label>
+            <textarea v-model="form.description" rows="3" class="block w-full bg-zinc-100 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 focus:border-primary-400 focus:ring-2 focus:ring-primary-400/20 rounded-xl px-4 py-3 text-sm font-medium text-zinc-900 dark:text-zinc-100 outline-none transition-all resize-none"></textarea>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="text-[10px] font-black uppercase text-zinc-400 mb-1.5 ml-1 block">Budget (€)</label>
+              <input type="number" v-model="form.budget" class="block w-full bg-zinc-100 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 focus:border-primary-400 focus:ring-2 focus:ring-primary-400/20 rounded-xl px-4 py-3 text-sm font-bold text-zinc-900 dark:text-zinc-100 outline-none transition-all" />
+            </div>
+            <div>
+              <label class="text-[10px] font-black uppercase text-zinc-400 mb-1.5 ml-1 block">Statut</label>
+              <select v-model="form.status" class="block w-full bg-zinc-100 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 focus:border-primary-400 focus:ring-2 focus:ring-primary-400/20 rounded-xl px-4 py-3 text-sm font-bold text-zinc-900 dark:text-zinc-100 outline-none transition-all">
+                <option value="planning">Planification</option>
+                <option value="active">En cours</option>
+                <option value="completed">Terminé</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="px-8 py-6 bg-zinc-50 dark:bg-white/[0.02] border-t border-zinc-100 dark:border-zinc-800/50 flex justify-end gap-3">
+        <button @click="$emit('close')" class="px-6 py-3 text-sm font-bold text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer">Annuler</button>
+        <button @click="submitUpdate" :disabled="isSubmitting || !isFormValid" class="btn-primary !px-8 shadow-xl shadow-primary-400/20">
+          <span v-if="isSubmitting" class="spinner w-4 h-4"></span>
+          <span v-else>Enregistrer</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</template>
+
 <style scoped>
-/* Reuse styles from trip dashboard or define specific ones if needed */
-.trip-dashboard__textarea {
-    width: 100%;
-    padding: 0.75rem;
-    border: 1px solid #e2e8f0;
-    border-radius: 0.5rem;
-    font-size: 0.95rem;
-    font-family: inherit;
-    resize: vertical;
-    min-height: 80px;
-}
-.trip-dashboard__form-hint {
-    font-size: 0.8rem;
-    color: #64748b;
-    margin-top: 0.25rem;
-}
-.trip-dashboard__input--disabled, .trip-dashboard__select--disabled {
-    background-color: #f1f5f9;
-    cursor: not-allowed;
-    color: #64748b;
-}
-
-.trip-dashboard__modal--large {
-    max-width: 700px;
-    width: 90%;
-}
-
-.trip-edit-modal__cover-preview {
-    width: 100%;
-    height: 180px;
-    border-radius: 0.5rem;
-    overflow: hidden;
-    margin-bottom: 1rem;
-    border: 1px solid #e2e8f0;
-    background: #f8fafc;
-}
-
-.trip-edit-modal__img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.trip-edit-modal__placeholder {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    color: #94a3b8;
-    gap: 0.5rem;
-}
-
-.trip-edit-modal__placeholder i {
-    font-size: 2rem;
-}
-
-.trip-edit-modal__file-actions {
-    display: flex;
-    gap: 0.5rem;
-    align-items: center;
-}
+.animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
+.animate-slide-up { animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 </style>

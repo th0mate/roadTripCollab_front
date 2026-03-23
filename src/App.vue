@@ -9,12 +9,14 @@
       </router-view>
     </main>
     <Footer v-if="showFooter && !isAdminRoute" />
+    <AppToast />
   </div>
 </template>
 
 <script setup lang="ts">
 import Navbar from './components/Navbar.vue'
 import Footer from './components/Footer.vue'
+import AppToast from './components/AppToast.vue'
 import { onMounted, computed } from 'vue'
 import { useAuthStore } from './stores/auth'
 import { useThemeStore } from './stores/theme'

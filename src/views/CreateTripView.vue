@@ -2,6 +2,9 @@
 import { ref, computed, watch, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import api from '../services/api';
+import { useToast } from '../composables/useToast';
+
+const toast = useToast();
 
 const router = useRouter();
 const currentStep = ref(1);
@@ -212,13 +215,14 @@ const createTrip = async () => {
       });
     }
     await Promise.all(participants.value.map(email => api.post(`/trips/${tripId}/participants`, { email })));
+    toast.success(`Voyage "${trip.value.title}" créé avec succès !`);
     router.push('/my-trips');
-  } catch (error: any) { 
-    if (error.response?.data?.errors) {
-      apiError.value = error.response.data.errors.map((e: any) => e.message).join(', ');
-    } else {
-      apiError.value = error.response?.data?.message || 'Erreur lors de la création.';
-    }
+  } catch (error: any) {
+    const msg = error.response?.data?.errors
+      ? error.response.data.errors.map((e: any) => e.message).join(', ')
+      : error.response?.data?.message || 'Erreur lors de la création.'
+    apiError.value = msg
+    toast.error(msg)
   }
   finally { isLoading.value = false; }
 };

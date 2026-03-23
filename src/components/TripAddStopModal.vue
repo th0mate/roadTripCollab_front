@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue';
 import api from '../services/api';
+import { useToast } from '../composables/useToast';
+
+const toast = useToast();
 
 const props = defineProps<{ 
   tripId: string | number; 
@@ -157,9 +160,10 @@ const submit = async () => {
       }
     }
 
+    toast.success(props.isEditing ? `"${form.value.title}" mis à jour !` : `"${form.value.title}" ajouté au voyage !`)
     emit('added');
     emit('close');
-  } catch (e) { alert("Erreur lors de l'enregistrement."); }
+  } catch (e) { toast.error("Erreur lors de l'enregistrement."); }
   finally { isLoading.value = false; }
 };
 </script>

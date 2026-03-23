@@ -2,6 +2,9 @@
 import { ref, onMounted, onUnmounted, computed, nextTick, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import api from '../services/api';
+import { useToast } from '../composables/useToast';
+
+const toast = useToast();
 
 import { getMe } from '../services/authService';
 import { useTripMap } from '../composables/useTripMap';
@@ -848,10 +851,13 @@ const confirmDeleteItem = async () => {
       await api.delete(`/trips/${trip.value.id}/participants/${itemToDelete.value.extraId}`); 
       if(itemToDelete.value.action==='leave'){router.push('/my-trips');return;} 
     }
-    showDeleteConfirmModal.value=false; 
-    itemToDelete.value=null; 
-    await fetchTripData(); 
-    await nextTick(); 
+    if (itemToDelete.value.type === 'stop') {
+      toast.success(`"${itemToDelete.value.name}" supprimé de l'itinéraire.`)
+    }
+    showDeleteConfirmModal.value=false;
+    itemToDelete.value=null;
+    await fetchTripData();
+    await nextTick();
     refreshMap(false);
   } catch(e){} finally{isSubmitting.value=false;}
 };

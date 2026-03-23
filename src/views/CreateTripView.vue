@@ -29,6 +29,37 @@ let map: google.maps.Map | null = null;
 let markers: Map<number, google.maps.Marker> = new Map();
 let polyline: google.maps.Polyline | null = null;
 
+const isGeolocating = ref(false)
+
+const geolocateUser = async () => {
+  if (!navigator.geolocation) return
+  isGeolocating.value = true
+  try {
+    const pos = await new Promise<GeolocationPosition>((resolve, reject) =>
+      navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 8000 })
+    )
+    const { latitude, longitude } = pos.coords
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=10`
+    )
+    const data = await res.json()
+    const cityName = data.address?.city || data.address?.town || data.address?.village || data.address?.county
+    if (cityName && tripDays.value[0]) {
+      tripDays.value[0].searchTerm = cityName
+      tripDays.value[0].city = {
+        place_id: data.place_id,
+        display_name: data.display_name,
+        lat: String(latitude),
+        lon: String(longitude),
+      }
+    }
+  } catch (e) {
+    console.warn('Géolocalisation refusée ou échouée', e)
+  } finally {
+    isGeolocating.value = false
+  }
+}
+
 const isStep1Valid = computed(() => trip.value.title && trip.value.startDate && trip.value.endDate);
 const areAllDaysFilled = computed(() => tripDays.value.every(day => day.city !== null));
 
@@ -301,16 +332,30 @@ const removeParticipant = (index: number) => participants.value.splice(index, 1)
                   <button v-if="index > 0" @click="copyPreviousCity(index)" class="text-[9px] font-black uppercase text-primary-400 hover:opacity-70 transition-all cursor-pointer">Copier J-1</button>
                 </div>
 
-                <div class="group relative">
-                  <span class="absolute top-2.5 left-4 text-[9px] font-black uppercase tracking-widest text-zinc-400 group-focus-within:text-primary-400 transition-colors">Ville étape</span>
-                  <span class="absolute top-[60%] -translate-y-1/2 left-5 text-zinc-400 group-focus-within:text-primary-400 transition-colors">
-                    <i class="fi fi-rr-marker text-sm"></i>
-                  </span>
-                  <input type="text" v-model="day.searchTerm" @input="searchCity(index)" 
-                    class="block w-full bg-zinc-50 dark:bg-[#1C1C1E] border-2 border-zinc-200 dark:border-zinc-800 rounded-2xl pl-12 pr-6 pt-8 pb-4 text-zinc-900 dark:text-white placeholder:text-zinc-400/50 focus:ring-4 focus:ring-primary-400/10 focus:border-primary-400 transition-all outline-none text-sm font-bold" 
-                    placeholder="Ex: Reykjavik" />
-                  
-                  <div v-if="activeSearchIndex === index && searchResults.length > 0" class="absolute z-50 w-full mt-2 bg-white dark:bg-[#1C1C1E] rounded-2xl shadow-2xl border border-zinc-100 dark:border-zinc-800 overflow-hidden animate-fade-in"><div v-for="result in searchResults" :key="result.place_id" @click="selectCity(index, result)" class="px-5 py-4 hover:bg-zinc-50 dark:hover:bg-zinc-800 cursor-pointer text-sm font-medium border-b border-zinc-50 dark:border-zinc-800 last:border-0 truncate">{{ result.display_name }}</div></div>
+                <div :class="index === 0 ? 'flex gap-2 items-start' : ''">
+                  <div class="group relative" :class="index === 0 ? 'flex-1' : ''">
+                    <span class="absolute top-2.5 left-4 text-[9px] font-black uppercase tracking-widest text-zinc-400 group-focus-within:text-primary-400 transition-colors">Ville étape</span>
+                    <span class="absolute top-[60%] -translate-y-1/2 left-5 text-zinc-400 group-focus-within:text-primary-400 transition-colors">
+                      <i class="fi fi-rr-marker text-sm"></i>
+                    </span>
+                    <input type="text" v-model="day.searchTerm" @input="searchCity(index)"
+                      class="block w-full bg-zinc-50 dark:bg-[#1C1C1E] border-2 border-zinc-200 dark:border-zinc-800 rounded-2xl pl-12 pr-6 pt-8 pb-4 text-zinc-900 dark:text-white placeholder:text-zinc-400/50 focus:ring-4 focus:ring-primary-400/10 focus:border-primary-400 transition-all outline-none text-sm font-bold"
+                      placeholder="Ex: Reykjavik" />
+
+                    <div v-if="activeSearchIndex === index && searchResults.length > 0" class="absolute z-50 w-full mt-2 bg-white dark:bg-[#1C1C1E] rounded-2xl shadow-2xl border border-zinc-100 dark:border-zinc-800 overflow-hidden animate-fade-in"><div v-for="result in searchResults" :key="result.place_id" @click="selectCity(index, result)" class="px-5 py-4 hover:bg-zinc-50 dark:hover:bg-zinc-800 cursor-pointer text-sm font-medium border-b border-zinc-50 dark:border-zinc-800 last:border-0 truncate">{{ result.display_name }}</div></div>
+                  </div>
+                  <div v-if="index === 0" class="flex flex-col items-center gap-1 pt-1">
+                    <button
+                      type="button"
+                      @click="geolocateUser"
+                      :disabled="isGeolocating"
+                      title="Détecter ma ville actuelle"
+                      class="p-2 rounded-xl text-zinc-400 hover:text-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-all disabled:opacity-50 cursor-pointer"
+                    >
+                      <i :class="isGeolocating ? 'fi fi-rr-spinner animate-spin' : 'fi fi-rr-target'" class="text-lg leading-none"></i>
+                    </button>
+                    <span class="text-[10px] text-zinc-400 text-center leading-tight">Non<br>enregistré</span>
+                  </div>
                 </div>
               </div>
             </div>

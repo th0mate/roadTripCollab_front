@@ -40,6 +40,9 @@ const showRouteSettingsModal = ref(false);
 const showDeleteConfirmModal = ref(false);
 const showHubModal = ref(false);
 const showPublicModal = ref(false);
+const showSettlementModal = ref(false);
+const settlementMode = ref<'automatic' | 'manual'>('automatic');
+const manualShares = ref<Record<number, number>>({});
 const selectedCategory = ref('');
 const selectedStopForPhotos = ref<any>(null);
 
@@ -204,6 +207,35 @@ const budgetStats = computed(() => {
   }) || [];
   return { total, spent, remaining: total-spent, percentage: total>0?Math.min(100,(spent/total)*100):0, perUser };
 });
+
+const settlementData = computed(() => {
+  if (!trip.value) return { total: 0, fuel: 0, tolls: 0, expenses: 0, participants: [] };
+  const fuel = estimatedFuelCost.value;
+  const tolls = estimatedTollCost.value;
+  const expenses = budgetStats.value.spent;
+  const total = fuel + tolls + expenses;
+  const participantsCount = trip.value.participants.length;
+  const sharePerPerson = participantsCount > 0 ? total / participantsCount : 0;
+
+  return {
+    total, fuel, tolls, expenses, sharePerPerson,
+    participants: trip.value.participants.map((p: any) => {
+      const alreadyPaid = budgetStats.value.perUser.find((u: any) => u.id === p.id)?.spent || 0;
+      const targetShare = settlementMode.value === 'automatic' ? sharePerPerson : (manualShares.value[p.id] || 0);
+      return { ...p, alreadyPaid, targetShare, balance: targetShare - alreadyPaid };
+    })
+  };
+});
+
+const initializeManualShares = () => {
+  if (!trip.value) return;
+  const total = estimatedFuelCost.value + estimatedTollCost.value + budgetStats.value.spent;
+  const count = trip.value.participants.length;
+  const share = total / count;
+  trip.value.participants.forEach((p: any) => { manualShares.value[p.id] = Number(share.toFixed(2)); });
+};
+
+watch(showSettlementModal, (val) => { if (val && Object.keys(manualShares.value).length === 0) initializeManualShares(); });
 
 const getGoogleRoute = (origin: any, destination: any): Promise<any> => {
   return new Promise((resolve) => {
@@ -1365,6 +1397,11 @@ const quickSuggestions = [
                 <span class="text-[8px] font-black text-amber-500/80 flex items-center gap-1"><i class="fi fi-rr-gas-pump"></i>Essence ~{{ Math.round(estimatedFuelCost) }}€</span>
                 <span class="text-[8px] font-black text-violet-500/80 flex items-center gap-1"><i class="fi fi-rr-road"></i>Péages ~{{ Math.round(estimatedTollCost) }}€</span>
               </div>
+              <div v-if="trip.status === 'completed'" class="mt-4">
+                <button @click="showSettlementModal = true" class="w-full py-2.5 bg-violet-600 hover:bg-violet-700 text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 shadow-lg shadow-violet-600/20 border-none">
+                  <i class="fi fi-rr-calculator"></i>Répartir les frais
+                </button>
+              </div>
             </div>
             <div class="px-4 py-2.5 shrink-0 border-b border-zinc-100 dark:border-zinc-800/40">
               <button @click="showExpenseModal = true" class="w-full py-2 rounded-xl bg-primary-400 text-zinc-900 text-[10px] font-black uppercase tracking-widest hover:bg-primary-500 transition-all cursor-pointer flex items-center justify-center gap-1.5">
@@ -1521,6 +1558,112 @@ const quickSuggestions = [
         @added="fetchTripData" />
       <AppModal v-model="showDeleteConfirmModal" type="danger" :title="itemToDelete?.action === 'leave' ? 'Quitter le voyage' : 'Supprimer'" :message="itemToDelete?.action === 'leave' ? 'Êtes-vous sûr de vouloir quitter ce voyage ?' : `Supprimer '${itemToDelete?.name}' ?`" confirm-text="Confirmer" cancel-text="Annuler" @confirm="confirmDeleteItem" />
       <TripOnboarding view="dashboard" />
+
+      <!-- Modal de répartition des frais (Settlement) -->
+      <Teleport to="body">
+        <Transition enter-active-class="transition duration-200 ease-out" enter-from-class="opacity-0 scale-95" enter-to-class="opacity-100 scale-100" leave-active-class="transition duration-150 ease-in" leave-from-class="opacity-100 scale-100" leave-to-class="opacity-0 scale-95">
+          <div v-if="showSettlementModal" class="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-zinc-950/60 backdrop-blur-md" @click.self="showSettlementModal = false">
+            <div class="w-full max-w-2xl bg-white dark:bg-[#111113] rounded-[2.5rem] border border-zinc-200/80 dark:border-white/8 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+              <div class="h-1.5 w-full bg-violet-500"></div>
+              <div class="px-8 py-6 flex items-center justify-between border-b border-zinc-100 dark:border-white/5 shrink-0">
+                <div class="flex items-center gap-4">
+                  <div class="w-12 h-12 rounded-2xl bg-violet-500/10 flex items-center justify-center text-violet-500">
+                    <i class="fi fi-rr-calculator text-2xl"></i>
+                  </div>
+                  <div>
+                    <h3 class="text-xl font-black text-zinc-900 dark:text-white leading-tight">Bilan du voyage</h3>
+                    <p class="text-[10px] font-black uppercase tracking-widest text-zinc-400 dark:text-zinc-500">Répartition finale des dépenses</p>
+                  </div>
+                </div>
+                <button @click="showSettlementModal = false" class="w-10 h-10 rounded-xl flex items-center justify-center text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-white/5 transition-all cursor-pointer border-none bg-transparent">
+                  <i class="fi fi-rr-cross text-sm"></i>
+                </button>
+              </div>
+
+              <div class="flex-grow overflow-y-auto p-8 custom-scrollbar">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                  <div class="p-5 rounded-3xl bg-zinc-50 dark:bg-white/5 border border-zinc-100 dark:border-white/5">
+                    <p class="text-[9px] font-black uppercase tracking-widest text-zinc-400 dark:text-zinc-500 mb-1">Dépenses directes</p>
+                    <p class="text-xl font-black text-zinc-900 dark:text-white">{{ Math.round(settlementData.expenses) }}€</p>
+                  </div>
+                  <div class="p-5 rounded-3xl bg-zinc-50 dark:bg-white/5 border border-zinc-100 dark:border-white/5">
+                    <p class="text-[9px] font-black uppercase tracking-widest text-amber-500 mb-1">Carburant (estimé)</p>
+                    <p class="text-xl font-black text-amber-500">{{ Math.round(settlementData.fuel) }}€</p>
+                  </div>
+                  <div class="p-5 rounded-3xl bg-zinc-50 dark:bg-white/5 border border-zinc-100 dark:border-white/5">
+                    <p class="text-[9px] font-black uppercase tracking-widest text-violet-500 mb-1">Péages (estimé)</p>
+                    <p class="text-xl font-black text-violet-500">{{ Math.round(settlementData.tolls) }}€</p>
+                  </div>
+                </div>
+
+                <div class="flex items-center gap-3 p-1.5 bg-zinc-100 dark:bg-white/5 rounded-2xl mb-8 w-fit mx-auto">
+                  <button @click="settlementMode = 'automatic'" 
+                    class="px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer border-none"
+                    :class="settlementMode === 'automatic' ? 'bg-white dark:bg-zinc-800 text-violet-500 shadow-md' : 'text-zinc-400 hover:text-zinc-600 bg-transparent'">
+                    Automatique (Équitable)
+                  </button>
+                  <button @click="settlementMode = 'manual'" 
+                    class="px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer border-none"
+                    :class="settlementMode === 'manual' ? 'bg-white dark:bg-zinc-800 text-violet-500 shadow-md' : 'text-zinc-400 hover:text-zinc-600 bg-transparent'">
+                    Manuel (Personnalisé)
+                  </button>
+                </div>
+
+                <div class="space-y-3">
+                  <div v-for="p in settlementData.participants" :key="p.id" 
+                    class="p-4 rounded-3xl border transition-all flex items-center gap-4"
+                    :class="p.balance > 0 ? 'bg-rose-500/5 border-rose-500/10' : 'bg-primary-400/5 border-primary-400/10'">
+                    <div class="w-12 h-12 rounded-2xl bg-zinc-100 dark:bg-white/5 flex items-center justify-center text-xs font-black uppercase shrink-0">
+                      <img v-if="p.avatar" :src="getAvatarUrl(p.avatar)" class="w-full h-full object-cover rounded-2xl" />
+                      <span v-else>{{ getInitials(p.fullName) }}</span>
+                    </div>
+                    <div class="flex-grow min-w-0">
+                      <p class="text-sm font-black text-zinc-900 dark:text-white truncate">{{ p.fullName }}</p>
+                      <p class="text-[10px] text-zinc-500 dark:text-zinc-400">Déjà payé : {{ Math.round(p.alreadyPaid) }}€</p>
+                    </div>
+                    <div class="text-right shrink-0">
+                      <div v-if="settlementMode === 'automatic'">
+                        <p class="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-0.5">Doit payer</p>
+                        <p class="text-sm font-black text-zinc-900 dark:text-white">{{ Math.round(p.targetShare) }}€</p>
+                      </div>
+                      <div v-else>
+                        <p class="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-1">Part (€)</p>
+                        <input type="number" v-model="manualShares[p.id]" class="w-20 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-2 py-1 text-right text-xs font-bold text-zinc-900 dark:text-white outline-none focus:border-violet-500" />
+                      </div>
+                    </div>
+                    <div class="w-32 text-right shrink-0 px-4 border-l border-zinc-100 dark:border-white/5">
+                      <p class="text-[9px] font-black uppercase tracking-widest mb-0.5" :class="p.balance > 0 ? 'text-rose-500' : 'text-primary-500'">
+                        {{ p.balance > 0 ? 'À verser' : 'À recevoir' }}
+                      </p>
+                      <p class="text-lg font-black" :class="p.balance > 0 ? 'text-rose-500' : 'text-primary-500'">
+                        {{ Math.abs(Math.round(p.balance)) }}€
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="p-8 bg-zinc-50 dark:bg-white/2 shrink-0 flex items-center justify-between border-t border-zinc-100 dark:border-white/5">
+                <div class="flex items-center gap-6">
+                  <div>
+                    <p class="text-[8px] font-black uppercase tracking-widest text-zinc-400 mb-0.5">Total Voyage</p>
+                    <p class="text-xl font-black text-zinc-900 dark:text-white">{{ Math.round(settlementData.total) }}€</p>
+                  </div>
+                  <div v-if="settlementMode === 'manual'">
+                    <p class="text-[8px] font-black uppercase tracking-widest text-zinc-400 mb-0.5">Total Réparti</p>
+                    <p class="text-xl font-black" :class="Math.round(Object.values(manualShares).reduce((a, b) => a + b, 0)) === Math.round(settlementData.total) ? 'text-primary-500' : 'text-rose-500'">
+                      {{ Math.round(Object.values(manualShares).reduce((a, b) => a + b, 0)) }}€
+                    </p>
+                  </div>
+                </div>
+                <button @click="showSettlementModal = false" class="px-8 py-3 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-xs font-black uppercase tracking-widest rounded-2xl hover:opacity-90 transition-all cursor-pointer border-none">
+                  Fermer le bilan
+                </button>
+              </div>
+            </div>
+          </div>
+        </Transition>
+      </Teleport>
 
       <!-- Modal pour rendre public -->
       <Teleport to="body">

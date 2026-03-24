@@ -17,6 +17,7 @@
         <div>
           <h4 class="text-xs font-bold text-zinc-900 dark:text-white uppercase tracking-widest mb-6 border-l-2 border-primary-500 pl-3">Produit</h4>
           <ul class="space-y-3 pl-3">
+            <li><router-link to="/decouvrir" class="text-[15px] font-medium text-zinc-500 dark:text-zinc-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">Découvrir</router-link></li>
             <li><router-link to="/fonctionnalites" class="text-[15px] font-medium text-zinc-500 dark:text-zinc-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">Fonctionnalités</router-link></li>
             <li><a href="#" class="text-[15px] font-medium text-zinc-500 dark:text-zinc-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">Sécurité</a></li>
           </ul>

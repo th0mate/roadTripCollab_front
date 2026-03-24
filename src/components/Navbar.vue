@@ -11,7 +11,7 @@
             <div :class="[isDashboard ? 'w-8 h-8 rounded-lg' : 'w-10 h-10 rounded-xl']" class="bg-primary-400 flex items-center justify-center shadow-md shadow-primary-500/20 group-hover:scale-105 transition-all">
               <i class="fi fi-rr-road text-white dark:text-zinc-900 text-[14px] leading-none"></i>
             </div>
-            <span :class="[isDashboard ? 'text-base' : 'text-lg']" class="font-extrabold tracking-tight hidden sm:block">
+            <span :class="[isDashboard ? 'text-base' : 'text-lg']" class="font-extrabold tracking-tight">
               <span class="text-zinc-900 dark:text-white">RoadTrip</span><span class="text-primary-400">Collab</span>
             </span>
           </router-link>
@@ -19,6 +19,9 @@
           <div class="hidden md:flex items-center gap-1">
             <router-link to="/" class="nav-link" active-class="active">
               Accueil
+            </router-link>
+            <router-link to="/decouvrir" class="nav-link" active-class="active">
+              Découvrir
             </router-link>
             
             <template v-if="!authStore.isAuthenticated">

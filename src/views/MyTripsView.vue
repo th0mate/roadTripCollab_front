@@ -2,6 +2,9 @@
 import { ref, onMounted, computed } from 'vue';
 import { useRouter, RouterLink } from 'vue-router';
 import api from '../services/api';
+import { useToast } from '../composables/useToast';
+
+const toast = useToast();
 
 const router = useRouter();
 const loading = ref(true);
@@ -32,8 +35,12 @@ const fetchTrips = async () => {
 };
 
 const handleInvitation = async (id: number, action: 'accept' | 'decline') => {
-  try { await api.post(`/invitations/${id}/${action}`); await fetchTrips(); }
-  catch (e) { alert("Erreur lors de l'action."); }
+  try {
+    await api.post(`/invitations/${id}/${action}`);
+    await fetchTrips();
+    toast.success(action === 'accept' ? 'Invitation acceptée !' : 'Invitation refusée.');
+  }
+  catch (e) { toast.error('Erreur lors du traitement de l\'invitation.'); }
 };
 
 const filteredTrips = computed(() => {

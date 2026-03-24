@@ -3,6 +3,9 @@ import { ref, onMounted } from 'vue';
 import api from '../services/api';
 import { getMe } from '../services/authService';
 import type { User } from '../types/user';
+import { useToast } from '../composables/useToast';
+
+const toast = useToast();
 
 const props = defineProps<{ stop: any; }>();
 const emit = defineEmits(['close']);
@@ -33,14 +36,21 @@ const handleFileUpload = async (event: Event) => {
       await api.post(`/stops/${props.stop.id}/photos`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
     }
     await fetchPhotos();
-  } catch (e) { console.error(e); }
+    const count = target.files.length;
+    toast.success(count > 1 ? `${count} photos ajoutées !` : 'Photo ajoutée !');
+  } catch (e) { toast.error('Erreur lors de l\'upload des photos.'); }
   finally { isUploading.value = false; target.value = ''; }
 };
 
 const canDelete = (photo: any) => currentUser.value && photo.userId === currentUser.value.id;
 const deletePhoto = async (photo: any) => {
-  try { await api.delete(`/photos/${photo.id}`); photos.value = photos.value.filter(p => p.id !== photo.id); if (lightboxPhoto.value?.id === photo.id) lightboxPhoto.value = null; }
-  catch (e) { console.error(e); }
+  try {
+    await api.delete(`/photos/${photo.id}`);
+    photos.value = photos.value.filter(p => p.id !== photo.id);
+    if (lightboxPhoto.value?.id === photo.id) lightboxPhoto.value = null;
+    toast.success('Photo supprimée.');
+  }
+  catch (e) { toast.error('Erreur lors de la suppression.'); }
 };
 
 onMounted(async () => {

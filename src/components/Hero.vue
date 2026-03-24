@@ -14,7 +14,7 @@
               <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary-400 opacity-75"></span>
               <span class="relative inline-flex rounded-full h-2 w-2 bg-primary-400"></span>
             </span>
-            Nouveau : Planificateur d'itinéraires IA
+            Nouveau : Partage de voyages
           </div>
 
           <h1 class="text-5xl lg:text-6xl xl:text-[5rem] font-black tracking-tight text-zinc-900 dark:text-white mb-8 leading-[1]">

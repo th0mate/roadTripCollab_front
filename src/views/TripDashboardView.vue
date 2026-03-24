@@ -38,7 +38,36 @@ const showParticipantsModal = ref(false);
 const showRouteSettingsModal = ref(false);
 const showDeleteConfirmModal = ref(false);
 const showHubModal = ref(false);
+const showPublicModal = ref(false);
+const selectedCategory = ref('');
 const selectedStopForPhotos = ref<any>(null);
+
+const categories = [
+  { label: 'Montagnes', icon: 'fi-rr-mountains' },
+  { label: 'Plage', icon: 'fi-rr-umbrella-beach' },
+  { label: 'Forêt', icon: 'fi-rr-tree' },
+  { label: 'Désert', icon: 'fi-rr-sun' },
+  { label: 'Ville', icon: 'fi-rr-building' },
+];
+
+const makeTripPublic = async () => {
+  if (!selectedCategory.value) {
+    toast.error('Veuillez choisir une catégorie.');
+    return;
+  }
+  isSubmitting.value = true;
+  try {
+    await api.post(`/trips/${tripId}/public`, { category: selectedCategory.value });
+    trip.value.isPublic = true;
+    trip.value.category = selectedCategory.value;
+    showPublicModal.value = false;
+    toast.success('Voyage rendu public avec succès !');
+  } catch (e) {
+    toast.error('Erreur lors du partage.');
+  } finally {
+    isSubmitting.value = false;
+  }
+};
 const selectedDateForAdd = ref('');
 const preSelectedPlace = ref<any>(null);
 const editingExpense = ref<any>(null);
@@ -701,22 +730,23 @@ const clearMapSearch = () => {
 const handleUpdateTrip = async (formData:any) => {
   if (!trip.value) return; isSubmitting.value=true;
   try {
-    const fd = new FormData(); 
-    fd.append('title',formData.title); 
-    if(formData.description) fd.append('description',formData.description); 
-    fd.append('startDate',formData.startDate); 
-    fd.append('endDate',formData.endDate); 
-    if(formData.budget) fd.append('budget',formData.budget.toString()); 
-    fd.append('status',formData.status); 
+    const fd = new FormData();
+    fd.append('title',formData.title);
+    if(formData.description) fd.append('description',formData.description);
+    fd.append('startDate',formData.startDate);
+    fd.append('endDate',formData.endDate);
+    if(formData.budget) fd.append('budget',formData.budget.toString());
+    fd.append('status',formData.status);
     if(formData.coverImage) fd.append('cover_image',formData.coverImage);
     await api.patch(`/trips/${trip.value.id}`,fd,{headers:{'Content-Type':'multipart/form-data'}});
     showEditModal.value=false; await fetchTripData();
-  } catch(e){} finally{isSubmitting.value=false;}
+    toast.success('Voyage mis à jour !');
+  } catch(e){ toast.error('Erreur lors de la mise à jour.'); } finally{isSubmitting.value=false;}
 };
 
 const createExpense = async () => {
   if(!trip.value) return; isSubmitting.value=true;
-  try { 
+  try {
     await api.post(`/trips/${trip.value.id}/expenses`,{
       tripId: trip.value.id,
       title:newExpense.value.title,
@@ -724,29 +754,31 @@ const createExpense = async () => {
       category:newExpense.value.category,
       paidBy:newExpense.value.paidBy || currentUser.value?.id,
       expenseDate: `${newExpense.value.date} 00:00:00`
-    }); 
-    showExpenseModal.value=false; 
-    newExpense.value={title:'',amount:0,category:'food',paidBy:null,date:new Date().toISOString().split('T')[0]}; 
-    await fetchTripData(); 
+    });
+    showExpenseModal.value=false;
+    newExpense.value={title:'',amount:0,category:'food',paidBy:null,date:new Date().toISOString().split('T')[0]};
+    await fetchTripData();
+    toast.success('Dépense ajoutée !');
   }
-  catch(e){} finally{isSubmitting.value=false;}
+  catch(e){ toast.error('Erreur lors de l\'ajout de la dépense.'); } finally{isSubmitting.value=false;}
 };
 
 const updateExpense = async () => {
   if(!editingExpense.value) return; isSubmitting.value=true;
-  try { 
+  try {
     await api.patch(`/expenses/${editingExpense.value.id}`,{
       title:editingExpense.value.title,
       amount:editingExpense.value.amount,
       category:editingExpense.value.category,
       paidBy:editingExpense.value.paidBy,
       expenseDate: `${editingExpense.value.expenseDate} 00:00:00`
-    }); 
-    showEditExpenseModal.value=false; 
-    editingExpense.value=null; 
-    await fetchTripData(); 
+    });
+    showEditExpenseModal.value=false;
+    editingExpense.value=null;
+    await fetchTripData();
+    toast.success('Dépense mise à jour !');
   }
-  catch(e){} finally{isSubmitting.value=false;}
+  catch(e){ toast.error('Erreur lors de la mise à jour de la dépense.'); } finally{isSubmitting.value=false;}
 };
 
 const openEditExpenseModal = (exp:any) => { 
@@ -777,17 +809,18 @@ const closeAddStopModal = () => {
 
 const inviteParticipant = async () => {
   if(!trip.value) return; isSubmitting.value=true;
-  try { 
-    await api.post(`/trips/${trip.value.id}/invite`,{email:inviteEmail.value}); 
-    showInviteModal.value=false; inviteEmail.value=''; 
-    await fetchTripData(); 
+  try {
+    await api.post(`/trips/${trip.value.id}/invite`,{email:inviteEmail.value});
+    showInviteModal.value=false; inviteEmail.value='';
+    await fetchTripData();
+    toast.success('Invitation envoyée !');
   }
-  catch(e){alert('Erreur lors de l\'invitation.');} finally{isSubmitting.value=false;}
+  catch(e){ toast.error('Erreur lors de l\'invitation.'); } finally{isSubmitting.value=false;}
 };
 
 const acceptInvitation = async () => {
   const piv = myParticipant.value?.pivot as any; if(!piv?.id) return; isSubmitting.value=true;
-  try { await api.post(`/invitations/${piv.id}/accept`); await fetchTripData(); } catch(e){} finally{isSubmitting.value=false;}
+  try { await api.post(`/invitations/${piv.id}/accept`); await fetchTripData(); toast.success('Invitation acceptée !'); } catch(e){ toast.error('Erreur lors de l\'acceptation.'); } finally{isSubmitting.value=false;}
 };
 
 const getParticipantAction = (p:any): 'remove'|'leave'|null => { 
@@ -835,7 +868,11 @@ const confirmDeleteItem = async () => {
       if(itemToDelete.value.action==='leave'){router.push('/my-trips');return;} 
     }
     if (itemToDelete.value.type === 'stop') {
-      toast.success(`"${itemToDelete.value.name}" supprimé de l'itinéraire.`)
+      toast.success(`"${itemToDelete.value.name}" supprimé de l'itinéraire.`);
+    } else if (itemToDelete.value.type === 'expense') {
+      toast.success(`Dépense "${itemToDelete.value.name}" supprimée.`);
+    } else if (itemToDelete.value.type === 'participant') {
+      toast.info(itemToDelete.value.action === 'leave' ? 'Vous avez quitté le voyage.' : `${itemToDelete.value.name} retiré du voyage.`);
     }
     showDeleteConfirmModal.value=false;
     itemToDelete.value=null;
@@ -891,24 +928,26 @@ const openHubModal = (activity:any, date:string) => { if(!activity.isMorningDepa
 
 const updateHubTime = async () => {
   if(!trip.value) return; isSubmitting.value=true;
-  try { 
-    const s={...(trip.value.settings||{})}; 
-    s[editingHubDay.value]={...(s[editingHubDay.value]||{}),startTime:hubStartTime.value}; 
-    await api.patch(`/trips/${trip.value.id}`,{settings:s}); 
-    trip.value.settings=s; showHubModal.value=false; 
-    await calculateItineraryByDay(); refreshMap(false); 
+  try {
+    const s={...(trip.value.settings||{})};
+    s[editingHubDay.value]={...(s[editingHubDay.value]||{}),startTime:hubStartTime.value};
+    await api.patch(`/trips/${trip.value.id}`,{settings:s});
+    trip.value.settings=s; showHubModal.value=false;
+    await calculateItineraryByDay(); refreshMap(false);
+    toast.success('Horaire de départ mis à jour !');
   }
-  catch(e){} finally{isSubmitting.value=false;}
+  catch(e){ toast.error('Erreur lors de la mise à jour.'); } finally{isSubmitting.value=false;}
 };
 
 const saveRouteSettings = async () => {
   if(!trip.value) return; isSubmitting.value=true;
-  try { 
-    await api.patch(`/trips/${trip.value.id}`,{carConsumption:routeSettings.value.carConsumption,fuelPrice:routeSettings.value.fuelPrice}); 
-    showRouteSettingsModal.value=false; 
-    await calculateItineraryByDay(); refreshMap(false); 
+  try {
+    await api.patch(`/trips/${trip.value.id}`,{carConsumption:routeSettings.value.carConsumption,fuelPrice:routeSettings.value.fuelPrice});
+    showRouteSettingsModal.value=false;
+    await calculateItineraryByDay(); refreshMap(false);
+    toast.success('Paramètres du véhicule sauvegardés !');
   }
-  catch(e){} finally{isSubmitting.value=false;}
+  catch(e){ toast.error('Erreur lors de la sauvegarde.'); } finally{isSubmitting.value=false;}
 };
 
 const handleClickOutside = (e:MouseEvent) => { 
@@ -1070,6 +1109,14 @@ const quickSuggestions = [
               <i class="fi fi-rr-plus text-[10px]"></i>
             </button>
           </div>
+          <button v-if="trip.status === 'completed' && !trip.isPublic && trip.creatorId === currentUser?.id" 
+            @click="showPublicModal = true"
+            class="ml-2 px-3 py-1.5 rounded-xl bg-violet-500/10 text-violet-500 text-[10px] font-black uppercase tracking-widest hover:bg-violet-500 hover:text-white transition-all cursor-pointer flex items-center gap-1.5 border border-violet-500/20">
+            <i class="fi fi-rr-share"></i> Rendre public
+          </button>
+          <span v-else-if="trip.isPublic" class="ml-2 px-3 py-1.5 rounded-xl bg-primary-400/10 text-primary-500 text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 border border-primary-400/20">
+            <i class="fi fi-rr-globe"></i> Public ({{ trip.category }})
+          </span>
         </div>
         <div class="flex items-center gap-2">
           <button v-if="trip.status === 'active'" @click="router.push(`/trips/${tripId}/live`)"
@@ -1237,7 +1284,7 @@ const quickSuggestions = [
           </div>
         </transition>
 
-        <main class="flex-grow relative bg-zinc-100 dark:bg-zinc-950 overflow-hidden rounded-[2.5rem] my-3 mr-3 border border-zinc-200 dark:border-zinc-800/50" :class="{'ml-0': showItineraryDrawer || showBudgetDrawer}">
+        <main class="flex-grow relative bg-zinc-100 dark:bg-[#0c0c0e] overflow-hidden rounded-[2.5rem] my-3 mr-3 border border-zinc-200 dark:border-zinc-800/50" :class="{'ml-0': showItineraryDrawer || showBudgetDrawer}">
           <div id="trip-map" class="w-full h-full"></div>
           
           <div class="absolute top-6 left-6 w-full max-w-[420px] z-10 pointer-events-none" ref="mapHeaderRef">
@@ -1472,6 +1519,43 @@ const quickSuggestions = [
         @close="closeAddStopModal" 
         @added="fetchTripData" />
       <AppModal v-model="showDeleteConfirmModal" type="danger" :title="itemToDelete?.action === 'leave' ? 'Quitter le voyage' : 'Supprimer'" :message="itemToDelete?.action === 'leave' ? 'Êtes-vous sûr de vouloir quitter ce voyage ?' : `Supprimer '${itemToDelete?.name}' ?`" confirm-text="Confirmer" cancel-text="Annuler" @confirm="confirmDeleteItem" />
+
+      <!-- Modal pour rendre public -->
+      <Teleport to="body">
+        <Transition enter-active-class="transition duration-200 ease-out" enter-from-class="opacity-0" enter-to-class="opacity-100" leave-active-class="transition duration-150 ease-in" leave-from-class="opacity-100" leave-to-class="opacity-0">
+          <div v-if="showPublicModal" class="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-zinc-950/60 backdrop-blur-md" @click.self="showPublicModal = false">
+            <div class="w-full max-w-md bg-white dark:bg-[#111113] rounded-[2.5rem] border border-zinc-200/80 dark:border-white/8 shadow-2xl overflow-hidden animate-slide-up">
+              <div class="p-8 text-center">
+                <div class="w-20 h-20 bg-violet-500/10 rounded-3xl flex items-center justify-center mx-auto mb-6 text-violet-500">
+                  <i class="fi fi-rr-share text-3xl"></i>
+                </div>
+                <h3 class="text-2xl font-black text-zinc-900 dark:text-white mb-2">Partager votre aventure</h3>
+                <p class="text-zinc-500 dark:text-zinc-400 text-sm mb-8">Choisissez une catégorie pour que la communauté puisse découvrir votre voyage.</p>
+                
+                <div class="grid grid-cols-2 gap-3 mb-8">
+                  <button v-for="cat in categories" :key="cat.label"
+                    @click="selectedCategory = cat.label"
+                    class="flex items-center gap-3 p-4 rounded-2xl border transition-all cursor-pointer text-left"
+                    :class="selectedCategory === cat.label 
+                      ? 'bg-primary-400 border-primary-400 text-zinc-950 shadow-lg shadow-primary-400/20' 
+                      : 'bg-zinc-50 dark:bg-white/5 border-zinc-100 dark:border-white/5 text-zinc-500 dark:text-zinc-400 hover:border-primary-400/50'">
+                    <i :class="cat.icon" class="text-sm"></i>
+                    <span class="text-xs font-bold">{{ cat.label }}</span>
+                  </button>
+                </div>
+
+                <div class="flex gap-3">
+                  <button @click="showPublicModal = false" class="btn-secondary flex-1">Plus tard</button>
+                  <button @click="makeTripPublic" :disabled="isSubmitting || !selectedCategory" class="btn-primary flex-1">
+                    <span v-if="isSubmitting" class="spinner w-4 h-4"></span>
+                    <span v-else>Partager</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </Transition>
+      </Teleport>
     </div>
   </div>
 </template>

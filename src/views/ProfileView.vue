@@ -4,6 +4,9 @@ import { getMe, updateMe, deleteAccount } from '../services/authService'
 import type { User } from '../types/user'
 import { useRouter } from 'vue-router'
 import AppModal from '../components/AppModal.vue'
+import { useToast } from '../composables/useToast'
+
+const toast = useToast()
 
 const user = ref<User | null>(null)
 const editableUser = ref<Partial<User>>({})
@@ -52,11 +55,12 @@ const handleFileChange = async (event: Event) => {
   const input = event.target as HTMLInputElement
   if (!input.files?.[0]) return
   const file = input.files[0]
-  if (file.size > 5 * 1024 * 1024) { error.value = 'Fichier trop volumineux (max 5 Mo).'; return }
+  if (file.size > 5 * 1024 * 1024) { toast.error('Fichier trop volumineux (max 5 Mo).'); return }
   try {
     user.value = await updateMe({ avatar: file })
+    toast.success('Photo de profil mise à jour !')
   } catch (err: any) {
-    error.value = err.response?.data?.message || 'Erreur lors de l\'upload.'
+    toast.error(err.response?.data?.message || 'Erreur lors de l\'upload.')
   }
   input.value = ''
 }
@@ -135,6 +139,7 @@ const saveChanges = async () => {
     showPasswordSection.value = false
     saveSuccess.value = true
     setTimeout(() => { saveSuccess.value = false }, 3000)
+    toast.success('Profil mis à jour avec succès !')
   } catch (err: any) {
     formError.value = err.response?.data?.message || 'Erreur lors de la sauvegarde.'
   }
@@ -142,7 +147,7 @@ const saveChanges = async () => {
 
 const confirmDeleteAccount = async () => {
   try { await deleteAccount(); localStorage.removeItem('authToken'); router.push('/') }
-  catch (err: any) { error.value = err.response?.data?.message || 'Erreur lors de la suppression.' }
+  catch (err: any) { toast.error(err.response?.data?.message || 'Erreur lors de la suppression du compte.') }
 }
 
 onMounted(fetchUser)

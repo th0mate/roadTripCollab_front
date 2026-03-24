@@ -2,6 +2,9 @@
 import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import api from '../services/api';
+import { useToast } from '../composables/useToast';
+
+const toast = useToast();
 
 const route = useRoute();
 const router = useRouter();
@@ -122,9 +125,10 @@ const saveSettings = async () => {
     await api.patch(`/trips/${tripId}`, fd, {
       headers: { 'Content-Type': 'multipart/form-data' }
     });
+    toast.success('Paramètres sauvegardés !');
     router.push(`/trips/${tripId}`);
   } catch (e) {
-    alert("Erreur lors de la sauvegarde.");
+    toast.error('Erreur lors de la sauvegarde.');
   } finally {
     isSubmitting.value = false;
   }
@@ -136,7 +140,7 @@ const deleteTrip = async () => {
     await api.delete(`/trips/${tripId}`);
     router.push('/my-trips');
   } catch (e) {
-    alert("Erreur lors de la suppression.");
+    toast.error('Erreur lors de la suppression du voyage.');
   }
 };
 
@@ -367,7 +371,7 @@ const scrollTo = (id: string) => {
           </section>
 
           <footer class="mt-20 pt-8 border-t border-zinc-200 dark:border-zinc-800 text-sm text-zinc-400 text-center font-bold uppercase tracking-widest opacity-50">
-            RoadTripCollab Premium Configuration v1.0
+            RoadTripCollab
           </footer>
         </main>
       </div>

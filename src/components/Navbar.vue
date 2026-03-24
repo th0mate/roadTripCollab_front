@@ -48,10 +48,10 @@
 
             <div class="flex items-center gap-2 ml-2">
               <template v-if="!authStore.isAuthenticated">
-                <router-link to="/login" class="px-5 py-2.5 text-sm font-bold text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer">
+                <router-link v-if="route.path !== '/login'" to="/login" class="px-5 py-2.5 text-sm font-bold text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer">
                   Connexion
                 </router-link>
-                <router-link to="/register" class="btn-primary !px-6 !py-2.5 !text-sm">
+                <router-link v-if="route.path !== '/register'" to="/register" class="btn-primary !px-6 !py-2.5 !text-sm">
                   S'inscrire
                 </router-link>
               </template>

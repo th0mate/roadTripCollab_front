@@ -5,6 +5,7 @@ import api from '../services/api';
 import { getMe } from '../services/authService';
 import { useTripMap } from '../composables/useTripMap';
 import TripPhotosModal from '../components/TripPhotosModal.vue';
+import TripOnboarding from '../components/TripOnboarding.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -321,7 +322,7 @@ onUnmounted(() => { clearInterval(clockInterval); clearAll(); });
 
   <div v-else-if="trip" class="fixed top-14 left-0 right-0 bottom-0 flex flex-col overflow-hidden bg-zinc-100 dark:bg-[#0c0c0e]">
 
-    <header class="shrink-0 relative h-[52px] flex items-center gap-3 px-4 bg-white dark:bg-[#111113] border-b border-zinc-200 dark:border-zinc-800/60 z-30">
+    <header data-onboarding="live-header" class="shrink-0 relative h-[52px] flex items-center gap-3 px-4 bg-white dark:bg-[#111113] border-b border-zinc-200 dark:border-zinc-800/60 z-30">
 
       <div class="topbar-progress-track">
         <div class="topbar-progress-fill" :style="{ width: `${tripProgress.pct}%` }"></div>
@@ -382,6 +383,7 @@ onUnmounted(() => { clearInterval(clockInterval); clearAll(); });
 
           <Transition name="pop">
             <div v-if="currentStop"
+              data-onboarding="live-current-stop"
               class="hero-section card-enter"
               :style="{ '--sc': getStopColor(currentStop.type), animationDelay: '50ms' }">
               <div class="hero-left-strip"></div>
@@ -452,7 +454,7 @@ onUnmounted(() => { clearInterval(clockInterval); clearAll(); });
             <p class="text-[11px] text-zinc-400 dark:text-zinc-500 mt-1">Profitez de la route !</p>
           </div>
 
-          <div v-if="todayActivities.length > 0" class="card-enter" style="animation-delay:150ms">
+          <div v-if="todayActivities.length > 0" data-onboarding="live-timeline" class="card-enter" style="animation-delay:150ms">
             <div class="px-4 pt-4 pb-1.5">
               <p class="section-label">Itinéraire du jour</p>
             </div>
@@ -501,7 +503,7 @@ onUnmounted(() => { clearInterval(clockInterval); clearAll(); });
             </div>
           </div>
 
-          <div class="px-4 py-4 card-enter" style="animation-delay:200ms">
+          <div data-onboarding="live-budget" class="px-4 py-4 card-enter" style="animation-delay:200ms">
             <div class="flex items-center justify-between mb-3.5">
               <p class="section-label">Budget</p>
               <button @click="router.push(`/trips/${tripId}`)" class="text-[10px] font-black text-primary-500 dark:text-primary-400 hover:text-primary-600 dark:hover:text-primary-300 transition-colors cursor-pointer">
@@ -575,7 +577,7 @@ onUnmounted(() => { clearInterval(clockInterval); clearAll(); });
         </div>
       </div>
 
-      <div class="flex-1 relative p-3" :class="showMobileMap ? 'flex' : 'hidden md:flex'">
+      <div data-onboarding="live-map" class="flex-1 relative p-3" :class="showMobileMap ? 'flex' : 'hidden md:flex'">
         <div class="absolute inset-3 rounded-3xl overflow-hidden shadow-[0_4px_24px_rgba(0,0,0,0.12)] dark:shadow-[0_4px_24px_rgba(0,0,0,0.4)]">
           <div id="live-map" class="w-full h-full"></div>
         </div>
@@ -634,6 +636,8 @@ onUnmounted(() => { clearInterval(clockInterval); clearAll(); });
       @close="showPhotosModal = false"
     />
   </Teleport>
+
+  <TripOnboarding view="live" />
 
   <Teleport to="body">
     <Transition name="modal-slide">

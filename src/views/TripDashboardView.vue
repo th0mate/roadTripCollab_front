@@ -12,6 +12,7 @@ import TripEditModal from '../components/TripEditModal.vue';
 import TripPhotosModal from '../components/TripPhotosModal.vue';
 import TripAddStopModal from '../components/TripAddStopModal.vue';
 import AppModal from '../components/AppModal.vue';
+import TripOnboarding from '../components/TripOnboarding.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -1082,7 +1083,7 @@ const quickSuggestions = [
     </div>
 
     <div v-else-if="trip" class="flex flex-col bg-zinc-50 dark:bg-[#0c0c0e] text-zinc-900 dark:text-zinc-100 overflow-hidden flex-grow">
-      <div class="h-12 shrink-0 bg-white dark:bg-[#161618] border-b border-zinc-200 dark:border-zinc-800/50 flex items-center justify-between px-6 z-40">
+      <div data-onboarding="dash-header" class="h-12 shrink-0 bg-white dark:bg-[#161618] border-b border-zinc-200 dark:border-zinc-800/50 flex items-center justify-between px-6 z-40">
         <div class="flex items-center gap-4">
           <h2 class="text-sm font-black flex items-center gap-2">
             <span class="w-1.5 h-1.5 rounded-full bg-primary-400 shrink-0"></span>
@@ -1096,7 +1097,7 @@ const quickSuggestions = [
           }">
             <i :class="getStatusIcon(trip.status)"></i>{{ formatStatus(trip.status) }}
           </span>
-          <div class="flex -space-x-3">
+          <div data-onboarding="dash-participants" class="flex -space-x-3">
             <button v-for="p in trip.participants.slice(0, 5)" :key="p.id"
               @click="showParticipantsModal = true"
               class="w-8 h-8 rounded-full border-2 border-white dark:border-[#161618] bg-zinc-100 dark:bg-zinc-800 overflow-hidden cursor-pointer hover:-translate-y-0.5 transition-all shadow-sm"
@@ -1142,7 +1143,7 @@ const quickSuggestions = [
       <div class="flex-grow flex overflow-hidden" style="height: calc(100vh - 104px);">
         <aside class="w-[340px] shrink-0 flex flex-col bg-zinc-50 dark:bg-[#0c0c0e] overflow-hidden z-30 transition-all duration-300"
           :class="{'!w-0 opacity-0 pointer-events-none': showItineraryDrawer && showBudgetDrawer}">
-          <section class="m-3 p-4 bg-white dark:bg-zinc-900 rounded-[1.5rem] border border-zinc-200 dark:border-white/5 relative overflow-hidden shrink-0">
+          <section data-onboarding="dash-budget" class="m-3 p-4 bg-white dark:bg-zinc-900 rounded-[1.5rem] border border-zinc-200 dark:border-white/5 relative overflow-hidden shrink-0">
             <div class="absolute -top-10 -right-10 w-40 h-40 bg-primary-400/5 rounded-full blur-3xl pointer-events-none"></div>
             <div class="flex items-center justify-between mb-3 relative">
               <div>
@@ -1172,7 +1173,7 @@ const quickSuggestions = [
               <h3 class="text-[9px] font-black uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">Itinéraire</h3>
               <button @click="showRouteSettingsModal = true" class="w-6 h-6 rounded-lg flex items-center justify-center text-zinc-400 dark:text-zinc-600 hover:text-primary-400 transition-all cursor-pointer"><i class="fi fi-rr-settings text-xs"></i></button>
             </div>
-            <div class="px-4 py-2 flex items-center gap-2 border-b border-zinc-100 dark:border-zinc-800/30 shrink-0">
+            <div data-onboarding="dash-itinerary" class="px-4 py-2 flex items-center gap-2 border-b border-zinc-100 dark:border-zinc-800/30 shrink-0">
               <button @click="currentDayIndex = Math.max(0, currentDayIndex - 1)" :disabled="currentDayIndex === 0" class="w-6 h-6 rounded-lg bg-zinc-100 dark:bg-white/5 border border-zinc-200 dark:border-white/10 flex items-center justify-center text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white disabled:opacity-30 transition-all cursor-pointer"><i class="fi fi-rr-angle-small-left text-xs"></i></button>
               <div class="flex-grow text-center">
                 <p class="text-[10px] font-black text-zinc-900 dark:text-zinc-100">J{{ currentDayIndex + 1 }} <span class="text-zinc-400 dark:text-zinc-600">/ {{ daysData.length }}</span></p>
@@ -1284,7 +1285,7 @@ const quickSuggestions = [
           </div>
         </transition>
 
-        <main class="flex-grow relative bg-zinc-100 dark:bg-[#0c0c0e] overflow-hidden rounded-[2.5rem] my-3 mr-3 border border-zinc-200 dark:border-zinc-800/50" :class="{'ml-0': showItineraryDrawer || showBudgetDrawer}">
+        <main data-onboarding="dash-map" class="flex-grow relative bg-zinc-100 dark:bg-[#0c0c0e] overflow-hidden rounded-[2.5rem] my-3 mr-3 border border-zinc-200 dark:border-zinc-800/50" :class="{'ml-0': showItineraryDrawer || showBudgetDrawer}">
           <div id="trip-map" class="w-full h-full"></div>
           
           <div class="absolute top-6 left-6 w-full max-w-[420px] z-10 pointer-events-none" ref="mapHeaderRef">
@@ -1519,6 +1520,7 @@ const quickSuggestions = [
         @close="closeAddStopModal" 
         @added="fetchTripData" />
       <AppModal v-model="showDeleteConfirmModal" type="danger" :title="itemToDelete?.action === 'leave' ? 'Quitter le voyage' : 'Supprimer'" :message="itemToDelete?.action === 'leave' ? 'Êtes-vous sûr de vouloir quitter ce voyage ?' : `Supprimer '${itemToDelete?.name}' ?`" confirm-text="Confirmer" cancel-text="Annuler" @confirm="confirmDeleteItem" />
+      <TripOnboarding view="dashboard" />
 
       <!-- Modal pour rendre public -->
       <Teleport to="body">

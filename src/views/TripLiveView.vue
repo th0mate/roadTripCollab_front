@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router';
 import api from '../services/api';
 import { getMe } from '../services/authService';
 import { useTripMap } from '../composables/useTripMap';
+import TripPhotosModal from '../components/TripPhotosModal.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -17,6 +18,13 @@ const currentTime = ref(new Date());
 const showAddExpenseModal = ref(false);
 const isSubmittingExpense = ref(false);
 const showMobileMap = ref(false);
+const showPhotosModal = ref(false);
+const selectedStopForPhotos = ref<any>(null);
+
+const openPhotos = (stop: any) => {
+  selectedStopForPhotos.value = stop;
+  showPhotosModal.value = true;
+};
 
 const newExpense = ref({ title: '', amount: 0, category: 'food', paidBy: null as any, description: '' });
 const routeSettings = ref({ carConsumption: 7.0, fuelPrice: 1.8 });
@@ -292,47 +300,50 @@ onUnmounted(() => { clearInterval(clockInterval); clearAll(); });
 </script>
 
 <template>
-  <!-- Loading -->
+<div>
   <div v-if="loading" class="fixed top-14 left-0 right-0 bottom-0 flex items-center justify-center bg-zinc-50 dark:bg-[#0c0c0e] z-40">
-    <div class="flex flex-col items-center gap-6">
-      <div class="relative w-20 h-20">
-        <div class="absolute inset-0 rounded-full border border-primary-400/10"></div>
+    <div class="flex flex-col items-center gap-5">
+      <div class="relative w-16 h-16">
+        <div class="absolute inset-0 rounded-full border border-primary-400/15"></div>
         <div class="absolute inset-0 rounded-full border-2 border-t-primary-400 border-r-transparent border-b-transparent border-l-transparent animate-spin"></div>
-        <div class="absolute inset-[5px] rounded-full border border-primary-400/20"></div>
-        <div class="absolute inset-[5px] rounded-full border-2 border-t-transparent border-r-primary-400/40 border-b-transparent border-l-transparent animate-spin" style="animation-duration:1.5s;animation-direction:reverse"></div>
+        <div class="absolute inset-[4px] rounded-full border border-primary-400/20"></div>
+        <div class="absolute inset-[4px] rounded-full border-2 border-t-transparent border-r-primary-400/40 border-b-transparent border-l-transparent animate-spin" style="animation-duration:1.5s;animation-direction:reverse"></div>
         <div class="absolute inset-0 flex items-center justify-center">
-          <i class="fi fi-rr-rocket-lunch text-primary-400 text-xl"></i>
+          <i class="fi fi-rr-rocket-lunch text-primary-400 text-lg leading-none"></i>
         </div>
       </div>
       <div class="text-center">
-        <p class="text-xs font-black text-zinc-900 dark:text-white uppercase tracking-[0.25em]">Mode En Route</p>
-        <p class="text-[10px] text-zinc-400 mt-1 font-medium">Calcul de l'itinéraire...</p>
+        <p class="text-[11px] font-black text-zinc-900 dark:text-white uppercase tracking-[0.3em]">En Route</p>
+        <p class="text-[10px] text-zinc-400 dark:text-zinc-500 mt-1.5">Calcul de l'itinéraire...</p>
       </div>
     </div>
   </div>
 
-  <!-- Main layout -->
-  <div v-else-if="trip" class="fixed top-14 left-0 right-0 bottom-0 flex flex-col bg-zinc-100 dark:bg-[#0c0c0e] overflow-hidden">
+  <div v-else-if="trip" class="fixed top-14 left-0 right-0 bottom-0 flex flex-col overflow-hidden bg-zinc-100 dark:bg-[#0c0c0e]">
 
-    <!-- ═══ SUB TOPBAR ═══ -->
-    <div class="shrink-0 h-[52px] flex items-center gap-3 px-4 bg-white dark:bg-[#111113] border-b border-zinc-200 dark:border-zinc-800/60 shadow-sm dark:shadow-none z-30">
-      <button @click="router.push(`/trips/${tripId}`)" class="live-icon-btn group shrink-0 cursor-pointer">
-        <i class="fi fi-rr-arrow-left text-sm text-zinc-500 dark:text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-white transition-colors"></i>
+    <header class="shrink-0 relative h-[52px] flex items-center gap-3 px-4 bg-white dark:bg-[#111113] border-b border-zinc-200 dark:border-zinc-800/60 z-30">
+
+      <div class="topbar-progress-track">
+        <div class="topbar-progress-fill" :style="{ width: `${tripProgress.pct}%` }"></div>
+      </div>
+
+      <button @click="router.push(`/trips/${tripId}`)" class="icon-btn cursor-pointer shrink-0" title="Retour au tableau de bord">
+        <i class="fi fi-rr-arrow-left text-sm leading-none"></i>
       </button>
 
       <div class="flex-1 min-w-0">
-        <p class="text-[9px] font-black text-zinc-400 uppercase tracking-[0.22em] leading-none">En Route</p>
-        <h1 class="font-black text-zinc-900 dark:text-white text-sm leading-snug truncate">{{ trip.title }}</h1>
+        <p class="text-[8px] font-black text-zinc-400 dark:text-zinc-500 uppercase tracking-[0.28em] leading-none mb-0.5">En Route</p>
+        <h1 class="font-black text-zinc-900 dark:text-white text-[13px] leading-none truncate">{{ trip.title }}</h1>
       </div>
 
-      <button @click="showMobileMap = !showMobileMap" class="md:hidden live-icon-btn group shrink-0 cursor-pointer">
-        <i :class="showMobileMap ? 'fi fi-rr-list' : 'fi fi-rr-map'" class="text-sm text-zinc-500 dark:text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-white transition-colors"></i>
+      <button @click="showMobileMap = !showMobileMap" class="md:hidden icon-btn cursor-pointer shrink-0" :title="showMobileMap ? 'Voir le panneau' : 'Voir la carte'">
+        <i :class="showMobileMap ? 'fi fi-rr-list' : 'fi fi-rr-map'" class="text-sm leading-none"></i>
       </button>
 
-      <div class="hidden sm:flex items-center gap-3 shrink-0">
+      <div class="hidden sm:flex items-center gap-2.5 shrink-0">
         <div class="text-right leading-none">
-          <p class="text-[8px] font-black text-zinc-400 uppercase tracking-widest">Jour</p>
-          <p class="text-xl font-black text-zinc-900 dark:text-white leading-tight mt-px">{{ tripProgress.day }}<span class="text-sm font-medium text-zinc-400"> / {{ tripProgress.total }}</span></p>
+          <p class="text-[8px] font-black text-zinc-400 dark:text-zinc-500 uppercase tracking-widest mb-0.5">Jour</p>
+          <p class="text-lg font-black text-zinc-900 dark:text-white tabular-nums leading-none">{{ tripProgress.day }}<span class="text-xs font-semibold text-zinc-400 dark:text-zinc-500">/{{ tripProgress.total }}</span></p>
         </div>
         <div class="live-badge">
           <span class="live-dot"></span>
@@ -343,262 +354,271 @@ onUnmounted(() => { clearInterval(clockInterval); clearAll(); });
         <span class="live-dot"></span>
         <span>J{{ tripProgress.day }}</span>
       </div>
-    </div>
+    </header>
 
-    <!-- ═══ CONTENT ═══ -->
     <div class="flex-1 flex overflow-hidden">
 
-      <!-- ─── LEFT PANEL ─── -->
-      <div class="w-full md:w-[376px] lg:w-[408px] shrink-0 flex flex-col bg-zinc-100 dark:bg-[#0c0c0e] border-r border-zinc-200 dark:border-zinc-800/50 z-20 overflow-hidden"
+      <div class="w-full md:w-[388px] lg:w-[416px] shrink-0 flex flex-col z-20 p-3"
         :class="showMobileMap ? 'hidden md:flex' : 'flex'">
-        <div class="flex-1 overflow-y-auto no-scrollbar">
-          <div class="p-3 sm:p-4 space-y-3">
+        <div class="flex-1 flex flex-col bg-white dark:bg-[#111113] rounded-3xl border border-zinc-200 dark:border-zinc-800/50 shadow-[0_2px_20px_rgba(0,0,0,0.07)] dark:shadow-[0_2px_20px_rgba(0,0,0,0.35)] overflow-hidden min-h-0">
 
-            <!-- ① DATE + PROGRESS -->
-            <div class="live-card card-enter" style="animation-delay:0ms">
-              <div class="flex items-center justify-between mb-3">
-                <div class="flex items-center gap-2.5">
-                  <div class="w-8 h-8 rounded-xl bg-primary-400/10 dark:bg-primary-400/10 flex items-center justify-center shrink-0">
-                    <i class="fi fi-rr-calendar text-primary-400 text-sm"></i>
-                  </div>
-                  <span class="text-sm font-black text-zinc-900 dark:text-white capitalize">{{ formatDateLong(todayDateStr) }}</span>
+        <div class="flex-1 overflow-y-auto no-scrollbar divide-y divide-zinc-100 dark:divide-zinc-800/50">
+
+          <div class="px-4 py-3 flex items-center gap-3 card-enter" style="animation-delay:0ms">
+            <div class="flex-1 min-w-0">
+              <p class="text-[11px] font-bold text-zinc-800 dark:text-zinc-200 capitalize leading-tight truncate">{{ formatDateLong(todayDateStr) }}</p>
+              <div class="flex items-center gap-2 mt-1.5">
+                <div class="flex-1 h-1 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+                  <div class="trip-progress-bar h-full rounded-full" :style="{ width: `${tripProgress.pct}%` }"></div>
                 </div>
-                <span class="text-xs font-black text-primary-400 tabular-nums">{{ Math.round(tripProgress.pct) }}%</span>
-              </div>
-              <div class="h-2 w-full bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
-                <div class="progress-bar h-full rounded-full" :style="{ width: `${tripProgress.pct}%` }"></div>
-              </div>
-              <div class="flex justify-between mt-2">
-                <span class="text-[10px] text-zinc-400 font-semibold">{{ formatDate(trip.startDate) }}</span>
-                <span class="text-[10px] text-zinc-400 font-semibold">{{ formatDate(trip.endDate) }}</span>
+                <span class="text-[9px] font-black text-zinc-400 dark:text-zinc-500 tabular-nums shrink-0">{{ formatDate(trip.startDate) }} → {{ formatDate(trip.endDate) }}</span>
               </div>
             </div>
+            <div class="shrink-0 text-center">
+              <p class="text-[9px] font-black text-zinc-400 dark:text-zinc-500 uppercase tracking-widest leading-none mb-0.5">Jour</p>
+              <p class="text-xl font-black text-zinc-900 dark:text-white leading-none tabular-nums">{{ tripProgress.day }}<span class="text-sm font-medium text-zinc-400 dark:text-zinc-500">/{{ tripProgress.total }}</span></p>
+            </div>
+          </div>
 
-            <!-- ② EN CE MOMENT -->
-            <Transition name="pop">
-              <div v-if="currentStop" class="current-stop-card card-enter" :style="{ '--stop-color': getStopColor(currentStop.type), animationDelay: '60ms' }">
-                <div class="current-stop-glow"></div>
-                <div class="relative z-10">
-                  <div class="flex items-center gap-2 mb-3">
-                    <span class="current-stop-pulse" :style="{ background: getStopColor(currentStop.type) }"></span>
-                    <span class="text-[9px] font-black uppercase tracking-[0.22em]" :style="{ color: getStopColor(currentStop.type) }">En ce moment</span>
+          <Transition name="pop">
+            <div v-if="currentStop"
+              class="hero-section card-enter"
+              :style="{ '--sc': getStopColor(currentStop.type), animationDelay: '50ms' }">
+              <div class="hero-left-strip"></div>
+              <div class="hero-ambient-glow"></div>
+              <div class="relative z-10 pl-6 pr-4 py-4">
+                <div class="flex items-center justify-between mb-3">
+                  <div class="flex items-center gap-1.5">
+                    <span class="w-1.5 h-1.5 rounded-full animate-pulse shrink-0" :style="{ background: 'var(--sc)' }"></span>
+                    <span class="text-[9px] font-black uppercase tracking-[0.28em] text-zinc-500 dark:text-zinc-400">En ce moment</span>
                   </div>
-                  <div class="flex items-center gap-3">
-                    <div class="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0" :style="{ background: `${getStopColor(currentStop.type)}22` }">
-                      <i :class="getStopIconClass(currentStop.type)" class="text-lg" :style="{ color: getStopColor(currentStop.type) }"></i>
-                    </div>
-                    <div class="min-w-0">
-                      <h3 class="font-black text-zinc-900 dark:text-white text-base leading-tight truncate">{{ currentStop.displayTitle || currentStop.title }}</h3>
-                      <p class="text-[10px] font-bold mt-0.5" :style="{ color: getStopColor(currentStop.type) }">{{ formatStopType(currentStop.type) }}</p>
-                      <p v-if="currentStop.arrivalDate" class="text-[10px] text-zinc-400 font-medium mt-1">
-                        {{ formatTime(currentStop.arrivalDate) }}{{ currentStop.departureDate ? ` — ${formatTime(currentStop.departureDate)}` : '' }}
-                      </p>
+                  <button v-if="!currentStop.isAccommodationHub" @click="openPhotos(currentStop)"
+                    class="photos-btn cursor-pointer"
+                    :style="{ color: 'var(--sc)', background: 'color-mix(in srgb, var(--sc) 12%, transparent)' }">
+                    <i class="fi fi-rr-camera text-[10px] leading-none"></i>
+                    <span>Photos</span>
+                  </button>
+                </div>
+                <div class="flex items-center gap-3">
+                  <div class="stop-icon-lg shrink-0" :style="{ background: 'color-mix(in srgb, var(--sc) 14%, transparent)' }">
+                    <i :class="getStopIconClass(currentStop.type)" class="text-[22px] leading-none" :style="{ color: 'var(--sc)' }"></i>
+                  </div>
+                  <div class="min-w-0">
+                    <h2 class="font-black text-zinc-900 dark:text-white text-[16px] leading-snug truncate">{{ currentStop.displayTitle || currentStop.title }}</h2>
+                    <div class="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                      <span class="text-[10px] font-bold" :style="{ color: 'var(--sc)' }">{{ formatStopType(currentStop.type) }}</span>
+                      <template v-if="currentStop.arrivalDate">
+                        <span class="text-zinc-300 dark:text-zinc-700 text-xs leading-none">·</span>
+                        <span class="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 tabular-nums">{{ formatTime(currentStop.arrivalDate) }}{{ currentStop.departureDate ? ` — ${formatTime(currentStop.departureDate)}` : '' }}</span>
+                      </template>
                     </div>
                   </div>
                 </div>
               </div>
-            </Transition>
+            </div>
+          </Transition>
 
-            <!-- ③ PROCHAIN ARRÊT -->
-            <div v-if="nextStop" class="live-card card-enter overflow-hidden" style="animation-delay:120ms">
-              <div class="flex items-center justify-between mb-3">
-                <span class="live-section-label">Prochain arrêt</span>
-                <span v-if="nextStop.arrivalDate" class="text-[10px] font-black text-zinc-500 dark:text-zinc-400 tabular-nums">{{ formatTime(nextStop.arrivalDate) }}</span>
+          <div v-if="nextStop" class="px-4 py-4 card-enter" style="animation-delay:100ms">
+            <p class="section-label mb-3">Prochain arrêt</p>
+            <div class="flex items-start gap-3 mb-3.5">
+              <div class="stop-icon-md shrink-0 mt-0.5" :style="{ background: `${getStopColor(nextStop.type)}12` }">
+                <i :class="getStopIconClass(nextStop.type)" class="text-base leading-none" :style="{ color: getStopColor(nextStop.type) }"></i>
               </div>
-              <div class="flex items-center gap-3 mb-4">
-                <div class="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 next-stop-icon" :style="{ '--stop-color': getStopColor(nextStop.type) }">
-                  <i :class="getStopIconClass(nextStop.type)" class="text-xl" :style="{ color: getStopColor(nextStop.type) }"></i>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-start justify-between gap-2">
+                  <h3 class="font-bold text-zinc-900 dark:text-white text-[14px] leading-snug truncate">{{ nextStop.displayTitle || nextStop.title }}</h3>
+                  <span v-if="nextStop.arrivalDate" class="text-[11px] font-black text-zinc-500 dark:text-zinc-400 tabular-nums shrink-0 mt-px">{{ formatTime(nextStop.arrivalDate) }}</span>
                 </div>
-                <div class="flex-1 min-w-0">
-                  <h3 class="font-black text-zinc-900 dark:text-white text-[15px] leading-tight truncate">{{ nextStop.displayTitle || nextStop.title }}</h3>
-                  <p class="text-[10px] font-semibold text-zinc-400 mt-0.5">{{ formatStopType(nextStop.type) }}</p>
-                  <div v-if="prevStopBeforeNext?.distanceToNext" class="flex items-center gap-3 mt-1.5">
-                    <span class="route-chip"><i class="fi fi-rr-route text-[9px]"></i>{{ prevStopBeforeNext.distanceToNext }} km</span>
-                    <span class="route-chip"><i class="fi fi-rr-clock text-[9px]"></i>{{ formatDuration(prevStopBeforeNext.travelTimeToNext) }}</span>
+                <div class="flex items-center gap-1.5 mt-1 flex-wrap">
+                  <span class="type-tag" :style="{ color: getStopColor(nextStop.type), background: `${getStopColor(nextStop.type)}12` }">{{ formatStopType(nextStop.type) }}</span>
+                  <template v-if="prevStopBeforeNext?.distanceToNext">
+                    <span class="text-zinc-300 dark:text-zinc-700 text-xs">·</span>
+                    <span class="text-[10px] text-zinc-500 dark:text-zinc-400 font-medium tabular-nums">{{ prevStopBeforeNext.distanceToNext }} km · {{ formatDuration(prevStopBeforeNext.travelTimeToNext) }}</span>
+                  </template>
+                </div>
+              </div>
+            </div>
+            <button @click="openGoogleMaps(nextStop)" class="nav-btn w-full cursor-pointer">
+              <i class="fi fi-rr-navigation text-sm leading-none"></i>
+              <span>Naviguer</span>
+            </button>
+          </div>
+
+          <div v-else-if="!currentStop" class="px-4 py-8 text-center card-enter" style="animation-delay:100ms">
+            <div class="w-11 h-11 rounded-2xl bg-zinc-100 dark:bg-zinc-800/60 flex items-center justify-center mx-auto mb-3">
+              <i class="fi fi-rr-road text-zinc-400 dark:text-zinc-500 text-lg leading-none"></i>
+            </div>
+            <p class="font-bold text-zinc-700 dark:text-zinc-300 text-sm">Aucune activité planifiée</p>
+            <p class="text-[11px] text-zinc-400 dark:text-zinc-500 mt-1">Profitez de la route !</p>
+          </div>
+
+          <div v-if="todayActivities.length > 0" class="card-enter" style="animation-delay:150ms">
+            <div class="px-4 pt-4 pb-1.5">
+              <p class="section-label">Itinéraire du jour</p>
+            </div>
+            <div class="relative pb-1">
+              <div class="timeline-rail"></div>
+              <div v-for="(stop, idx) in todayActivities" :key="stop.id">
+                <div class="timeline-row group"
+                  :class="[
+                    isPastStop(stop) ? 'opacity-40' : '',
+                    isCurrentStop(stop) ? 'is-current' : ''
+                  ]">
+                  <div class="timeline-node"
+                    :class="isPastStop(stop) ? 'node-done' : isCurrentStop(stop) ? 'node-active' : isNextStop(stop) ? 'node-next' : 'node-idle'"
+                    :style="isCurrentStop(stop) ? { '--nc': getStopColor(stop.type) } : {}">
+                    <i v-if="isPastStop(stop)" class="fi fi-rr-check text-[5px] text-white leading-none"></i>
+                    <span v-else-if="isCurrentStop(stop)" class="node-pulse" :style="{ background: getStopColor(stop.type) }"></span>
+                  </div>
+                  <div class="flex-1 min-w-0 py-3 pr-4">
+                    <div class="flex items-center gap-2">
+                      <i :class="getStopIconClass(stop.type)" class="text-[10px] shrink-0 leading-none"
+                        :style="{ color: isPastStop(stop) ? '#a1a1aa' : getStopColor(stop.type) }"></i>
+                      <span class="text-[13px] font-semibold text-zinc-900 dark:text-zinc-100 truncate flex-1 leading-tight">{{ stop.displayTitle || stop.title }}</span>
+                      <button v-if="!stop.isAccommodationHub" @click.stop="openPhotos(stop)"
+                        class="photo-row-btn cursor-pointer sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
+                        title="Voir / ajouter des photos">
+                        <i class="fi fi-rr-camera text-[9px] leading-none"></i>
+                      </button>
+                      <span v-if="stop.arrivalDate" class="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 tabular-nums shrink-0">{{ formatTime(stop.arrivalDate) }}</span>
+                    </div>
+                    <div class="flex items-center gap-2 mt-1 flex-wrap">
+                      <span v-if="isCurrentStop(stop)" class="status-pill" :style="{ color: getStopColor(stop.type), background: `${getStopColor(stop.type)}14` }">
+                        <span class="w-1 h-1 rounded-full animate-pulse inline-block shrink-0" :style="{ background: getStopColor(stop.type) }"></span>
+                        En cours
+                      </span>
+                      <span v-else-if="isNextStop(stop)" class="status-pill text-primary-600 dark:text-primary-400 bg-primary-400/10">
+                        Prochain
+                      </span>
+                      <span v-if="stop.distanceToNext && !stop.isReturnStep" class="text-[10px] text-zinc-400 dark:text-zinc-500 font-medium">
+                        {{ stop.distanceToNext }} km · {{ formatDuration(stop.travelTimeToNext) }}
+                      </span>
+                    </div>
                   </div>
                 </div>
+                <div v-if="(idx as number) < todayActivities.length - 1" class="ml-12 mr-4 h-px bg-zinc-100 dark:bg-zinc-800/50"></div>
               </div>
-              <button @click="openGoogleMaps(nextStop)" class="navigate-btn w-full cursor-pointer">
-                <i class="fi fi-rr-navigation text-sm"></i>
-                Naviguer
+            </div>
+          </div>
+
+          <div class="px-4 py-4 card-enter" style="animation-delay:200ms">
+            <div class="flex items-center justify-between mb-3.5">
+              <p class="section-label">Budget</p>
+              <button @click="router.push(`/trips/${tripId}`)" class="text-[10px] font-black text-primary-500 dark:text-primary-400 hover:text-primary-600 dark:hover:text-primary-300 transition-colors cursor-pointer">
+                Voir détails →
               </button>
             </div>
-
-            <!-- Aucune activité -->
-            <div v-else-if="!currentStop" class="live-card card-enter text-center py-8" style="animation-delay:120ms">
-              <div class="w-14 h-14 rounded-3xl bg-zinc-100 dark:bg-zinc-800/80 flex items-center justify-center mx-auto mb-3">
-                <i class="fi fi-rr-road text-zinc-400 dark:text-zinc-500 text-2xl"></i>
+            <div class="grid grid-cols-3 gap-2 mb-3">
+              <div class="stat-cell">
+                <span class="stat-val">{{ Math.round(budgetStats.total) }}€</span>
+                <span class="stat-lbl">Total</span>
               </div>
-              <p class="font-black text-zinc-700 dark:text-zinc-300 text-sm">Aucune activité planifiée</p>
-              <p class="text-[11px] text-zinc-400 mt-1">Profitez de la route !</p>
-            </div>
-
-            <!-- ④ TIMELINE DU JOUR -->
-            <div v-if="todayActivities.length > 0" class="card-enter" style="animation-delay:180ms">
-              <p class="live-section-label px-1 mb-2">Itinéraire du jour</p>
-              <div class="live-card !p-0 overflow-hidden">
-                <div class="timeline-line"></div>
-                <div v-for="(stop, idx) in todayActivities" :key="stop.id">
-                  <div class="relative flex items-start gap-3 px-4 py-3 transition-colors duration-200"
-                    :class="[
-                      isPastStop(stop) ? 'opacity-40' : '',
-                      isCurrentStop(stop) ? 'bg-primary-400/[0.04] dark:bg-primary-400/[0.06]' : 'hover:bg-zinc-50 dark:hover:bg-zinc-800/30'
-                    ]">
-                    <!-- dot -->
-                    <div class="timeline-dot shrink-0"
-                      :class="isPastStop(stop) ? 'timeline-dot-past' : isCurrentStop(stop) ? 'timeline-dot-active' : isNextStop(stop) ? 'timeline-dot-next' : 'timeline-dot-future'"
-                      :style="{ '--dot-color': getStopColor(stop.type) }">
-                      <i v-if="isPastStop(stop)" class="fi fi-rr-check text-[6px] text-white"></i>
-                      <span v-else-if="isCurrentStop(stop)" class="timeline-dot-inner-pulse" :style="{ background: getStopColor(stop.type) }"></span>
-                    </div>
-                    <div class="flex-1 min-w-0 pt-0.5 pr-1">
-                      <div class="flex items-start justify-between gap-2">
-                        <div class="flex items-center gap-1.5 min-w-0">
-                          <i :class="getStopIconClass(stop.type)" class="text-[11px] shrink-0 mt-px" :style="{ color: isPastStop(stop) ? '#71717a' : getStopColor(stop.type) }"></i>
-                          <span class="text-[13px] font-bold text-zinc-900 dark:text-white truncate leading-tight">{{ stop.displayTitle || stop.title }}</span>
-                        </div>
-                        <span v-if="stop.arrivalDate" class="text-[10px] font-black text-zinc-400 shrink-0 tabular-nums mt-px">{{ formatTime(stop.arrivalDate) }}</span>
-                      </div>
-                      <div class="flex items-center gap-2 mt-1">
-                        <span v-if="isCurrentStop(stop)" class="timeline-badge" :style="{ background: `${getStopColor(stop.type)}18`, color: getStopColor(stop.type) }">
-                          <span class="w-1 h-1 rounded-full animate-pulse inline-block" :style="{ background: getStopColor(stop.type) }"></span>
-                          En cours
-                        </span>
-                        <span v-else-if="isNextStop(stop)" class="timeline-badge bg-primary-400/10 text-primary-500 dark:text-primary-400">
-                          Prochain
-                        </span>
-                      </div>
-                      <div v-if="stop.distanceToNext && !stop.isReturnStep" class="flex items-center gap-1.5 mt-1.5 pt-1.5 border-t border-zinc-100 dark:border-zinc-800/60">
-                        <i class="fi fi-rr-car text-[9px] text-zinc-300 dark:text-zinc-600"></i>
-                        <span class="text-[10px] font-semibold text-zinc-400">{{ stop.distanceToNext }} km · {{ formatDuration(stop.travelTimeToNext) }}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div v-if="(idx as number) < todayActivities.length - 1" class="h-px bg-zinc-100 dark:bg-zinc-800/60 ml-[3.25rem] mr-4"></div>
-                </div>
+              <div class="stat-cell">
+                <span class="stat-val">{{ Math.round(budgetStats.spent) }}€</span>
+                <span class="stat-lbl">Dépensé</span>
+              </div>
+              <div class="stat-cell">
+                <span class="stat-val" :class="budgetStats.remaining >= 0 ? 'text-primary-500 dark:text-primary-400' : 'text-rose-500'">
+                  {{ budgetStats.remaining >= 0 ? '' : '-' }}{{ Math.round(Math.abs(budgetStats.remaining)) }}€
+                </span>
+                <span class="stat-lbl">{{ budgetStats.remaining >= 0 ? 'Restant' : 'Dépassé' }}</span>
               </div>
             </div>
-
-            <!-- ⑤ BUDGET -->
-            <div class="live-card card-enter" style="animation-delay:240ms">
-              <div class="flex items-center justify-between mb-3">
-                <span class="live-section-label">Budget</span>
-                <button @click="router.push(`/trips/${tripId}`)" class="text-[10px] font-black text-primary-500 dark:text-primary-400 hover:underline transition-colors cursor-pointer">Détails →</button>
-              </div>
-              <div class="grid grid-cols-3 gap-2 mb-3">
-                <div class="budget-stat-cell">
-                  <span class="budget-stat-value">{{ Math.round(budgetStats.total) }}€</span>
-                  <span class="budget-stat-label">Budget</span>
-                </div>
-                <div class="budget-stat-cell">
-                  <span class="budget-stat-value">{{ Math.round(budgetStats.spent) }}€</span>
-                  <span class="budget-stat-label">Dépensé</span>
-                </div>
-                <div class="budget-stat-cell">
-                  <span class="budget-stat-value" :class="budgetStats.remaining >= 0 ? 'text-primary-500 dark:text-primary-400' : 'text-rose-500'">{{ Math.round(Math.abs(budgetStats.remaining)) }}€</span>
-                  <span class="budget-stat-label">{{ budgetStats.remaining >= 0 ? 'Restant' : 'Dépassé' }}</span>
-                </div>
-              </div>
-              <div class="h-2 w-full bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
-                <div class="h-full rounded-full transition-all duration-700"
-                  :class="budgetStats.percentage > 90 ? 'bg-rose-500' : budgetStats.percentage > 70 ? 'bg-amber-500' : 'budget-bar'"
-                  :style="{ width: `${budgetStats.percentage}%` }"></div>
-              </div>
-              <div v-if="todayExpenses.length > 0" class="flex items-center justify-between mt-3 pt-3 border-t border-zinc-100 dark:border-zinc-800/50">
-                <span class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wide">Aujourd'hui</span>
-                <span class="text-xs font-black text-zinc-700 dark:text-zinc-200">{{ todayExpensesTotal.toFixed(2) }}€</span>
-              </div>
+            <div class="h-1.5 w-full bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+              <div class="h-full rounded-full transition-all duration-700"
+                :class="budgetStats.percentage > 90 ? 'bg-rose-500' : budgetStats.percentage > 70 ? 'bg-amber-500' : 'budget-fill'"
+                :style="{ width: `${budgetStats.percentage}%` }"></div>
             </div>
-
-            <!-- ⑥ ADD EXPENSE -->
-            <button @click="showAddExpenseModal = true" class="expense-cta-btn card-enter cursor-pointer group" style="animation-delay:300ms">
-              <div class="w-8 h-8 rounded-xl bg-primary-400/10 flex items-center justify-center shrink-0 group-hover:bg-primary-400/20 transition-colors">
-                <i class="fi fi-rr-coins text-primary-500 dark:text-primary-400 text-sm"></i>
-              </div>
-              <span>Saisir une dépense</span>
-              <i class="fi fi-rr-plus ml-auto text-zinc-400 group-hover:text-primary-400 transition-colors text-sm"></i>
-            </button>
-
-            <!-- ⑦ PROCHAINS JOURS -->
-            <div v-if="upcomingDays.length > 0" class="card-enter" style="animation-delay:360ms">
-              <p class="live-section-label px-1 mb-2">Prochains jours</p>
-              <div class="space-y-2">
-                <div v-for="(day, i) in upcomingDays.slice(0, 4)" :key="day.date"
-                  class="upcoming-day-row"
-                  :style="{ animationDelay: `${360 + i * 50}ms` }">
-                  <div class="upcoming-day-date">
-                    <span class="text-sm font-black text-zinc-700 dark:text-zinc-200 leading-none">{{ new Date(day.date + 'T12:00:00').getDate() }}</span>
-                    <span class="text-[8px] font-bold text-zinc-400 uppercase leading-none">{{ new Date(day.date + 'T12:00:00').toLocaleDateString('fr-FR', { month: 'short' }) }}</span>
-                  </div>
-                  <div class="flex-1 min-w-0">
-                    <p class="text-[12px] font-black text-zinc-800 dark:text-zinc-200 capitalize leading-tight">{{ formatDateShort(day.date) }}</p>
-                    <p class="text-[10px] text-zinc-400 font-medium leading-tight mt-px">{{ day.activities.length }} arrêt{{ day.activities.length > 1 ? 's' : '' }}</p>
-                  </div>
-                  <div class="flex -space-x-1.5 shrink-0">
-                    <div v-for="(act, j) in day.activities.slice(0, 5)" :key="act.id"
-                      class="w-4 h-4 rounded-full border-2 border-white dark:border-[#0c0c0e] shadow-sm"
-                      :style="{ background: getStopColor(act.type), zIndex: 10 - (j as number) }">
-                    </div>
-                  </div>
-                </div>
-              </div>
+            <div v-if="todayExpenses.length > 0" class="flex items-center justify-between mt-3 pt-3 border-t border-zinc-100 dark:border-zinc-800/50">
+              <span class="text-[10px] text-zinc-500 dark:text-zinc-400 font-medium">Dépenses aujourd'hui</span>
+              <span class="text-[11px] font-black text-zinc-800 dark:text-zinc-200 tabular-nums">{{ todayExpensesTotal.toFixed(2) }}€</span>
             </div>
-
-            <div class="h-4"></div>
           </div>
+
+          <div v-if="upcomingDays.length > 0" class="px-4 py-4 card-enter" style="animation-delay:250ms">
+            <p class="section-label mb-3">Prochains jours</p>
+            <div class="space-y-0.5">
+              <div v-for="(day, i) in upcomingDays.slice(0, 5)" :key="day.date" class="upcoming-row">
+                <div class="upcoming-date shrink-0">
+                  <span class="text-[14px] font-black text-zinc-800 dark:text-zinc-100 leading-none tabular-nums">{{ new Date(day.date + 'T12:00:00').getDate() }}</span>
+                  <span class="text-[8px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider leading-none">{{ new Date(day.date + 'T12:00:00').toLocaleDateString('fr-FR', { month: 'short' }) }}</span>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <p class="text-[12px] font-bold text-zinc-800 dark:text-zinc-200 leading-tight truncate">
+                    {{ day.activities.filter((a: any) => !a.isAccommodationHub).map((a: any) => a.title).slice(0, 2).join(', ') || formatDateShort(day.date) }}
+                  </p>
+                  <p class="text-[10px] text-zinc-400 dark:text-zinc-500 mt-0.5">
+                    {{ day.activities.filter((a: any) => !a.isAccommodationHub).length }} étape{{ day.activities.filter((a: any) => !a.isAccommodationHub).length > 1 ? 's' : '' }}
+                  </p>
+                </div>
+                <i class="fi fi-rr-angle-right text-[10px] text-zinc-300 dark:text-zinc-600 shrink-0 leading-none"></i>
+              </div>
+            </div>
+          </div>
+
+          <div class="h-2"></div>
+        </div>
+
+        <div class="shrink-0 grid grid-cols-2 gap-2 p-3 border-t border-zinc-200 dark:border-zinc-800/50">
+          <button
+            @click="currentStop && !currentStop.isAccommodationHub ? openPhotos(currentStop) : null"
+            :disabled="!currentStop || currentStop.isAccommodationHub"
+            class="action-btn action-btn-secondary cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed">
+            <i class="fi fi-rr-camera text-sm leading-none"></i>
+            <span>Photos</span>
+          </button>
+          <button @click="showAddExpenseModal = true" class="action-btn action-btn-primary cursor-pointer">
+            <i class="fi fi-rr-coins text-sm leading-none"></i>
+            <span>Dépense</span>
+          </button>
+        </div>
         </div>
       </div>
 
-      <!-- ─── MAP ─── -->
       <div class="flex-1 relative p-3" :class="showMobileMap ? 'flex' : 'hidden md:flex'">
         <div class="absolute inset-3 rounded-3xl overflow-hidden shadow-[0_4px_24px_rgba(0,0,0,0.12)] dark:shadow-[0_4px_24px_rgba(0,0,0,0.4)]">
           <div id="live-map" class="w-full h-full"></div>
         </div>
 
         <div class="absolute inset-3 pointer-events-none rounded-3xl overflow-hidden">
-          <!-- Heure -->
           <div class="absolute top-4 left-4 pointer-events-auto">
             <div class="map-chip gap-2">
               <span class="w-1.5 h-1.5 bg-primary-400 rounded-full animate-pulse shrink-0"></span>
-              <span class="text-sm font-black text-zinc-900 dark:text-white tabular-nums">{{ currentTimeFormatted }}</span>
+              <span class="text-[13px] font-black text-zinc-900 dark:text-white tabular-nums">{{ currentTimeFormatted }}</span>
             </div>
           </div>
 
-          <!-- Floating next-stop -->
           <Transition name="float-up">
-            <div v-if="nextStop" class="absolute bottom-6 left-4 right-4 pointer-events-auto md:left-auto md:right-5 md:w-[280px]">
+            <div v-if="nextStop" class="absolute bottom-6 left-4 right-4 pointer-events-auto md:left-auto md:right-5 md:w-[270px]">
               <div class="map-float-card">
                 <div class="flex items-center gap-2 mb-2.5">
-                  <span class="text-[9px] font-black text-zinc-400 uppercase tracking-[0.2em]">Prochain arrêt</span>
-                  <div class="flex-1 h-px bg-zinc-200 dark:bg-zinc-700/80"></div>
+                  <span class="text-[9px] font-black text-zinc-400 dark:text-zinc-500 uppercase tracking-[0.22em]">Prochain arrêt</span>
+                  <div class="flex-1 h-px bg-zinc-200 dark:bg-zinc-700/60"></div>
                 </div>
                 <div class="flex items-center gap-3">
-                  <div class="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0" :style="{ background: `${getStopColor(nextStop.type)}18` }">
-                    <i :class="getStopIconClass(nextStop.type)" class="text-[17px]" :style="{ color: getStopColor(nextStop.type) }"></i>
+                  <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" :style="{ background: `${getStopColor(nextStop.type)}14` }">
+                    <i :class="getStopIconClass(nextStop.type)" class="text-base leading-none" :style="{ color: getStopColor(nextStop.type) }"></i>
                   </div>
                   <div class="flex-1 min-w-0">
-                    <p class="font-black text-zinc-900 dark:text-white text-sm truncate leading-tight">{{ nextStop.displayTitle || nextStop.title }}</p>
-                    <div v-if="prevStopBeforeNext?.distanceToNext" class="flex items-center gap-2 mt-0.5">
-                      <span class="text-[10px] font-bold text-zinc-500">{{ prevStopBeforeNext.distanceToNext }} km</span>
-                      <span class="text-zinc-300 dark:text-zinc-600 text-[10px]">·</span>
-                      <span class="text-[10px] font-bold text-zinc-500">{{ formatDuration(prevStopBeforeNext.travelTimeToNext) }}</span>
-                    </div>
+                    <p class="font-bold text-zinc-900 dark:text-white text-[13px] truncate leading-tight">{{ nextStop.displayTitle || nextStop.title }}</p>
+                    <p v-if="prevStopBeforeNext?.distanceToNext" class="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5 tabular-nums">
+                      {{ prevStopBeforeNext.distanceToNext }} km · {{ formatDuration(prevStopBeforeNext.travelTimeToNext) }}
+                    </p>
                   </div>
-                  <button @click="openGoogleMaps(nextStop)" class="map-nav-btn cursor-pointer">
-                    <i class="fi fi-rr-navigation text-zinc-950 text-[13px]"></i>
+                  <button @click="openGoogleMaps(nextStop)" class="map-nav-btn cursor-pointer shrink-0">
+                    <i class="fi fi-rr-navigation text-zinc-950 text-[13px] leading-none"></i>
                   </button>
                 </div>
               </div>
             </div>
           </Transition>
 
-          <!-- Aucun stop sur la carte -->
           <div v-if="!loading && todayActivities.length === 0" class="absolute inset-0 flex items-center justify-center">
             <div class="map-chip flex-col gap-2 !py-5 !px-6 pointer-events-auto text-center">
               <i class="fi fi-rr-road text-2xl text-zinc-400"></i>
               <div>
-                <p class="font-black text-zinc-700 dark:text-zinc-300 text-sm">Jour libre</p>
-                <p class="text-[10px] text-zinc-400 mt-0.5">Aucune activité planifiée aujourd'hui</p>
+                <p class="font-bold text-zinc-700 dark:text-zinc-300 text-sm">Jour libre</p>
+                <p class="text-[10px] text-zinc-400 dark:text-zinc-500 mt-0.5">Aucune activité aujourd'hui</p>
               </div>
             </div>
           </div>
@@ -607,31 +627,34 @@ onUnmounted(() => { clearInterval(clockInterval); clearAll(); });
     </div>
   </div>
 
-  <!-- ═══ MODAL DÉPENSE ═══ -->
+  <Teleport to="body">
+    <TripPhotosModal
+      v-if="showPhotosModal && selectedStopForPhotos"
+      :stop="selectedStopForPhotos"
+      @close="showPhotosModal = false"
+    />
+  </Teleport>
+
   <Teleport to="body">
     <Transition name="modal-slide">
       <div v-if="showAddExpenseModal" class="fixed top-14 left-0 right-0 bottom-0 z-50 flex items-end sm:items-center justify-center">
         <div class="absolute inset-0 bg-zinc-950/50 backdrop-blur-[6px]" @click="showAddExpenseModal = false"></div>
         <div class="modal-sheet">
-          <!-- handle mobile -->
           <div class="w-8 h-1 bg-zinc-300 dark:bg-zinc-600 rounded-full mx-auto mb-5 sm:hidden"></div>
-
           <div class="flex items-start justify-between mb-6">
             <div>
-              <p class="text-[9px] font-black text-zinc-400 uppercase tracking-[0.22em] mb-1">Saisie rapide · {{ currentTimeFormatted }}</p>
+              <p class="text-[9px] font-black text-zinc-400 dark:text-zinc-500 uppercase tracking-[0.22em] mb-1">Saisie rapide · {{ currentTimeFormatted }}</p>
               <h3 class="text-2xl font-black text-zinc-900 dark:text-white tracking-tight">Nouvelle dépense</h3>
             </div>
-            <button @click="showAddExpenseModal = false" class="live-icon-btn shrink-0 cursor-pointer">
-              <i class="fi fi-rr-cross text-xs text-zinc-500 dark:text-zinc-400"></i>
+            <button @click="showAddExpenseModal = false" class="icon-btn cursor-pointer shrink-0">
+              <i class="fi fi-rr-cross text-xs leading-none"></i>
             </button>
           </div>
-
           <form @submit.prevent="addExpense" class="space-y-4">
             <div class="modal-field">
               <label class="modal-label">Description</label>
               <input v-model="newExpense.title" type="text" placeholder="Ex : Déjeuner à Lyon" class="modal-input" required />
             </div>
-
             <div class="grid grid-cols-2 gap-3">
               <div class="modal-field">
                 <label class="modal-label">Montant</label>
@@ -653,7 +676,6 @@ onUnmounted(() => { clearInterval(clockInterval); clearAll(); });
                 </select>
               </div>
             </div>
-
             <div v-if="trip?.participants?.length > 1" class="modal-field">
               <label class="modal-label">Payé par</label>
               <select v-model="newExpense.paidBy" class="modal-input">
@@ -661,7 +683,6 @@ onUnmounted(() => { clearInterval(clockInterval); clearAll(); });
                 <option v-for="p in trip.participants" :key="p.id" :value="p.id">{{ p.fullName }}</option>
               </select>
             </div>
-
             <div class="flex gap-2.5 pt-2">
               <button type="button" @click="showAddExpenseModal = false" class="modal-cancel-btn flex-1 cursor-pointer">Annuler</button>
               <button type="submit" :disabled="isSubmittingExpense" class="modal-submit-btn flex-1 cursor-pointer">
@@ -674,155 +695,202 @@ onUnmounted(() => { clearInterval(clockInterval); clearAll(); });
       </div>
     </Transition>
   </Teleport>
+</div>
 </template>
 
 <style scoped>
 @reference "../index.css";
 
+/* ── Animations ──────────────────────────────── */
 @keyframes cardEnter {
-  from { opacity: 0; transform: translateY(10px); }
+  from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 .card-enter {
   opacity: 0;
-  animation: cardEnter 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: cardEnter 0.42s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-.live-card {
-  @apply bg-white dark:bg-[#1a1a1c] rounded-3xl p-4 shadow-[0_2px_12px_rgba(0,0,0,0.06)] dark:shadow-none border border-zinc-200/70 dark:border-zinc-800/40;
+/* ── Barre de progression dans le topbar ─────── */
+.topbar-progress-track {
+  @apply absolute bottom-0 left-0 w-full h-[2px] pointer-events-none overflow-hidden;
+  background: transparent;
+}
+.topbar-progress-fill {
+  @apply h-full transition-all duration-1000;
+  background: var(--brand-primary);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--brand-primary) 60%, transparent);
 }
 
-.live-icon-btn {
-  @apply w-9 h-9 rounded-2xl bg-zinc-100 dark:bg-zinc-800/70 flex items-center justify-center hover:bg-zinc-200 dark:hover:bg-zinc-700/80 transition-all active:scale-90;
+/* ── Boutons icônes ──────────────────────────── */
+.icon-btn {
+  @apply w-8 h-8 rounded-xl flex items-center justify-center text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all active:scale-90;
 }
 
-.live-section-label {
-  @apply text-[9px] font-black text-zinc-400 dark:text-zinc-500 uppercase tracking-[0.22em] block;
-}
-
+/* ── Badge Live ──────────────────────────────── */
 .live-badge {
-  @apply flex items-center gap-1.5 px-3 py-1.5 bg-primary-400/10 dark:bg-primary-400/[0.12] rounded-xl border border-primary-400/20 text-[10px] font-black text-primary-600 dark:text-primary-400 uppercase tracking-wider;
+  @apply flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-primary-400/10 dark:bg-primary-400/[0.12] border border-primary-400/20 text-[10px] font-black text-primary-600 dark:text-primary-400 uppercase tracking-wider;
 }
-
 .live-badge-sm {
-  @apply flex items-center gap-1.5 px-2.5 py-1.5 bg-primary-400/10 dark:bg-primary-400/[0.12] rounded-xl border border-primary-400/20 text-[10px] font-black text-primary-600 dark:text-primary-400 uppercase tracking-wider;
+  @apply flex items-center gap-1.5 px-2 py-1.5 rounded-xl bg-primary-400/10 dark:bg-primary-400/[0.12] border border-primary-400/20 text-[10px] font-black text-primary-600 dark:text-primary-400 uppercase tracking-wider;
+}
+.live-dot { @apply w-1.5 h-1.5 bg-primary-400 rounded-full animate-pulse shrink-0; }
+
+/* ── Labels de section ───────────────────────── */
+.section-label {
+  @apply text-[9px] font-black text-zinc-400 dark:text-zinc-500 uppercase tracking-[0.22em];
 }
 
-.live-dot {
-  @apply w-1.5 h-1.5 bg-primary-400 rounded-full animate-pulse;
-}
-
-.progress-bar {
+/* ── Progression de voyage (dans panneau) ────── */
+.trip-progress-bar {
   background: var(--brand-primary);
-  box-shadow: 0 0 10px color-mix(in srgb, var(--brand-primary) 60%, transparent);
-  transition: width 1s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--brand-primary) 50%, transparent);
+  transition: width 1.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.current-stop-card {
-  @apply relative overflow-hidden rounded-3xl p-4 border-2;
-  border-color: color-mix(in srgb, var(--stop-color) 35%, transparent);
-  background: color-mix(in srgb, var(--stop-color) 7%, white);
+/* ── Section "En ce moment" (hero) ───────────── */
+.hero-section {
+  @apply relative overflow-hidden;
+  background: color-mix(in srgb, var(--sc) 5%, white);
 }
-.dark .current-stop-card {
-  background: color-mix(in srgb, var(--stop-color) 8%, #1a1a1c);
+.dark .hero-section {
+  background: color-mix(in srgb, var(--sc) 7%, #111113);
 }
-.current-stop-glow {
-  @apply absolute -top-12 -right-12 w-40 h-40 rounded-full pointer-events-none;
-  background: color-mix(in srgb, var(--stop-color) 30%, transparent);
-  filter: blur(40px);
+.hero-left-strip {
+  @apply absolute left-0 top-0 bottom-0 w-[3px] z-10 pointer-events-none;
+  background: var(--sc);
 }
-.current-stop-pulse {
-  @apply w-2 h-2 rounded-full animate-pulse inline-block;
-}
-
-.next-stop-icon {
-  background: color-mix(in srgb, var(--stop-color) 14%, transparent);
+.hero-ambient-glow {
+  @apply absolute -top-8 -right-8 w-28 h-28 rounded-full pointer-events-none;
+  background: color-mix(in srgb, var(--sc) 18%, transparent);
+  filter: blur(36px);
 }
 
-.route-chip {
-  @apply inline-flex items-center gap-1 text-[10px] font-bold text-zinc-500 dark:text-zinc-400;
+/* ── Bouton Photos ───────────────────────────── */
+.photos-btn {
+  @apply flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all hover:opacity-80 active:scale-95;
 }
 
-.navigate-btn {
-  @apply flex items-center justify-center gap-2 w-full py-3 rounded-2xl font-black text-xs uppercase tracking-wider transition-all active:scale-[0.97];
+/* ── Icônes des stops ────────────────────────── */
+.stop-icon-lg {
+  @apply w-12 h-12 rounded-2xl flex items-center justify-center;
+}
+.stop-icon-md {
+  @apply w-10 h-10 rounded-xl flex items-center justify-center;
+}
+
+/* ── Type tag ────────────────────────────────── */
+.type-tag {
+  @apply inline-flex items-center px-2 py-1 rounded-xl text-[9px] font-black uppercase tracking-wider;
+}
+
+/* ── Bouton naviguer ─────────────────────────── */
+.nav-btn {
+  @apply flex items-center justify-center gap-2 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all active:scale-[0.97] text-zinc-950;
   background: var(--brand-primary);
-  color: #0a0a0a;
-  box-shadow: 0 4px 20px color-mix(in srgb, var(--brand-primary) 35%, transparent);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--brand-primary) 28%, transparent);
 }
-.navigate-btn:hover { filter: brightness(1.07); }
+.nav-btn:hover { filter: brightness(1.07); }
 
-.timeline-line {
-  @apply absolute left-[1.875rem] top-0 bottom-0 w-px bg-zinc-100 dark:bg-zinc-800/60 pointer-events-none;
+/* ── Timeline ────────────────────────────────── */
+.timeline-rail {
+  @apply absolute top-0 bottom-0 w-px pointer-events-none;
+  left: 1.625rem; /* center of node: pl-4(16px) + half w-5(10px) */
+  background: linear-gradient(to bottom, transparent 0%, #e4e4e7 8%, #e4e4e7 92%, transparent);
 }
-
-.timeline-dot {
-  @apply w-5 h-5 rounded-full border-2 border-white dark:border-[#1a1a1c] mt-1 z-10 flex items-center justify-center shrink-0 transition-all duration-300;
-}
-.timeline-dot-past   { background: #d4d4d8; }
-.timeline-dot-next   { background: var(--brand-primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-primary) 20%, transparent); }
-.timeline-dot-active { background: var(--dot-color); box-shadow: 0 0 0 3px color-mix(in srgb, var(--dot-color) 20%, transparent); }
-.timeline-dot-future { background: #d4d4d8; }
-
-.timeline-dot-inner-pulse {
-  @apply w-2 h-2 rounded-full animate-pulse inline-block;
+.dark .timeline-rail {
+  background: linear-gradient(to bottom, transparent 0%, #3f3f46 8%, #27272a 92%, transparent);
 }
 
-.timeline-badge {
-  @apply inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-lg;
+.timeline-row {
+  @apply relative flex items-start pl-4 gap-3 transition-colors duration-150 hover:bg-zinc-50 dark:hover:bg-zinc-800/25;
+}
+.timeline-row.is-current {
+  @apply bg-primary-400/[0.04] dark:bg-primary-400/[0.07] hover:bg-primary-400/[0.05] dark:hover:bg-primary-400/[0.09];
 }
 
-.budget-stat-cell {
-  @apply flex flex-col items-center gap-0.5 bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl py-3 px-2;
+.timeline-node {
+  @apply w-5 h-5 rounded-full border-2 border-white dark:border-[#111113] mt-[14px] z-10 shrink-0 flex items-center justify-center transition-all duration-300;
 }
-.budget-stat-value { @apply text-base font-black text-zinc-900 dark:text-white leading-tight; }
-.budget-stat-label { @apply text-[9px] font-bold text-zinc-400 uppercase tracking-wide; }
-
-.budget-bar {
+.node-done  { @apply bg-zinc-300 dark:bg-zinc-600; }
+.node-idle  { @apply bg-zinc-200 dark:bg-zinc-700; }
+.node-next  {
   background: var(--brand-primary);
-  box-shadow: 0 0 6px color-mix(in srgb, var(--brand-primary) 40%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-primary) 20%, transparent);
+}
+.node-active {
+  background: var(--nc, #ccff00);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--nc, #ccff00) 22%, transparent);
+}
+.node-pulse { @apply w-2 h-2 rounded-full animate-pulse inline-block; }
+
+.status-pill {
+  @apply inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-wider px-2 py-1 rounded-xl;
 }
 
-.expense-cta-btn {
-  @apply flex items-center gap-3 w-full p-3.5 rounded-3xl border-2 border-dashed border-zinc-200 dark:border-zinc-800/60 text-zinc-500 dark:text-zinc-400 font-black text-sm hover:border-primary-400/40 hover:text-primary-500 dark:hover:text-primary-400 hover:bg-primary-400/[0.04] transition-all duration-200;
+.photo-row-btn {
+  @apply w-6 h-6 rounded-xl flex items-center justify-center text-zinc-400 dark:text-zinc-500 hover:text-violet-500 dark:hover:text-violet-400 hover:bg-violet-500/10 transition-all shrink-0;
 }
 
-.upcoming-day-row {
-  @apply flex items-center gap-3 p-3 bg-white dark:bg-[#1a1a1c] rounded-2xl border border-zinc-200/70 dark:border-zinc-800/40 shadow-[0_1px_6px_rgba(0,0,0,0.04)] dark:shadow-none hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors;
+/* ── Budget ──────────────────────────────────── */
+.stat-cell {
+  @apply flex flex-col items-center gap-0.5 py-3 rounded-2xl bg-zinc-50 dark:bg-zinc-800/50;
 }
-.upcoming-day-date {
-  @apply w-10 h-10 rounded-2xl bg-zinc-50 dark:bg-zinc-800/80 flex flex-col items-center justify-center gap-0.5 shrink-0 border border-zinc-100 dark:border-zinc-700/50;
+.stat-val { @apply text-[15px] font-black text-zinc-900 dark:text-white leading-tight tabular-nums; }
+.stat-lbl { @apply text-[8px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider; }
+.budget-fill {
+  background: var(--brand-primary);
+  box-shadow: 0 0 5px color-mix(in srgb, var(--brand-primary) 40%, transparent);
 }
 
+/* ── Prochains jours ─────────────────────────── */
+.upcoming-row {
+  @apply flex items-center gap-3 px-2 py-2.5 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/40 transition-colors;
+}
+.upcoming-date {
+  @apply w-10 h-10 rounded-2xl bg-zinc-100 dark:bg-zinc-800/60 flex flex-col items-center justify-center gap-0.5 shrink-0 border border-zinc-200 dark:border-zinc-700/50;
+}
+
+/* ── Barre d'actions sticky ──────────────────── */
+.action-btn {
+  @apply flex items-center justify-center gap-2 py-3 rounded-2xl font-black text-xs uppercase tracking-wider transition-all active:scale-[0.97];
+}
+.action-btn-primary {
+  @apply text-zinc-950;
+  background: var(--brand-primary);
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--brand-primary) 28%, transparent);
+}
+.action-btn-primary:hover { filter: brightness(1.07); }
+.action-btn-secondary {
+  @apply bg-zinc-100 dark:bg-zinc-800/60 text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700/60 hover:bg-zinc-200 dark:hover:bg-zinc-700/60;
+}
+
+/* ── Éléments sur la carte ───────────────────── */
 .map-chip {
   @apply flex items-center bg-white/95 dark:bg-[#1a1a1c]/95 backdrop-blur-xl rounded-2xl px-4 py-2.5 border border-zinc-200/60 dark:border-zinc-700/50 shadow-[0_4px_20px_rgba(0,0,0,0.08)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)];
 }
-
 .map-float-card {
-  @apply bg-white/95 dark:bg-[#1a1a1c]/96 backdrop-blur-2xl rounded-3xl border border-zinc-200/60 dark:border-zinc-700/50 shadow-[0_8px_40px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_40px_rgba(0,0,0,0.5)] p-4;
+  @apply bg-white/96 dark:bg-[#1a1a1c]/96 backdrop-blur-2xl rounded-3xl border border-zinc-200/60 dark:border-zinc-700/50 shadow-[0_8px_40px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_40px_rgba(0,0,0,0.5)] p-4;
 }
-
 .map-nav-btn {
-  @apply w-10 h-10 rounded-2xl flex items-center justify-center transition-all active:scale-90 shrink-0;
+  @apply w-10 h-10 rounded-xl flex items-center justify-center transition-all active:scale-90;
   background: var(--brand-primary);
-  box-shadow: 0 4px 14px color-mix(in srgb, var(--brand-primary) 40%, transparent);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--brand-primary) 36%, transparent);
 }
 .map-nav-btn:hover { filter: brightness(1.08); }
 
+/* ── Modal dépense ───────────────────────────── */
 .modal-sheet {
   @apply relative w-full sm:max-w-[440px] bg-white dark:bg-[#1a1a1c] rounded-t-[2rem] sm:rounded-[2rem] border border-zinc-200/60 dark:border-zinc-700/50 shadow-[0_-12px_60px_rgba(0,0,0,0.1)] dark:shadow-[0_-12px_60px_rgba(0,0,0,0.6)] p-6 sm:p-8 z-10;
 }
-
 .modal-field { @apply flex flex-col gap-1.5; }
 .modal-label { @apply text-xs font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-wider; }
-
 .modal-input {
   @apply w-full rounded-2xl bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700/60 px-4 py-3 text-zinc-900 dark:text-white text-sm font-semibold placeholder:text-zinc-400 dark:placeholder:text-zinc-500 outline-none focus:border-primary-400 dark:focus:border-primary-400 focus:bg-white dark:focus:bg-zinc-800/80 transition-all duration-200;
 }
-
 .modal-cancel-btn {
   @apply flex items-center justify-center gap-2 py-3.5 rounded-2xl font-black text-sm text-zinc-600 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700/50 hover:bg-zinc-200 dark:hover:bg-zinc-700/60 transition-all active:scale-[0.98];
 }
-
 .modal-submit-btn {
   @apply flex items-center justify-center gap-2 py-3.5 rounded-2xl font-black text-sm text-zinc-950 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed;
   background: var(--brand-primary);
@@ -830,9 +898,10 @@ onUnmounted(() => { clearInterval(clockInterval); clearAll(); });
 }
 .modal-submit-btn:hover:not(:disabled) { filter: brightness(1.07); }
 
+/* ── Transitions ─────────────────────────────── */
 .pop-enter-active { transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1); }
 .pop-leave-active { transition: all 0.2s ease; }
-.pop-enter-from  { opacity: 0; transform: scale(0.96) translateY(-6px); }
+.pop-enter-from  { opacity: 0; transform: scale(0.97) translateY(-4px); }
 .pop-leave-to    { opacity: 0; transform: scale(0.98); }
 
 .float-up-enter-active { transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); }

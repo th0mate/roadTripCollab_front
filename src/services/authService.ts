@@ -8,6 +8,7 @@ export const login = async (credentials: Pick<User, 'email' | 'password'>): Prom
   const response = await apiClient.post('/auth/login', credentials)
   if (response.data.data.token) {
     setToken(response.data.data.token)
+    localStorage.setItem(IS_ADMIN_KEY, String(response.data.data.user?.isAdmin ?? false))
   }
   return response.data
 }

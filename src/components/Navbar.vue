@@ -84,7 +84,6 @@
 <script setup lang="ts">
 import { useThemeStore } from '../stores/theme'
 import { useAuthStore } from '../stores/auth'
-import { isAdminUser } from '../services/authService'
 import { useRouter, useRoute } from 'vue-router'
 import { computed } from 'vue'
 
@@ -94,7 +93,7 @@ const router = useRouter()
 const route = useRoute()
 
 const isDashboard = computed(() => route.name === 'trip-dashboard' || route.name === 'trip-live')
-const isAdmin = computed(() => isAdminUser())
+const isAdmin = computed(() => authStore.isAdmin)
 
 const handleLogout = () => {
   authStore.logout()

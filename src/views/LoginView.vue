@@ -17,7 +17,7 @@ const handleLogin = async () => {
   errorMessage.value = '';
   try {
     const response = await apiLogin({ email: email.value, password: password.value });
-    authStore.login(response.data.token);
+    authStore.login(response.data.token, response.data.user?.isAdmin ?? false);
     await router.push('/my-trips');
   } catch (error: any) {
     errorMessage.value = "Identifiants incorrects. Veuillez réessayer.";

@@ -705,7 +705,6 @@ onUnmounted(() => { clearInterval(clockInterval); clearAll(); });
 <style scoped>
 @reference "../index.css";
 
-/* ── Animations ──────────────────────────────── */
 @keyframes cardEnter {
   from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
@@ -715,7 +714,6 @@ onUnmounted(() => { clearInterval(clockInterval); clearAll(); });
   animation: cardEnter 0.42s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* ── Barre de progression dans le topbar ─────── */
 .topbar-progress-track {
   @apply absolute bottom-0 left-0 w-full h-[2px] pointer-events-none overflow-hidden;
   background: transparent;
@@ -726,12 +724,10 @@ onUnmounted(() => { clearInterval(clockInterval); clearAll(); });
   box-shadow: 0 0 8px color-mix(in srgb, var(--brand-primary) 60%, transparent);
 }
 
-/* ── Boutons icônes ──────────────────────────── */
 .icon-btn {
   @apply w-8 h-8 rounded-xl flex items-center justify-center text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all active:scale-90;
 }
 
-/* ── Badge Live ──────────────────────────────── */
 .live-badge {
   @apply flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-primary-400/10 dark:bg-primary-400/[0.12] border border-primary-400/20 text-[10px] font-black text-primary-600 dark:text-primary-400 uppercase tracking-wider;
 }
@@ -745,14 +741,12 @@ onUnmounted(() => { clearInterval(clockInterval); clearAll(); });
   @apply text-[9px] font-black text-zinc-400 dark:text-zinc-500 uppercase tracking-[0.22em];
 }
 
-/* ── Progression de voyage (dans panneau) ────── */
 .trip-progress-bar {
   background: var(--brand-primary);
   box-shadow: 0 0 6px color-mix(in srgb, var(--brand-primary) 50%, transparent);
   transition: width 1.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* ── Section "En ce moment" (hero) ───────────── */
 .hero-section {
   @apply relative overflow-hidden;
   background: color-mix(in srgb, var(--sc) 5%, white);
@@ -770,12 +764,10 @@ onUnmounted(() => { clearInterval(clockInterval); clearAll(); });
   filter: blur(36px);
 }
 
-/* ── Bouton Photos ───────────────────────────── */
 .photos-btn {
   @apply flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all hover:opacity-80 active:scale-95;
 }
 
-/* ── Icônes des stops ────────────────────────── */
 .stop-icon-lg {
   @apply w-12 h-12 rounded-2xl flex items-center justify-center;
 }
@@ -783,12 +775,10 @@ onUnmounted(() => { clearInterval(clockInterval); clearAll(); });
   @apply w-10 h-10 rounded-xl flex items-center justify-center;
 }
 
-/* ── Type tag ────────────────────────────────── */
 .type-tag {
   @apply inline-flex items-center px-2 py-1 rounded-xl text-[9px] font-black uppercase tracking-wider;
 }
 
-/* ── Bouton naviguer ─────────────────────────── */
 .nav-btn {
   @apply flex items-center justify-center gap-2 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all active:scale-[0.97] text-zinc-950;
   background: var(--brand-primary);
@@ -796,10 +786,9 @@ onUnmounted(() => { clearInterval(clockInterval); clearAll(); });
 }
 .nav-btn:hover { filter: brightness(1.07); }
 
-/* ── Timeline ────────────────────────────────── */
 .timeline-rail {
   @apply absolute top-0 bottom-0 w-px pointer-events-none;
-  left: 1.625rem; /* center of node: pl-4(16px) + half w-5(10px) */
+  left: 1.625rem;
   background: linear-gradient(to bottom, transparent 0%, #e4e4e7 8%, #e4e4e7 92%, transparent);
 }
 .dark .timeline-rail {
@@ -836,7 +825,6 @@ onUnmounted(() => { clearInterval(clockInterval); clearAll(); });
   @apply w-6 h-6 rounded-xl flex items-center justify-center text-zinc-400 dark:text-zinc-500 hover:text-violet-500 dark:hover:text-violet-400 hover:bg-violet-500/10 transition-all shrink-0;
 }
 
-/* ── Budget ──────────────────────────────────── */
 .stat-cell {
   @apply flex flex-col items-center gap-0.5 py-3 rounded-2xl bg-zinc-50 dark:bg-zinc-800/50;
 }
@@ -847,7 +835,6 @@ onUnmounted(() => { clearInterval(clockInterval); clearAll(); });
   box-shadow: 0 0 5px color-mix(in srgb, var(--brand-primary) 40%, transparent);
 }
 
-/* ── Prochains jours ─────────────────────────── */
 .upcoming-row {
   @apply flex items-center gap-3 px-2 py-2.5 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/40 transition-colors;
 }
@@ -855,7 +842,6 @@ onUnmounted(() => { clearInterval(clockInterval); clearAll(); });
   @apply w-10 h-10 rounded-2xl bg-zinc-100 dark:bg-zinc-800/60 flex flex-col items-center justify-center gap-0.5 shrink-0 border border-zinc-200 dark:border-zinc-700/50;
 }
 
-/* ── Barre d'actions sticky ──────────────────── */
 .action-btn {
   @apply flex items-center justify-center gap-2 py-3 rounded-2xl font-black text-xs uppercase tracking-wider transition-all active:scale-[0.97];
 }
@@ -869,7 +855,6 @@ onUnmounted(() => { clearInterval(clockInterval); clearAll(); });
   @apply bg-zinc-100 dark:bg-zinc-800/60 text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700/60 hover:bg-zinc-200 dark:hover:bg-zinc-700/60;
 }
 
-/* ── Éléments sur la carte ───────────────────── */
 .map-chip {
   @apply flex items-center bg-white/95 dark:bg-[#1a1a1c]/95 backdrop-blur-xl rounded-2xl px-4 py-2.5 border border-zinc-200/60 dark:border-zinc-700/50 shadow-[0_4px_20px_rgba(0,0,0,0.08)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)];
 }
@@ -883,7 +868,6 @@ onUnmounted(() => { clearInterval(clockInterval); clearAll(); });
 }
 .map-nav-btn:hover { filter: brightness(1.08); }
 
-/* ── Modal dépense ───────────────────────────── */
 .modal-sheet {
   @apply relative w-full sm:max-w-[440px] bg-white dark:bg-[#1a1a1c] rounded-t-[2rem] sm:rounded-[2rem] border border-zinc-200/60 dark:border-zinc-700/50 shadow-[0_-12px_60px_rgba(0,0,0,0.1)] dark:shadow-[0_-12px_60px_rgba(0,0,0,0.6)] p-6 sm:p-8 z-10;
 }
@@ -902,7 +886,6 @@ onUnmounted(() => { clearInterval(clockInterval); clearAll(); });
 }
 .modal-submit-btn:hover:not(:disabled) { filter: brightness(1.07); }
 
-/* ── Transitions ─────────────────────────────── */
 .pop-enter-active { transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1); }
 .pop-leave-active { transition: all 0.2s ease; }
 .pop-enter-from  { opacity: 0; transform: scale(0.97) translateY(-4px); }

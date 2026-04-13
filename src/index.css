@@ -1,9 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
-/* ===== DESIGN TOKENS ===== */
 @theme {
-    /* Primary — Orange (light) / Neon Green (dark) */
     --color-primary-50: #fff7ed;
     --color-primary-100: #ffedd5;
     --color-primary-200: #fed7aa;
@@ -15,7 +13,6 @@
     --color-primary-800: #9a3412;
     --color-primary-900: #7c2d12;
 
-    /* Secondary 1 — Blue */
     --color-blue-50: #eff6ff;
     --color-blue-100: #dbeafe;
     --color-blue-200: #bfdbfe;
@@ -24,7 +21,6 @@
     --color-blue-600: #2563eb;
     --color-blue-700: #1d4ed8;
 
-    /* Secondary 2 — Violet */
     --color-violet-50: #f5f3ff;
     --color-violet-100: #ede9fe;
     --color-violet-200: #ddd6fe;
@@ -33,7 +29,6 @@
     --color-violet-600: #7c3aed;
     --color-violet-700: #6d28d9;
 
-    /* Secondary 3 — Amber */
     --color-amber-50: #fffbeb;
     --color-amber-100: #fef3c7;
     --color-amber-200: #fde68a;
@@ -41,7 +36,6 @@
     --color-amber-500: #f59e0b;
     --color-amber-600: #d97706;
 
-    /* Secondary 4 — Rose */
     --color-rose-50: #fff1f2;
     --color-rose-100: #ffe4e6;
     --color-rose-200: #fecdd3;
@@ -49,7 +43,6 @@
     --color-rose-500: #f43f5e;
     --color-rose-600: #e11d48;
 
-    /* Zinc (neutrals) */
     --color-zinc-50: #fafafa;
     --color-zinc-100: #f4f4f5;
     --color-zinc-200: #e4e4e7;
@@ -63,18 +56,16 @@
     --color-zinc-950: #09090b;
 }
 
-/* Dark mode variant */
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* ===== BASE STYLES ===== */
 @layer base {
     :root {
-        --brand-primary: #f97316; /* Vibrant Orange - high contrast & energy for light mode */
+        --brand-primary: #f97316;
         --brand-primary-hover: #ea580c;
     }
 
     .dark {
-        --brand-primary: #ccff00; /* Pure Neon for dark mode */
+        --brand-primary: #ccff00;
         --brand-primary-hover: #bce600;
     }
 
@@ -92,8 +83,6 @@
     }
 }
 
-/* ===== COMPONENT UTILITIES ===== */
-/* Paper card */
 @utility paper-card {
     @apply bg-white dark:bg-[#1C1C1E] rounded-3xl border border-zinc-200 dark:border-zinc-800/30 shadow-[0_2px_16px_rgba(0,0,0,0.07)] dark:shadow-none transition-all duration-300;
 }
@@ -102,7 +91,6 @@
     @apply paper-card hover:bg-zinc-50/80 dark:hover:bg-[#252528] hover:border-zinc-300 dark:hover:border-zinc-700 hover:shadow-[0_8px_32px_rgba(0,0,0,0.12)] dark:hover:shadow-none;
 }
 
-/* Buttons */
 @utility btn {
     @apply inline-flex items-center justify-center gap-2 rounded-full font-bold text-sm transition-all duration-300 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed active:scale-95;
 }
@@ -123,7 +111,6 @@
     @apply btn px-6 py-3 bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-500/20 border border-rose-200 dark:border-rose-500/20;
 }
 
-/* Inputs */
 @utility input-field {
     @apply block w-full bg-zinc-100 dark:bg-zinc-800/30 border-0 border-b-2 border-transparent rounded-t-xl px-4 py-3 text-zinc-900 dark:text-white text-base placeholder:text-zinc-400 dark:placeholder:text-zinc-500 outline-none focus:border-primary-400 focus:bg-white dark:focus:bg-zinc-800/50 transition-all duration-300;
 }
@@ -132,12 +119,10 @@
     @apply border-rose-500 focus:border-rose-500 bg-rose-50 dark:bg-rose-500/5;
 }
 
-/* Label */
 @utility form-label {
     @apply block text-sm font-bold text-zinc-600 dark:text-zinc-400 mb-2 ml-1;
 }
 
-/* Badges */
 @utility badge {
     @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold uppercase tracking-wider;
 }
@@ -161,32 +146,26 @@
     @apply badge bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400;
 }
 
-/* Section label */
 @utility section-label {
     @apply text-xs font-black text-zinc-400 dark:text-zinc-500 uppercase tracking-[0.2em] mb-3 block;
 }
 
-/* Divider */
 @utility divider {
     @apply border-t border-zinc-200 dark:border-zinc-800/50;
 }
 
-/* Spinner */
 @utility spinner {
     @apply w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin;
 }
 
-/* Page wrapper */
 @utility page-wrapper {
     @apply min-h-screen transition-colors duration-200;
 }
 
-/* Safe zone for content under fixed navbar */
 @utility nav-safe-zone {
     @apply pt-24 sm:pt-32;
 }
 
-/* Navbar link */
 @utility nav-link {
   @apply px-4 py-2 text-sm font-bold text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white rounded-2xl transition-all duration-200 cursor-pointer;
 
@@ -195,7 +174,6 @@
   }
 }
 
-/* Legal Sidebar link */
 @utility legal-nav-link {
   display: block;
   @apply px-4 py-3 rounded-2xl text-sm font-bold text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all duration-200;
@@ -206,7 +184,6 @@
 }
 
 
-/* ===== CUSTOM SCROLLBAR ===== */
 .custom-scrollbar::-webkit-scrollbar {
     width: 6px;
     height: 6px;
@@ -234,7 +211,6 @@
     display: none;
 }
 
-/* ===== TRANSITIONS ===== */
 .fade-enter-active, .fade-leave-active {
   transition: opacity 0.2s ease, transform 0.2s ease;
 }
@@ -243,7 +219,6 @@
   transform: translateY(5px);
 }
 
-/* ===== AUTOFILL STYLES ===== */
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
 input:-webkit-autofill:focus,

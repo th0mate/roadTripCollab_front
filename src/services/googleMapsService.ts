@@ -14,7 +14,6 @@ class GoogleMapsService {
     return import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
   }
 
-  // L'API est chargée via index.html, on vérifie juste sa présence
   async loadApi() {
     return new Promise<void>((resolve) => {
       if (window.google && window.google.maps) {
@@ -126,8 +125,6 @@ class GoogleMapsService {
       const route = response.data.routes?.[0];
       if (!route) return null;
       
-      // Google peut ne pas donner le prix exact sans configuration spécifique,
-      // mais il nous dit si le trajet contient des péages.
       const hasTolls = !!route.travelAdvisory?.tollInfo;
       
       return {

@@ -30,7 +30,6 @@ const activeSearchIndex = ref<number | null>(null);
 const searchResults = ref<City[]>([]);
 let searchTimeout: ReturnType<typeof setTimeout> | null = null;
 
-// Google Maps Logic (Stable Markers)
 const mapContainer = ref<HTMLElement | null>(null);
 let map: google.maps.Map | null = null;
 let markers: Map<number, google.maps.Marker> = new Map();

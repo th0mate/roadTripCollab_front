@@ -37,7 +37,6 @@ export const updateMe = async (userData: any): Promise<User> => {
   let payload: any = userData
   let headers = {}
 
-  // Si on a un File pour l'avatar, on utilise FormData
   if (userData.avatar instanceof File) {
     const formData = new FormData()
     Object.keys(userData).forEach((key) => {
@@ -48,8 +47,6 @@ export const updateMe = async (userData: any): Promise<User> => {
     payload = formData
     headers = { 'Content-Type': 'multipart/form-data' }
   } else if (userData.removeAvatar) {
-    // Si on veut supprimer l'avatar, on peut aussi utiliser FormData ou JSON
-    // Le backend attend 'removeAvatar' = 'true'
   }
 
   const response = await apiClient.put('/auth/me', payload, { headers })

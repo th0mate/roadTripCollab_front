@@ -2,28 +2,35 @@
 
 Interface utilisateur du projet RoadTrip Collab, construite avec **Vue 3** + **TypeScript** + **Vite**.
 
-> Le backend doit être démarré avant le frontend. Voir le README du repo `roadtrip-backend`.
-
 ---
 
 ## Prérequis
 
-- [Node.js](https://nodejs.org/) v18 ou v20 LTS
-- Backend `roadtrip-backend` lancé sur `http://localhost:3333`
+- [Node.js](https://nodejs.org/) v20 LTS
+- Backend `roadtrip-backend` accessible sur `http://localhost:3333`
 
 ---
 
-## Installation
+## Lancer tout le projet (backend + frontend)
 
-### 1. Installer les dépendances
+Le fichier `docker-compose.full.yml` se trouve dans le dépôt **`roadTripCollab_back`** et démarre l'ensemble de la stack en une seule commande.
 
 ```bash
-npm install
+# Depuis le dossier roadTripCollab_back/
+docker-compose -f docker-compose.full.yml up --build
 ```
 
-### 2. Démarrer en développement
+Voir le README de `roadTripCollab_back` pour les détails.
+
+---
+
+## Lancer uniquement le frontend (développement local)
 
 ```bash
+# 1. Installer les dépendances
+npm install
+
+# 2. Démarrer en développement
 npm run dev
 ```
 
@@ -38,6 +45,19 @@ npm run dev        # Serveur de développement (Vite)
 npm run build      # Build de production (TypeScript check + Vite build)
 npm run preview    # Prévisualiser le build de production
 ```
+
+---
+
+## Configuration
+
+Le fichier `.env` à la racine du frontend configure l'URL du backend :
+
+```env
+VITE_API_URL=http://localhost:3333
+VITE_GOOGLE_MAPS_API_KEY=<votre_clé>
+```
+
+Si le backend tourne sur un autre port, modifier `VITE_API_URL` ici.
 
 ---
 
@@ -58,12 +78,6 @@ src/
 ├── types/           # Interfaces TypeScript
 └── assets/styles/   # CSS global et variables
 ```
-
----
-
-## Configuration
-
-Le frontend pointe par défaut sur `http://localhost:3333` (backend). Si le backend tourne sur un autre port, modifier l'URL de base dans `src/services/api.ts`.
 
 ---
 

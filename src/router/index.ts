@@ -133,7 +133,6 @@ const router = createRouter({
       component: AdminStopsView,
       meta: { requiresAuth: true, requiresAdmin: true }
     },
-    // Legal routes
     { path: '/mentions-legales', name: 'mentions-legales', component: () => import('../views/LegalMentionsView.vue') },
     { path: '/politique-confidentialite', name: 'privacy-policy', component: () => import('../views/PrivacyPolicyView.vue') },
     { path: '/cookies', name: 'cookies', component: () => import('../views/CookiesView.vue') },

@@ -43,6 +43,5 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* Scoped styles can go here if needed */
 </style>
 

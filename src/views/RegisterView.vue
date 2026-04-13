@@ -25,14 +25,11 @@ const handleRegister = async () => {
       password: password.value 
     });
 
-    // Si le backend renvoie un token, on connecte (mais ici c'est verification email)
     if (response.data && response.data.token) {
       authStore.login(response.data.token);
       await router.push('/my-trips');
     } else {
-      // Cas de la vérification par email
       successMessage.value = response.message || "Compte créé ! Veuillez vérifier vos emails.";
-      // On vide le formulaire
       fullName.value = '';
       email.value = '';
       password.value = '';

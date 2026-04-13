@@ -8,7 +8,7 @@ const toast = useToast();
 const props = defineProps<{ 
   tripId: string | number; 
   initialDate: string; 
-  place: any; // Contient 'existingStop' si on est en édition
+  place: any;
   participants: any[];
   expenses: any[]; 
   currentUserId: number | null;
@@ -58,15 +58,13 @@ onMounted(() => {
     form.value.arrivalTime = extractTime(s.arrivalDate);
     form.value.departureTime = extractTime(s.departureDate);
     
-    // 1. On prend le prix et le payeur direct du stop (si existent)
     if (s.price > 0) {
       form.value.addExpense = true;
       form.value.amount = Number(s.price);
       form.value.paidBy = s.paidBy || props.currentUserId;
     }
 
-    // 2. RECHERCHE FIABLE PAR STOP_ID (ou par titre/date si stop_id est null en DB)
-    const related = props.expenses?.find((e: any) => 
+    const related = props.expenses?.find((e: any) =>
       (e.stopId === s.id || e.stop_id === s.id) || 
       (e.title === s.title && extractDate(e.expenseDate) === extractDate(s.arrivalDate))
     );
@@ -121,7 +119,6 @@ const submit = async () => {
 
     if (props.isEditing && props.place.existingStop?.id) {
       const stopId = props.place.existingStop.id;
-      // 1. Update Stop
       await api.patch(`/stops/${stopId}`, stopData);
       
       const expenseData = {
@@ -134,7 +131,6 @@ const submit = async () => {
         stop_id: stopId
       };
 
-      // 2. Update, Create or Delete Expense
       if (form.value.addExpense) {
         if (form.value.existingExpenseId) await api.patch(`/expenses/${form.value.existingExpenseId}`, expenseData);
         else await api.post(`/trips/${props.tripId}/expenses`, expenseData);
@@ -142,11 +138,9 @@ const submit = async () => {
         await api.delete(`/expenses/${form.value.existingExpenseId}`);
       }
     } else {
-      // 1. Create Stop
       const stopRes = await api.post(`/trips/${props.tripId}/stops`, stopData);
       const newStopId = stopRes.data.id;
 
-      // 2. Create Expense with the new stopId
       if (form.value.addExpense && form.value.amount > 0) {
         await api.post(`/trips/${props.tripId}/expenses`, {
           tripId: props.tripId,

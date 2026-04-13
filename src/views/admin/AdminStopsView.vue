@@ -7,19 +7,16 @@ import type { AdminStop, AdminPhoto, AdminTrip, PaginatedResponse } from '../../
 
 const activeTab = ref<'stops' | 'photos'>('stops')
 
-// Stops
 const stopsData = ref<PaginatedResponse<AdminStop> | null>(null)
 const stopsLoading = ref(true)
 const stopsPage = ref(1)
 const tripFilter = ref('')
 const trips = ref<AdminTrip[]>([])
 
-// Photos
 const photosData = ref<PaginatedResponse<AdminPhoto> | null>(null)
 const photosLoading = ref(true)
 const photosPage = ref(1)
 
-// Modal confirmation
 const confirmModal = ref(false)
 const confirmMessage = ref('')
 const confirmAction = ref<(() => Promise<void>) | null>(null)

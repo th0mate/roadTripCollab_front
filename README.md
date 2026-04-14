@@ -1,6 +1,8 @@
 # RoadTrip Collab — Frontend
 
 Interface utilisateur du projet RoadTrip Collab, construite avec **Vue 3** + **TypeScript** + **Vite**.
+backend : https://github.com/Inosthful/roadtrip-backend
+frontend : https://github.com/th0mate/roadTripCollab_front
 
 ---
 
